@@ -122,6 +122,10 @@ nav button.on::before{content:"";position:absolute;top:0;left:28%;right:28%;heig
 .fc-sum div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 4px;text-align:center;font-size:.78rem;color:var(--mut)}
 .fc-sum b{display:block;font:700 1.5rem/1.1 var(--fd)}.fc-sum .g0 b{color:var(--bad)}.fc-sum .g1 b{color:var(--warn)}.fc-sum .g2 b{color:var(--good)}.fc-sum .g3 b{color:var(--steel)}
 @media (prefers-reduced-motion:reduce){.fc-card{transition:none}}
+
+/* Đưa thanh tab lên trên mọi lớp nổi chèn từ bên ngoài (VD: huy hiệu của nhà cung cấp hosting) */
+nav{z-index:2147483647}
+.toast{z-index:2147483647}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
