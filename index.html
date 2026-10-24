@@ -7,10 +7,10 @@ body{margin:0}
 /* Layout: one phone-width app column, coil-strip header, bottom tab bar; spec tab reads as a design brief */
 :root{
 --bg:#eef1f4;--card:#ffffff;--ink:#14212e;--mut:#5b6b7b;--line:#d7dee6;
---steel:#1f4e79;--steel2:#2f6ea8;--zinc:#a9b7c4;--amber:#e39b1a;--good:#1d8a55;--bad:#c8433a;--soft:#e4ebf2;
+--steel:#1f4e79;--steel2:#2f6ea8;--zinc:#a9b7c4;--amber:#e39b1a;--good:#1a7d4d;--bad:#c8433a;--soft:#e4ebf2;--warn:#946014;--onsteel:#ffffff;--brush:rgba(20,33,46,.035);--sheen:rgba(255,255,255,.18);
 --fd:"Barlow Semi Condensed","Arial Narrow",sans-serif;--fb:"Be Vietnam Pro",system-ui,sans-serif;--fm:"JetBrains Mono",ui-monospace,monospace}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e151c;--card:#16212c;--ink:#e6edf3;--mut:#93a4b5;--line:#253545;--steel:#5d9fdc;--steel2:#7bb6ea;--zinc:#4a5b6b;--amber:#f0b347;--good:#3fbf7f;--bad:#ec6a5f;--soft:#1d2b39;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#0e151c;--card:#16212c;--ink:#e6edf3;--mut:#93a4b5;--line:#253545;--steel:#5d9fdc;--steel2:#7bb6ea;--zinc:#4a5b6b;--amber:#f0b347;--good:#3fbf7f;--bad:#ec6a5f;--soft:#1d2b39;color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e151c;--card:#16212c;--ink:#e6edf3;--mut:#93a4b5;--line:#253545;--steel:#5d9fdc;--steel2:#7bb6ea;--zinc:#4a5b6b;--amber:#f0b347;--good:#3fbf7f;--bad:#ec6a5f;--soft:#1d2b39;--warn:#f0b347;--onsteel:#0e151c;--brush:rgba(255,255,255,.025);--sheen:rgba(255,255,255,.22);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e151c;--card:#16212c;--ink:#e6edf3;--mut:#93a4b5;--line:#253545;--steel:#5d9fdc;--steel2:#7bb6ea;--zinc:#4a5b6b;--amber:#f0b347;--good:#3fbf7f;--bad:#ec6a5f;--soft:#1d2b39;--warn:#f0b347;--onsteel:#0e151c;--brush:rgba(255,255,255,.025);--sheen:rgba(255,255,255,.22);color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--fb);font-size:15px;line-height:1.5}
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
@@ -65,6 +65,29 @@ table{border-collapse:collapse;width:100%;font-size:.84rem}td,th{border-bottom:1
 .tw{overflow-x:auto}
 .layers div{padding:7px 12px;font-size:.84rem;border-radius:6px;margin-bottom:3px;color:#fff}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:.85rem;z-index:9}
+
+/* ===== Steel finish (SteelSpeak Design System) ===== */
+body{background:repeating-linear-gradient(0deg,var(--brush) 0 1px,transparent 1px 3px),var(--bg)}
+.btn{color:var(--onsteel);background:linear-gradient(180deg,var(--sheen),transparent 55%),var(--steel);box-shadow:inset 0 -2px 0 rgba(0,0,0,.18);transition:transform .15s ease-out,filter .15s ease-out;min-height:44px}
+.btn:active{transform:translateY(1px);box-shadow:inset 0 1px 2px rgba(0,0,0,.25)}
+.btn.amber{color:#14212e;background:linear-gradient(180deg,rgba(255,255,255,.28),transparent 55%),var(--amber)}
+.btn.ghost{background:var(--soft);box-shadow:inset 0 0 0 1px var(--line)}
+.chip{min-height:36px;padding:7px 12px;font-weight:500;transition:background .15s,color .15s}
+.chip.on{color:var(--onsteel)}
+.card{background:linear-gradient(180deg,var(--card),var(--card)) padding-box,linear-gradient(180deg,var(--zinc),var(--line) 40%) border-box;border:1px solid transparent}
+.ic{background:linear-gradient(145deg,var(--card),var(--soft));box-shadow:inset 0 0 0 1px var(--line)}
+.node i{background:linear-gradient(145deg,var(--card),var(--soft));box-shadow:inset 0 0 0 2px var(--zinc)}
+.node.done i{background:var(--good);box-shadow:none}.node.now i{background:var(--amber);box-shadow:0 0 0 4px color-mix(in srgb,var(--amber) 25%,transparent)}
+.coil{box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -1px 0 rgba(0,0,0,.3)}
+.coil::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.10) 45%,transparent 60%);pointer-events:none}
+.lbl{color:var(--mut)}
+.bar{box-shadow:inset 0 1px 2px rgba(0,0,0,.12)}.bar i{background:linear-gradient(90deg,var(--amber),color-mix(in srgb,var(--amber) 70%,#fff))}
+nav{background:linear-gradient(180deg,var(--card),var(--soft))}
+nav button{position:relative;min-height:56px}
+nav button.on::before{content:"";position:absolute;top:0;left:28%;right:28%;height:3px;border-radius:0 0 3px 3px;background:var(--steel)}
+.mic{box-shadow:inset 0 2px 0 rgba(255,255,255,.2),0 4px 14px color-mix(in srgb,var(--bad) 35%,transparent)}
+.w.m{color:var(--warn)}
+@media (prefers-reduced-motion:reduce){.btn,.chip{transition:none}}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -351,7 +374,7 @@ return `<h1>Luyện phát âm AI</h1><p class="mut">Nghe mẫu giọng Mỹ, r�
 <div class="card flash" style="min-height:180px"><div class="lbl">${CATS[t.cat].n}</div><div class="big" style="font-size:${mode=='term'?'1.8rem':'1.25rem'}">${esc(target)}</div><div class="mut">${esc(mode=='term'?t.vi:t.exvi)}</div><div class="row">${spk(target)}${slow(target)}</div></div>
 <button class="mic" id="micb" aria-label="Bắt đầu ghi âm" onclick="listen()">${svg('mic')}</button><p class="mut" style="text-align:center;font-size:.84rem" id="mst">${SR?'Chạm để đọc':'Trình duyệt này không mở được micro. Đang dùng chế độ mô phỏng để xem kết quả mẫu.'}</p>
 ${S.res?vRes(S.res):''}`}
-function vRes(r){return `<div class="card stack"><div class="lbl">Kết quả</div><div class="score" style="color:${r.score>=80?'var(--good)':r.score>=60?'var(--amber)':'var(--bad)'}">${r.score}<span style="font-size:1.2rem">/100</span></div>
+function vRes(r){return `<div class="card stack"><div class="lbl">Kết quả</div><div class="score" style="color:${r.score>=80?'var(--good)':r.score>=60?'var(--warn)':'var(--bad)'}">${r.score}<span style="font-size:1.2rem">/100</span></div>
 <div class="gauge"><div><b>${r.acc}</b><span class="mut" style="font-size:.75rem">Chính xác</span></div><div><b>${r.flu}</b><span class="mut" style="font-size:.75rem">Trôi chảy</span></div><div><b>${r.comp}</b><span class="mut" style="font-size:.75rem">Đầy đủ</span></div></div>
 <div>${r.words.map(w=>`<span class="w ${w.s}">${esc(w.w)}</span>`).join(' ')}</div><div class="mut" style="font-size:.84rem">Bạn nói: “${esc(r.heard)}”${r.sim?' · <b>kết quả mô phỏng</b>':''}</div>
 <div class="note">${r.tip}</div></div>`}
