@@ -220,6 +220,11 @@ nav{z-index:2147483647}
 .trk.on{background:var(--steel);border-color:var(--steel);color:var(--onsteel)}.trk.on .trk-k{color:inherit;opacity:.8}.trk i{font-style:normal;color:var(--warn)}.trk.on i{color:inherit}
 .trk.add{border-style:dashed;color:var(--steel);display:grid;place-items:center}
 .trk-card h3{font-size:1.15rem;margin-top:2px}
+
+.race-bar{display:flex;align-items:center;gap:10px;margin-bottom:12px}.race-bar .lbl{flex:none}
+.race-seg{flex:1;display:flex;background:var(--soft);border-radius:12px;padding:4px;gap:4px;overflow-x:auto}
+.race-seg button{flex:1;min-height:40px;padding:0 12px;border-radius:9px;font-weight:600;color:var(--mut);white-space:nowrap}
+.race-seg button.on{background:linear-gradient(135deg,#c9711c,#e39b1a);color:#fff;box-shadow:0 2px 6px rgba(201,113,28,.35)}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -489,7 +494,7 @@ function vHomeMain(){const PATH=pathState(),nowP=PATH.find(p=>p[2]=='now'),W=wro
 <div class="stack" style="margin-top:14px">${nowP?`<button class="btn amber" onclick="start({path:'${nowP[0]}',cats:['${nowP[0]}'],mode:'quiz',n:8,name:'${nowP[1]}'})">Tiếp tục: ${nowP[1]} →</button>`:'<div class="card"><b>Bạn đã hoàn thành cả lộ trình!</b></div>'}
 <div class="card row" style="justify-content:space-between"><div><div class="lbl">Sổ từ sai</div><b style="font-family:var(--fd);font-size:1.4rem">${W.length}</b> <span class="mut">từ cần ôn</span></div>${W.length?`<button class="btn" onclick="reviewWrong()">Ôn ngay</button>`:'<span class="mut" style="font-size:.84rem">Chưa có từ sai</span>'}</div>
 ${USER?`<div class="mut row" style="font-size:.78rem;justify-content:space-between"><span>✓ ${esc(PROF?.full_name||USER.email)} · tiến độ lưu online</span><button class="mut" style="text-decoration:underline" onclick="go('me')">Tài khoản</button></div>`:loginBox()}
-${(curTrack()?.slug||'steel')=='steel'?sagaHome():''}${dueHome()}<div class="card"><div class="lbl">Câu nói của ngày</div><div class="row" style="margin-top:6px;flex-wrap:nowrap"><div style="flex:1;min-width:0"><b>${esc(daily().ex)}</b><div class="mut" style="font-size:.86rem">${esc(daily().exvi)}</div></div>${spk(daily().ex)}</div>
+${((!TR.ready||TR.legacy)||(curTrack()&&enrOf(curTrack())?.status=='approved'))&&SCTX().LEVELS?sagaHome():''}${dueHome()}<div class="card"><div class="lbl">Câu nói của ngày</div><div class="row" style="margin-top:6px;flex-wrap:nowrap"><div style="flex:1;min-width:0"><b>${esc(daily().ex)}</b><div class="mut" style="font-size:.86rem">${esc(daily().exvi)}</div></div>${spk(daily().ex)}</div>
 <button class="btn ghost" style="width:100%;margin-top:10px" onclick="S.speakItem=daily();go('speak')">Đọc thử & chấm điểm AI</button></div></div>
 <h2>Lộ trình học</h2><div class="path">${PATH.map(([c,n,s],i)=>`<button class="node ${s}" onclick="start({path:'${c}',cats:['${c}'],mode:'flash',n:8,name:'${n}'})"><i>${s=='done'?'✓':i+1}</i><div><b>${n}</b><div class="mut" style="font-size:.82rem">${CATS[c].d}</div></div><span class="lbl">${s=='done'?'Xong':s=='now'?'Đang học':''}</span></button>`).join('')}</div>
 <h2>Bài học của bạn</h2><div class="stack" style="margin-top:8px">${[...S.lessons,EXL].map((l,i)=>`<button class="card" style="text-align:left" onclick="start(${i<S.lessons.length?`S.lessons[${i}]`:'EXL'})"><div class="row" style="justify-content:space-between"><b>${esc(l.name)}</b><span class="chip">${modeName(l.mode)}</span></div><div class="mut" style="font-size:.84rem">${l.terms?l.terms.length+' từ · từ tài liệu “'+esc(l.src||'')+'”':l.n+' câu · '+l.cats.map(c=>CATS[c].n).join(', ')}${l.ex?' · bài mẫu':''}</div></button>`).join('')}<button class="btn ghost" onclick="go('make')">+ Tạo bài học riêng</button><button class="btn ghost" onclick="go('make');setTimeout(()=>$('#up').scrollIntoView(),50)">⬆ Tạo bài từ tài liệu tiếng Anh</button></div>`}
@@ -679,29 +684,40 @@ document.addEventListener('keydown',e=>{if(!S.game||!S.game.fc||/INPUT|TEXTAREA|
 
 /* ===================== SPEED SAGA ===================== */
 const SG={best:{},board:null,period:'week',view:'map',team:false,loaded:false};
-try{SG.best=JSON.parse(localStorage.getItem('saga_best')||'{}')}catch(e){}
-function sagaMaxOpen(){let m=1;for(const[l,b]of Object.entries(SG.best))if(b.stars>=1)m=Math.max(m,+l+(b.od?3:1));return Math.min(m,SAGA.LEVELS)}
+function sgKey(){return 'saga_best_'+(curTrack()?.slug||'steel')}function sgLoadLocal(){try{SG.best=JSON.parse(localStorage.getItem(sgKey())||(sgKey()=='saga_best_steel'?localStorage.getItem('saga_best'):null)||'{}')}catch(e){SG.best={}}}sgLoadLocal();
+function sagaMaxOpen(){let m=1;for(const[l,b]of Object.entries(SG.best))if(b.stars>=1)m=Math.max(m,+l+(b.od?3:1));return Math.min(m,SCTX().LEVELS)}
 function sagaStars(){return Object.values(SG.best).reduce((a,b)=>a+(b.stars||0),0)}
-async function sagaLoad(){if(!USER){SG.loaded=true;return}const {data}=await SB.from('saga_scores').select('level,stars,score,overdrive').eq('user_id',USER.id);
+async function sagaLoad(){if(!USER){SG.loaded=true;return}let qq=SB.from('saga_scores').select('level,stars,score,overdrive').eq('user_id',USER.id);if(TR.ready&&curTrack())qq=qq.eq('track_id',curTrack().id);const {data}=await qq;
  const b={};(data||[]).forEach(r=>{const x=b[r.level]||{stars:0,score:0,od:false};x.stars=Math.max(x.stars,r.stars);x.score=Math.max(x.score,r.score);x.od=x.od||r.overdrive;b[r.level]=x});
- for(const[l,x]of Object.entries(SG.best))if(!b[l])b[l]=x;SG.best=b;SG.loaded=true;try{localStorage.setItem('saga_best',JSON.stringify(b))}catch(e){}if(S.tab=='saga'&&!S.game)render()}
-async function sagaBoard(){if(!USER){SG.board=[];return}const {data,error}=await SB.rpc('saga_board',{period:SG.period});SG.board=error?[]:data;SG.boardErr=error?error.message:'';if(S.tab=='saga'&&!S.game)render()}
+ for(const[l,x]of Object.entries(SG.best))if(!b[l])b[l]=x;SG.best=b;SG.loaded=true;try{localStorage.setItem(sgKey(),JSON.stringify(b))}catch(e){}if(S.tab=='saga'&&!S.game)render()}
+async function sagaBoard(){if(!USER){SG.board=[];return}const args={period:SG.period};if(TR.ready&&curTrack())args.track=curTrack().id;const {data,error}=await SB.rpc('saga_board',args);SG.board=error?[]:data;SG.boardErr=error?error.message:'';if(S.tab=='saga'&&!S.game)render()}
 const TIERS=[['Đồng',0,'#a86b3c'],['Bạc',1500,'#8a9aa8'],['Vàng',4000,'#c9971c'],['Kim cương',8000,'#3fa7c9']];
 function tierOf(sc){let r=TIERS[0];for(const x of TIERS)if(sc>=x[1])r=x;return r}
-function sagaHome(){const open=sagaMaxOpen(),st=sagaStars();return `<button class="saga-hero" onclick="go('saga')"><div><div class="lbl" style="color:#ffe3a8">Speed Saga · Đua level</div><b>Level ${open} đang chờ bạn</b><span>${st} ★ · ${SAGA.LEVELS} level · 8 khu vực nhà máy</span></div><span class="saga-hero-go">Chơi ▶</span></button>`}
+function sagaHome(){const open=sagaMaxOpen(),st=sagaStars();return `<button class="saga-hero" onclick="go('saga')"><div><div class="lbl" style="color:#ffe3a8">Speed Saga · ${esc(curTrack()?(curTrack().kind=='cefr'?'General English':curTrack().name):'Thép phủ')}</div><b>Level ${open} đang chờ bạn</b><span>${st} ★ · ${SCTX().LEVELS} level · ${SCTX().chapters.length} khu</span></div><span class="saga-hero-go">Chơi ▶</span></button>`}
 const CH_STYLE=[['#3a556f','#6f8aa3'],['#2f5f5a','#5d9a90'],['#3b4a7a','#7383b8'],['#7a3b3b','#c06a4f'],['#4b3b7a','#8d74c4'],['#5a4a2a','#b08f4a'],['#23465f','#3f88a8'],['#2f3b47','#6b7f92']];
 function initials(n){return (n||'?').trim().split(/\s+/).map(w=>w[0]).slice(-2).join('').toUpperCase()}
-function vSaga(){const tr=curTrack();if(tr&&tr.slug!='steel')return trackBar()+`<div class="card" style="margin-top:12px"><b>Speed Saga cho khóa ${esc(tr.name)} đang được xây dựng</b><p class="mut">Bản đồ và bài thi level của khóa này mở ở giai đoạn tiếp theo. Hiện bạn có thể học từ vựng và thẻ ghi nhớ.</p></div>`;return trackBar()+vSagaMain()}
+let _sctx=null;
+function SCTX(){const tr=curTrack();const k=(tr?tr.slug:'steel')+':'+TERMS.length;if(_sctx&&_sctx.k===k)return _sctx.c;const c=(!TR.ready||TR.legacy||!tr)?SAGA.buildCtx(null,STEEL_TERMS):SAGA.buildCtx(tr,TERMS);_sctx={k,c};return c}
+function raceTracks(){return TR.tracks.filter(x=>{const e=enrOf(x);return e&&e.status=='approved'})}
+function raceBar(){if(!TR.ready||TR.legacy)return '';const L=raceTracks();if(!L.length)return '';return `<div class="race-bar"><span class="lbl">Đua level</span><div class="race-seg">${L.map(x=>`<button class="${x.slug==TR.active?'on':''}" onclick="switchTrack('${x.slug}')">${x.kind=='cefr'?'General English':esc(x.name.split('–')[0].trim())}</button>`).join('')}</div></div>`}
+function vSaga(){const tr=curTrack();
+ if(TR.ready&&!TR.legacy){
+  if(!USER)return `<h1>Đua level</h1><div class="card stack" style="margin-top:12px"><b>Đăng nhập để đua level</b><p class="mut" style="margin:0">Mỗi khóa học có bản đồ và bảng xếp hạng riêng. Bạn chỉ đua được khóa mình đã tham gia.</p><button class="btn" onclick="go('me')">Đăng nhập</button></div>`;
+  const mine=raceTracks();
+  if(!mine.length)return `<h1>Đua level</h1><div class="card stack" style="margin-top:12px"><b>Bạn chưa tham gia khóa học nào</b><p class="mut" style="margin:0">Tham gia khóa chuyên ngành hoặc General English để mở bản đồ đua level của khóa đó.</p><button class="btn" onclick="go('tracks')">Mở thư viện khóa học</button></div>`;
+  if(!tr||!mine.includes(tr)){return raceBar()+`<div class="card stack" style="margin-top:12px"><b>Chưa tham gia ${esc(tr?tr.name:'khóa này')}</b><p class="mut" style="margin:0">Bạn chỉ đua được khóa mình đã tham gia. Chọn một khóa ở trên, hoặc đăng ký khóa này trong thư viện.</p><button class="btn ghost" onclick="go('tracks')">Thư viện khóa học</button></div>`}
+  if(!SCTX().LEVELS)return raceBar()+`<div class="card" style="margin-top:12px"><b>Khóa ${esc(tr.name)} chưa đủ từ để mở bản đồ</b><p class="mut">Cần ít nhất 4 từ mỗi chặng. Admin nạp thêm từ là bản đồ tự mở.</p></div>`}
+ return raceBar()+vSagaMain()}
 function vSagaMain(){if(!SG.loaded){sagaLoad();}if(SG.view=='board'){if(!SG.board)sagaBoard();return sagaTabs()+vBoard()}return sagaTabs()+vMap()}
 function sagaTabs(){return `<div class="saga-tabs"><button class="${SG.view=='map'?'on':''}" onclick="SG.view='map';render()">Bản đồ</button><button class="${SG.view=='board'?'on':''}" onclick="SG.view='board';SG.board=null;render()">Xếp hạng</button></div>`}
-function vMap(){const N=SAGA.LEVELS,open=sagaMaxOpen(),GAP=96,CHH=70,PADT=40;const friends={};(SG.board||[]).forEach(u=>{if(!u.is_me)(friends[Math.min(u.max_level,N)]=friends[Math.min(u.max_level,N)]||[]).push(u)});if(!SG.board&&USER)sagaBoard();
- const pos=[];let y=PADT;const totalH=N*GAP+SAGA.CHAPTERS.length*CHH+PADT*2;
+function vMap(){const N=SCTX().LEVELS,open=sagaMaxOpen(),GAP=96,CHH=70,PADT=40;const friends={};(SG.board||[]).forEach(u=>{if(!u.is_me)(friends[Math.min(u.max_level,N)]=friends[Math.min(u.max_level,N)]||[]).push(u)});if(!SG.board&&USER)sagaBoard();
+ const pos=[];let y=PADT;const totalH=N*GAP+SCTX().chapters.length*CHH+PADT*2;
  const items=[];
  for(let lv=N;lv>=1;lv--){const ci=Math.floor((lv-1)/SAGA.PER_CH);const x=50+Math.sin(lv*0.85)*28;pos[lv]={x,y:0};}
  // tính y từ trên xuống (level cao ở trên)
- let cy=PADT;for(let ci=SAGA.CHAPTERS.length-1;ci>=0;ci--){items.push({ch:ci,y:cy});cy+=CHH;for(let k=SAGA.PER_CH;k>=1;k--){const lv=ci*SAGA.PER_CH+k;pos[lv].y=cy+GAP/2;cy+=GAP}}
+ let cy=PADT;for(let ci=SCTX().chapters.length-1;ci>=0;ci--){items.push({ch:ci,y:cy});cy+=CHH;for(let k=SAGA.PER_CH;k>=1;k--){const lv=ci*SAGA.PER_CH+k;pos[lv].y=cy+GAP/2;cy+=GAP}}
  const H=cy+PADT;let d='';for(let lv=1;lv<=N;lv++){const p=pos[lv];d+=(lv==1?'M':'L')+p.x+' '+p.y+' '}
- const bands=SAGA.CHAPTERS.map((c,ci)=>{const top=items.find(i=>i.ch==ci).y,h=CHH+SAGA.PER_CH*GAP;const [a,b]=CH_STYLE[ci];return `<div class="saga-band" style="top:${top}px;height:${h}px">${sceneSVG(ci,h)}</div><div class="saga-sign" style="top:${top+14}px"><span>Khu ${ci+1}</span>${esc(c.name)}</div>`}).join('');
+ const bands=SCTX().chapters.map((c,ci)=>{const top=items.find(i=>i.ch==ci).y,h=CHH+SAGA.PER_CH*GAP;const [a,b]=CH_STYLE[ci%CH_STYLE.length];return `<div class="saga-band" style="top:${top}px;height:${h}px">${sceneSVG(ci,h)}</div><div class="saga-sign" style="top:${top+14}px"><span>Khu ${ci+1}</span>${esc(c.name)}</div>`}).join('');
  const nodes=[];for(let lv=1;lv<=N;lv++){const p=pos[lv],b=SG.best[lv]||{},locked=lv>open,cur=lv==open,st=b.stars||0;
   const fr=friends[lv]||[];
   nodes.push(`<div class="saga-node-wrap" style="left:${p.x}%;top:${p.y}px">${!locked?`<div class="saga-stars">${[1,2,3].map(i=>`<i class="${i<=st?'on':''}">★</i>`).join('')}</div>`:''}
@@ -711,14 +727,14 @@ function vMap(){const N=SAGA.LEVELS,open=sagaMaxOpen(),GAP=96,CHH=70,PADT=40;con
  setTimeout(()=>{const el=document.querySelector('.saga-node.cur');if(el&&!SG.scrolled){el.scrollIntoView({block:'center'});SG.scrolled=1}},60);
  return `<div class="saga-bar"><span>★ <b>${sagaStars()}</b>/${N*3}</span><span>Level <b>${open}</b></span>${USER?'':'<span class="mut" style="font-size:.75rem">Đăng nhập để lên bảng xếp hạng</span>'}</div>
  <div class="saga-map" style="height:${H}px">${bands}<svg class="saga-path" viewBox="0 0 100 ${H}" preserveAspectRatio="none"><path d="${d}" class="p0"/><path d="${d}" class="p1"/><path d="${d}" class="p2"/></svg>${nodes.join('')}${meMarker(pos,open)}</div>`}
-function sagaIntro(lv){const L=SAGA.gen(lv),b=SG.best[lv]||{};const types={mean:'Chọn nghĩa',rev:'Chọn từ',listen:'Nghe & chọn',cloze:'Điền từ',order:'Xếp quy trình'};const cnt={};L.questions.forEach(q=>cnt[q.type]=(cnt[q.type]||0)+1);
- const m=document.createElement('div');m.className='saga-modal';m.innerHTML=`<div class="saga-sheet" role="dialog" aria-label="Level ${lv}"><div class="saga-sheet-top" style="background:linear-gradient(135deg,${CH_STYLE[L.chapter][0]},${CH_STYLE[L.chapter][1]})"><div class="lbl" style="color:#dfe9f3">Khu ${L.chapter+1} · ${esc(L.name)}</div><h1>Level ${lv}</h1><div class="saga-stars big">${[1,2,3].map(i=>`<i class="${i<=(b.stars||0)?'on':''}">★</i>`).join('')}</div></div>
+function sagaIntro(lv){const L=SAGA.gen(lv,SCTX()),b=SG.best[lv]||{};const types={mean:'Chọn nghĩa',rev:'Chọn từ',listen:'Nghe & chọn',cloze:'Điền từ',order:'Xếp quy trình'};const cnt={};L.questions.forEach(q=>cnt[q.type]=(cnt[q.type]||0)+1);
+ const m=document.createElement('div');m.className='saga-modal';m.innerHTML=`<div class="saga-sheet" role="dialog" aria-label="Level ${lv}"><div class="saga-sheet-top" style="background:linear-gradient(135deg,${CH_STYLE[L.chapter%8][0]},${CH_STYLE[L.chapter%8][1]})"><div class="lbl" style="color:#dfe9f3">Khu ${L.chapter+1} · ${esc(L.name)}</div><h1>Level ${lv}</h1><div class="saga-stars big">${[1,2,3].map(i=>`<i class="${i<=(b.stars||0)?'on':''}">★</i>`).join('')}</div></div>
  <div class="stack" style="padding:16px"><div class="chips">${Object.entries(cnt).map(([k,v])=>`<span class="chip">${types[k]} ×${v}</span>`).join('')}</div>
  <table class="saga-goal"><tr><td>★</td><td>Đúng ≥ 6/10</td></tr><tr><td>★★</td><td>Đúng ≥ 8 và xong trong ${Math.round(L.std/1000)} giây</td></tr><tr><td>★★★</td><td>Đúng 10/10 trong ${Math.round(L.std*0.75/1000)} giây</td></tr><tr><td>⚡</td><td>Overdrive: 10/10 trong ${Math.round(L.std*0.5/1000)} giây, nhảy cóc 2 level</td></tr></table>
  <p class="mut" style="font-size:.84rem;margin:0">Trả lời sai bị khoá 2 giây. Mọi người chơi cùng một đề.${b.score?' Điểm cao nhất của bạn: <b>'+b.score+'</b>.':''}</p>
  <button class="btn amber" id="sgplay">Chơi</button><button class="btn ghost" id="sgclose">Để sau</button></div></div>`;
  document.body.appendChild(m);m.querySelector('#sgclose').onclick=()=>m.remove();m.onclick=e=>{if(e.target===m)m.remove()};m.querySelector('#sgplay').onclick=()=>{m.remove();sagaStart(lv)}}
-function sagaStart(lv){const L=SAGA.gen(lv);S.game={saga:1,L,i:0,ans:[],t0:performance.now(),qt0:performance.now(),stun:0,sel:[],picked:null};render();scrollTo(0,0);sagaTick();sagaAutoListen()}
+function sagaStart(lv){const L=SAGA.gen(lv,SCTX());S.game={saga:1,L,i:0,ans:[],t0:performance.now(),qt0:performance.now(),stun:0,sel:[],picked:null};render();scrollTo(0,0);sagaTick();sagaAutoListen()}
 function sagaTick(){clearInterval(SG.timer);SG.timer=setInterval(()=>{const g=S.game;if(!g||!g.saga||g.res){clearInterval(SG.timer);return}const e=document.getElementById('sgtime');if(e)e.textContent=fmtS(performance.now()-g.t0+g.ans.filter(a=>a.wrong).length*2000)},200)}
 const fmtS=ms=>(ms/1000).toFixed(1)+'s';
 function sagaAutoListen(){const g=S.game;const q=g&&g.L.questions[g.i];if(q&&q.type=='listen'){setTimeout(()=>{say(q.prompt);g.qt0=performance.now()},300)}}
@@ -737,13 +753,13 @@ function sagaAnswer(a){const g=S.game,q=g.L.questions[g.i];const ms=Math.round(p
  const next=()=>{g.i++;g.sel=[];g.picked=null;g.stun=0;g.qt0=performance.now();if(g.i>=g.L.questions.length)return sagaFinish();render();sagaAutoListen()};
  if(q.type!='order'){g.picked=a}
  if(ok){if(q.type!='listen')say(q.term||'',1.05);render();setTimeout(next,450)}else{g.stun=1;render();setTimeout(next,2000)}}
-async function sagaFinish(){const g=S.game;clearInterval(SG.timer);const payload=g.ans.map(x=>({a:x.a,ms:x.ms}));let r=SAGA.grade(g.L.level,payload),srv=false,err='';
+async function sagaFinish(){const g=S.game;clearInterval(SG.timer);const payload=g.ans.map(x=>({a:x.a,ms:x.ms}));let r=SAGA.grade(g.L.level,payload,SCTX()),srv=false,err='';
  g.res={...r,pending:!!USER};render();
- if(USER){try{const {data:{session}}=await SB.auth.getSession();const resp=await fetch(window.SS_CONFIG.SUPABASE_URL+'/functions/v1/saga',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token,apikey:window.SS_CONFIG.SUPABASE_ANON_KEY},body:JSON.stringify({level:g.L.level,answers:payload})});const j=await resp.json();if(resp.ok){r=j;srv=true}else err=j.error||('Lỗi '+resp.status)}catch(e){err='Không kết nối được máy chủ'}}
- const b=SG.best[r.level]||{stars:0,score:0,od:false};const prevOpen=sagaMaxOpen();SG.hopFrom=prevOpen;SG.best[r.level]={stars:Math.max(b.stars,r.stars),score:Math.max(b.score,r.score),od:b.od||r.overdrive};try{localStorage.setItem('saga_best',JSON.stringify(SG.best))}catch(e){}
+ if(USER){try{const {data:{session}}=await SB.auth.getSession();const resp=await fetch(window.SS_CONFIG.SUPABASE_URL+'/functions/v1/saga',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token,apikey:window.SS_CONFIG.SUPABASE_ANON_KEY},body:JSON.stringify({level:g.L.level,answers:payload,track:curTrack()?.slug||'steel'})});const j=await resp.json();if(resp.ok){r=j;srv=true}else err=j.error||('Lỗi '+resp.status)}catch(e){err='Không kết nối được máy chủ'}}
+ const b=SG.best[r.level]||{stars:0,score:0,od:false};const prevOpen=sagaMaxOpen();SG.hopFrom=prevOpen;SG.best[r.level]={stars:Math.max(b.stars,r.stars),score:Math.max(b.score,r.score),od:b.od||r.overdrive};try{localStorage.setItem(sgKey(),JSON.stringify(SG.best))}catch(e){}
  S.xp+=r.correct*10;tick();save();SG.board=null;SG.scrolled=0;
  if(S.game&&S.game.saga){S.game.res={...r,srv,err,unlocked:sagaMaxOpen()>prevOpen?sagaMaxOpen():0};render()}}
-function vSagaRes(){const g=S.game,r=g.res,L=g.L;const nxt=Math.min(sagaMaxOpen(),SAGA.LEVELS);
+function vSagaRes(){const g=S.game,r=g.res,L=g.L;const nxt=Math.min(sagaMaxOpen(),SCTX().LEVELS);
  return `<div class="saga-res"><div class="lbl" style="color:#dfe9f3">Level ${L.level} · ${esc(L.name)}</div><h1>${r.stars?['','Qua màn!','Tuyệt vời!','Hoàn hảo!'][r.stars]:'Chưa qua màn'}</h1>
  <div class="saga-stars huge">${[1,2,3].map(i=>`<i class="${i<=r.stars?'on':''}" style="animation-delay:${i*0.25}s">★</i>`).join('')}</div>
  ${r.overdrive?'<div class="saga-od">⚡ OVERDRIVE · nhảy cóc 2 level</div>':''}
@@ -820,7 +836,7 @@ function prop(t,x,y,s,i){const g=(c)=>`<g transform="translate(${x} ${y}) scale(
  case 'star':return g(`<path class="twk" d="M0 -12l3.5 8 8.5 1-6.5 5.5 2 8.5-7.5-4.5-7.5 4.5 2-8.5-6.5-5.5 8.5-1z" fill="#ffe58a"/>`);
  case 'spot':return g(`<path class="beam" d="M0 0l-28 70h56z" fill="#fff6c2" opacity=".35"/><rect x="-8" y="-10" width="16" height="12" rx="3" fill="#9aa5b1"/>`);
  }return ''}
-function sceneSVG(ci,h){const S0=SCN[ci],W=400;let r=rng2(ci*977+13),o='';
+function sceneSVG(ci,h){const S0=SCN[ci%SCN.length],W=400;let r=rng2(ci*977+13),o='';
  o+=`<defs><linearGradient id="sk${ci}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${S0.sky[0]}"/><stop offset="1" stop-color="${S0.sky[1]}"/></linearGradient></defs><rect width="${W}" height="${h}" fill="url(#sk${ci})"/>`;
  if(ci==7)for(let k=0;k<40;k++)o+=`<circle class="twk" style="--d:${(k%7)*0.4}s" cx="${r()*W}" cy="${r()*h*0.7}" r="${0.8+r()*1.6}" fill="#fff"/>`;
  else{o+=`<circle cx="${ci%2?330:70}" cy="60" r="28" fill="#fff6c2" opacity=".9"/>`;for(let k=0;k<3;k++){const cy=40+k*(h/3.2),cx=r()*W;o+=`<g class="cloud" style="--d:${k*-12}s;--s:${38+k*10}s"><g transform="translate(${cx} ${cy})"><ellipse rx="34" ry="12" fill="#fff" opacity=".85"/><ellipse cx="-14" cy="-8" rx="16" ry="12" fill="#fff" opacity=".85"/><ellipse cx="10" cy="-12" rx="18" ry="14" fill="#fff" opacity=".85"/></g></g>`}}
@@ -846,7 +862,7 @@ async function loadWords(){const tr=curTrack();if(!tr||!canLearn()){TERMS=tr&&tr
  Object.entries(tr.cats||{}).forEach(([k,v])=>{if(!CATS[k])CATS[k]={n:v,e:'',d:''};else CATS[k].n=v});
  TERMS=(data||[]).map(w=>({cat:w.cat||w.cefr||'misc',en:w.term,vi:w.meaning_vi,ex:w.example||'',exvi:w.example_vi||''}));if(!CATS.misc)CATS.misc={n:'Khác',e:'',d:''};
  if(tr.slug=='steel'&&!TERMS.length)TERMS=STEEL_TERMS}
-async function switchTrack(slug){TR.active=slug;try{localStorage.setItem('track',slug)}catch(e){}S.cat='all';S.speakItem=null;SG.loaded=false;SG.board=null;await loadWords();render();scrollTo(0,0)}
+async function switchTrack(slug){TR.active=slug;try{localStorage.setItem('track',slug)}catch(e){}S.cat='all';S.speakItem=null;SG.loaded=false;SG.board=null;SG.scrolled=0;_sctx=null;await loadWords();sgLoadLocal();render();scrollTo(0,0)}
 function trackBar(){if(!TR.ready||TR.legacy)return '';const mine=TR.tracks.filter(x=>x.join_policy=='open'||(enrOf(x)&&enrOf(x).status!='rejected'));
  return `<div class="trk-bar" role="tablist" aria-label="Khóa học">${mine.map(x=>{const e=enrOf(x),pend=x.join_policy=='approval'&&(!e||e.status!='approved');return `<button role="tab" aria-selected="${x.slug==TR.active}" class="trk ${x.slug==TR.active?'on':''}" onclick="switchTrack('${x.slug}')"><span class="trk-k">${x.kind=='cefr'?'CEFR':'Chuyên ngành'}</span>${esc(x.name)}${pend?' · <i>chờ duyệt</i>':''}</button>`}).join('')}<button class="trk add" onclick="go('tracks')" aria-label="Thư viện khóa học">＋ Khóa học</button></div>`}
 function vGate(){const tr=curTrack();if(!TR.ready)return '';if(!tr)return `<div class="card" style="margin-top:12px"><b>Chọn một khóa học</b><p class="mut">Mở Thư viện để tham gia khóa học.</p><button class="btn" onclick="go('tracks')">Mở thư viện khóa học</button></div>`;

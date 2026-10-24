@@ -220,10 +220,19 @@ function pick(arr,n,r,not){return shuffle(arr.filter(function(x){return not.inde
 function blank(t){var i=t.ex.toLowerCase().indexOf(t.en.toLowerCase());if(i<0){var w=t.en.split(' (')[0];i=t.ex.toLowerCase().indexOf(w.toLowerCase());if(i<0)return null;return t.ex.slice(0,i)+'_____'+t.ex.slice(i+w.length)}return t.ex.slice(0,i)+'_____'+t.ex.slice(i+t.en.length)}
 
 /* level: 1..LEVELS. Trả về {level, chapter, questions:[...], std} — giống hệt nhau với mọi người */
-function gen(level){
- var ci=Math.floor((level-1)/PER_CH), k=(level-1)%PER_CH, ch=CHAPTERS[ci], r=rng(hash('steelspeak-saga-v1-L'+level));
- var own=TERMS.filter(function(t){return t.cat===ch.cat});
- var prev=TERMS.filter(function(t){return CHAPTERS.slice(0,ci).some(function(c){return c.cat===t.cat})});
+var DEFAULT_CTX={slug:'steel',terms:TERMS,chapters:CHAPTERS,LEVELS:LEVELS};
+/* Dựng bối cảnh đề cho một khóa học. words: [{cat,en,vi,ex,exvi}] theo đúng thứ tự trong DB (ord, id). */
+function buildCtx(track,words){
+ if(!track||track.slug==='steel'){var tw=(words&&words.length)?words:TERMS;return {slug:'steel',terms:tw,chapters:CHAPTERS,LEVELS:LEVELS}}
+ var cats=Object.keys(track.cats||{}),chs=[],per=track.words_per_level||40;
+ if(track.kind==='cefr'){cats.forEach(function(b){var bw=words.filter(function(w){return w.cat===b});for(var i=0;i*per<bw.length;i++){chs.push({cat:b,name:b+'.'+(i+1)+' · '+track.cats[b],seq:null,pool:bw.slice(i*per,(i+1)*per)})}})}
+ else{cats.forEach(function(c){var cw=words.filter(function(w){return w.cat===c});if(cw.length)chs.push({cat:c,name:track.cats[c],seq:null,pool:cw})})}
+ chs=chs.filter(function(c){return c.pool.length>=4});
+ return {slug:track.slug,terms:words,chapters:chs,LEVELS:chs.length*PER_CH}}
+function gen(level,ctx){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.chapters;
+ var ci=Math.floor((level-1)/PER_CH), k=(level-1)%PER_CH, ch=CHAPTERS[ci], r=rng(hash(ctx.slug==='steel'?'steelspeak-saga-v1-L'+level:'steelspeak-saga-v1-'+ctx.slug+'-L'+level));
+ var own=ch.pool||TERMS.filter(function(t){return t.cat===ch.cat});
+ var prev=ci>0?[].concat.apply([],CHAPTERS.slice(0,ci).map(function(c){return c.pool||TERMS.filter(function(t){return t.cat===c.cat})})):[];
  var pool=k<3?own:own.concat(pick(prev,6,r,[]));
  var plan=[['mean','mean','rev','mean','listen','rev','mean','listen','cloze','mean'],
            ['mean','rev','listen','cloze','mean','rev','listen','cloze','mean','rev'],
@@ -249,8 +258,8 @@ function gen(level){
  return {level:level,chapter:ci,name:ch.name,cat:ch.cat,questions:qs,std:std}}
 
 /* answers: [{a: số thứ tự đáp án | mảng thứ tự (order), ms: thời gian của câu}] */
-function grade(level,answers){
- var L=gen(level),correct=0,ms=0,wrong=0;
+function grade(level,answers,ctx){
+ var L=gen(level,ctx),correct=0,ms=0,wrong=0;
  L.questions.forEach(function(q,i){var x=answers[i]||{};var t=Math.max(0,Math.min(120000,+x.ms||0));ms+=t;
   var ok=q.type==='order'?(Array.isArray(x.a)&&x.a.length===q.n&&x.a.every(function(v,j){return q.items[v]&&q.items[v].i===j})):(x.a===q.ans);
   if(ok)correct++;else wrong++});
@@ -262,7 +271,7 @@ function grade(level,answers){
  if(suspicious){stars=0;score=0;overdrive=false}
  return {level:level,correct:correct,total:L.questions.length,ms:ms,std:L.std,stars:stars,score:score,overdrive:overdrive,suspicious:suspicious}}
 
-var api={TERMS:TERMS,CATS:CATS,CHAPTERS:CHAPTERS,PER_CH:PER_CH,LEVELS:LEVELS,gen:gen,grade:grade};
+var api={TERMS:TERMS,CATS:CATS,CHAPTERS:CHAPTERS,PER_CH:PER_CH,LEVELS:LEVELS,gen:gen,grade:grade,buildCtx:buildCtx};
 root.SAGA=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
 
@@ -282,11 +291,26 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "Chưa đăng nhập" }, 401);
     const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const b = await req.json();
+    // Khóa học: phải tham gia (đã duyệt) mới được đua
+    const slug = String(b.track || "steel");
+    const { data: track } = await admin.from("tracks").select("*").eq("slug", slug).maybeSingle();
+    let ctx = null, trackId = null;
+    if (track) {
+      trackId = track.id;
+      const { data: enr } = await admin.from("enrollments").select("status").eq("user_id", user.id).eq("track_id", track.id).maybeSingle();
+      if (!enr || enr.status !== "approved") return json({ error: "Bạn chưa tham gia khóa học này" }, 403);
+      const { data: ws } = await admin.from("words").select("term,meaning_vi,example,example_vi,cat,cefr").eq("track_id", track.id).eq("status", "approved").order("ord").order("id").limit(5000);
+      const words = (ws ?? []).map((w) => ({ cat: w.cat || w.cefr || "misc", en: w.term, vi: w.meaning_vi, ex: w.example || "", exvi: w.example_vi || "" }));
+      ctx = SAGA.buildCtx(track, words);
+    } else if (slug !== "steel") return json({ error: "Không tìm thấy khóa học" }, 404);
+    const LEVELS = ctx ? ctx.LEVELS : SAGA.LEVELS;
     const level = Math.floor(Number(b.level));
-    if (!(level >= 1 && level <= SAGA.LEVELS)) return json({ error: "Level không hợp lệ" }, 400);
+    if (!(level >= 1 && level <= LEVELS)) return json({ error: "Level không hợp lệ" }, 400);
 
-    // Chỉ được chơi level đã mở khoá
-    const { data: rows } = await admin.from("saga_scores").select("level,stars,overdrive").eq("user_id", user.id).gte("stars", 1);
+    // Chỉ được chơi level đã mở khoá (theo khóa học)
+    let q = admin.from("saga_scores").select("level,stars,overdrive").eq("user_id", user.id).gte("stars", 1);
+    if (trackId) q = q.eq("track_id", trackId);
+    const { data: rows } = await q;
     let maxOpen = 1;
     for (const r of rows ?? []) maxOpen = Math.max(maxOpen, r.level + (r.overdrive ? 3 : 1));
     if (level > maxOpen) return json({ error: "Level này chưa mở khoá" }, 403);
@@ -296,8 +320,8 @@ Deno.serve(async (req) => {
     if (last && Date.now() - new Date(last.created_at).getTime() < 15000) return json({ error: "Thao tác quá nhanh, thử lại sau ít giây" }, 429);
 
     const answers = Array.isArray(b.answers) ? b.answers.slice(0, 20) : [];
-    const r = SAGA.grade(level, answers);
-    const { error } = await admin.from("saga_scores").insert({ user_id: user.id, level, correct: r.correct, ms: r.ms, score: r.score, stars: r.stars, overdrive: r.overdrive });
+    const r = SAGA.grade(level, answers, ctx || undefined);
+    const { error } = await admin.from("saga_scores").insert({ user_id: user.id, track_id: trackId, level, correct: r.correct, ms: r.ms, score: r.score, stars: r.stars, overdrive: r.overdrive });
     if (error) return json({ error: error.message }, 500);
     return json(r);
   } catch (e) {

@@ -15,11 +15,26 @@ Deno.serve(async (req) => {
     if (!user) return json({ error: "Chưa đăng nhập" }, 401);
     const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const b = await req.json();
+    // Khóa học: phải tham gia (đã duyệt) mới được đua
+    const slug = String(b.track || "steel");
+    const { data: track } = await admin.from("tracks").select("*").eq("slug", slug).maybeSingle();
+    let ctx = null, trackId = null;
+    if (track) {
+      trackId = track.id;
+      const { data: enr } = await admin.from("enrollments").select("status").eq("user_id", user.id).eq("track_id", track.id).maybeSingle();
+      if (!enr || enr.status !== "approved") return json({ error: "Bạn chưa tham gia khóa học này" }, 403);
+      const { data: ws } = await admin.from("words").select("term,meaning_vi,example,example_vi,cat,cefr").eq("track_id", track.id).eq("status", "approved").order("ord").order("id").limit(5000);
+      const words = (ws ?? []).map((w) => ({ cat: w.cat || w.cefr || "misc", en: w.term, vi: w.meaning_vi, ex: w.example || "", exvi: w.example_vi || "" }));
+      ctx = SAGA.buildCtx(track, words);
+    } else if (slug !== "steel") return json({ error: "Không tìm thấy khóa học" }, 404);
+    const LEVELS = ctx ? ctx.LEVELS : SAGA.LEVELS;
     const level = Math.floor(Number(b.level));
-    if (!(level >= 1 && level <= SAGA.LEVELS)) return json({ error: "Level không hợp lệ" }, 400);
+    if (!(level >= 1 && level <= LEVELS)) return json({ error: "Level không hợp lệ" }, 400);
 
-    // Chỉ được chơi level đã mở khoá
-    const { data: rows } = await admin.from("saga_scores").select("level,stars,overdrive").eq("user_id", user.id).gte("stars", 1);
+    // Chỉ được chơi level đã mở khoá (theo khóa học)
+    let q = admin.from("saga_scores").select("level,stars,overdrive").eq("user_id", user.id).gte("stars", 1);
+    if (trackId) q = q.eq("track_id", trackId);
+    const { data: rows } = await q;
     let maxOpen = 1;
     for (const r of rows ?? []) maxOpen = Math.max(maxOpen, r.level + (r.overdrive ? 3 : 1));
     if (level > maxOpen) return json({ error: "Level này chưa mở khoá" }, 403);
@@ -29,8 +44,8 @@ Deno.serve(async (req) => {
     if (last && Date.now() - new Date(last.created_at).getTime() < 15000) return json({ error: "Thao tác quá nhanh, thử lại sau ít giây" }, 429);
 
     const answers = Array.isArray(b.answers) ? b.answers.slice(0, 20) : [];
-    const r = SAGA.grade(level, answers);
-    const { error } = await admin.from("saga_scores").insert({ user_id: user.id, level, correct: r.correct, ms: r.ms, score: r.score, stars: r.stars, overdrive: r.overdrive });
+    const r = SAGA.grade(level, answers, ctx || undefined);
+    const { error } = await admin.from("saga_scores").insert({ user_id: user.id, track_id: trackId, level, correct: r.correct, ms: r.ms, score: r.score, stars: r.stars, overdrive: r.overdrive });
     if (error) return json({ error: error.message }, 500);
     return json(r);
   } catch (e) {

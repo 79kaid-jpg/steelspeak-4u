@@ -75,3 +75,12 @@ Khóa học (track) và từ vựng nằm trong cơ sở dữ liệu. Khóa **Th
 3. Admin duyệt đơn ở **Tài khoản → Quản trị người dùng → Đơn tham gia khóa học**.
 
 Chưa chạy `platform.sql` thì app vẫn chạy như cũ (chỉ một khóa Thép).
+
+## Đua level theo từng khóa học
+
+Mỗi khóa có bản đồ, câu hỏi và bảng xếp hạng riêng; chỉ người đã **tham gia (được duyệt)** khóa đó mới đua được. Khóa CEFR chia mỗi bậc thành các khu 40 từ (A1.1, A1.2…), mỗi khu 4 level.
+
+### Cài đặt (1 lần, sau platform.sql)
+1. **SQL Editor** → `supabase/saga_v3.sql` → **Run** (điểm đua theo khóa, bảng xếp hạng theo khóa).
+2. **SQL Editor** → `supabase/general_a1.sql` → **Run** (156 từ A1 đầu tiên cho General English; danh sách từ theo CEFR-J Vocabulary Profile 1.5 – Tono Laboratory, TUFS).
+3. **Edge Functions → saga** → dán lại toàn bộ `supabase/functions/saga/index.ts` → **Deploy**.
