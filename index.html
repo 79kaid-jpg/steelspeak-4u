@@ -88,6 +88,40 @@ nav button.on::before{content:"";position:absolute;top:0;left:28%;right:28%;heig
 .mic{box-shadow:inset 0 2px 0 rgba(255,255,255,.2),0 4px 14px color-mix(in srgb,var(--bad) 35%,transparent)}
 .w.m{color:var(--warn)}
 @media (prefers-reduced-motion:reduce){.btn,.chip{transition:none}}
+
+/* ===== Flashcards ===== */
+.fc-counts{display:flex;gap:10px;font-family:var(--fm);font-size:.9rem;font-weight:500}
+.c-new{color:var(--steel)}.c-learn{color:var(--bad)}.c-rev{color:var(--good)}
+.ic:disabled{opacity:.35}
+.fc-stage{position:relative;margin-top:14px;perspective:1400px;height:min(62vh,440px)}
+.fc-peek{position:absolute;inset:10px 10px -8px;border-radius:22px;background:var(--card);border:1px solid var(--line);transform:translateY(8px) scale(.97);opacity:.8}
+.fc-peek2{transform:translateY(16px) scale(.94);opacity:.5}
+.fc-card{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.2,.8,.2,1);cursor:pointer;touch-action:pan-y;user-select:none}
+.fc-card.is-flipped{transform:rotateY(180deg)}
+.fc-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:22px;padding:22px 20px 76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;
+ background:linear-gradient(180deg,var(--card),var(--card)) padding-box,linear-gradient(160deg,var(--zinc),var(--line) 45%,var(--zinc)) border-box;border:1.5px solid transparent;box-shadow:0 10px 30px rgba(20,33,46,.10)}
+.fc-front::before{content:"";position:absolute;inset:0;border-radius:22px;background:repeating-linear-gradient(0deg,var(--brush) 0 1px,transparent 1px 3px);pointer-events:none}
+.fc-back{transform:rotateY(180deg)}
+.fc-tag{position:absolute;top:16px;left:18px;font:600 .72rem/1 var(--fd);letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+.fc-term{font:700 clamp(1.8rem,8vw,2.6rem)/1.08 var(--fd);text-wrap:balance;overflow-wrap:anywhere}
+.fc-vi{font:600 clamp(1.3rem,6vw,1.7rem)/1.2 var(--fb);text-wrap:balance}
+.fc-ex{max-width:34ch;font-size:.95rem;border-top:1px dashed var(--line);padding-top:12px}
+.fc-hint{font-size:.8rem;position:absolute;bottom:70px}
+.fc-speak{position:absolute;bottom:14px;left:0;right:0;display:flex;justify-content:center;gap:8px}
+.fc-stamp{position:absolute;top:24px;padding:6px 12px;border:3px solid;border-radius:10px;font:700 1.1rem/1 var(--fd);letter-spacing:.06em;opacity:0;transition:opacity .1s;backface-visibility:hidden}
+.fc-stamp-l{right:20px;color:var(--bad);transform:rotate(12deg)}.fc-stamp-r{left:20px;color:var(--good);transform:rotate(-12deg)}
+.is-flipped .fc-stamp{transform:rotateY(180deg)}
+.swipe-l .fc-stamp-l,.swipe-r .fc-stamp-r{opacity:1}
+.fc-grades{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.fc-grade{min-height:58px;border-radius:12px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--line);background:var(--card);transition:transform .12s}
+.fc-grade:active{transform:scale(.96)}
+.fc-grade b{font-family:var(--fd);font-size:1rem}.fc-grade span{font-size:.72rem;color:var(--mut);font-family:var(--fm)}
+.fc-grade.g0 b{color:var(--bad)}.fc-grade.g1 b{color:var(--warn)}.fc-grade.g2 b{color:var(--good)}.fc-grade.g3 b{color:var(--steel)}
+.fc-grade.g2{background:color-mix(in srgb,var(--good) 10%,var(--card));border-color:color-mix(in srgb,var(--good) 40%,var(--line))}
+.fc-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}
+.fc-sum div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 4px;text-align:center;font-size:.78rem;color:var(--mut)}
+.fc-sum b{display:block;font:700 1.5rem/1.1 var(--fd)}.fc-sum .g0 b{color:var(--bad)}.fc-sum .g1 b{color:var(--warn)}.fc-sum .g2 b{color:var(--good)}.fc-sum .g3 b{color:var(--steel)}
+@media (prefers-reduced-motion:reduce){.fc-card{transition:none}}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -311,10 +345,10 @@ const svg=(k)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 const $=s=>document.querySelector(s);const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let S={tab:'home',xp:0,streak:0,last:'',done:{},wrong:{},lessons:[],cat:'all',q:'',game:null,sync:'local'};
 const EXL={id:'ex1',name:'Khiếu nại gỉ trắng – họp với khách',cats:['coat','qual'],mode:'quiz',n:8,ex:true};
-function load(v){if(!v)return;['xp','streak','last','done','wrong','lessons'].forEach(k=>{if(v[k]!=null)S[k]=v[k]})}
+function load(v){if(!v)return;['xp','streak','last','done','wrong','lessons','srs','fc'].forEach(k=>{if(v[k]!=null)S[k]=v[k]})}
 try{load(JSON.parse(localStorage.getItem('ss2')||'null'))}catch(e){}
 const SB=supabase.createClient(window.SS_CONFIG.SUPABASE_URL,window.SS_CONFIG.SUPABASE_ANON_KEY);let USER=null,saveT=null;
-function save(){const v={xp:S.xp,streak:S.streak,last:S.last,done:S.done,wrong:S.wrong,lessons:S.lessons};try{localStorage.setItem('ss2',JSON.stringify(v))}catch(e){}
+function save(){const v={xp:S.xp,streak:S.streak,last:S.last,done:S.done,wrong:S.wrong,lessons:S.lessons,srs:S.srs||{},fc:S.fc||{}};try{localStorage.setItem('ss2',JSON.stringify(v))}catch(e){}
 if(USER){clearTimeout(saveT);saveT=setTimeout(async()=>{const {error}=await SB.from('progress').upsert({user_id:USER.id,data:v,updated_at:new Date().toISOString()});S.sync=error?'err':'cloud'},600)}}
 let PROF=null;const ROLES=['TPL','QA','QC','Khác'];
 async function boot(){const {data:{session}}=await SB.auth.getSession();USER=session?.user||null;PROF=null;if(USER){const p=await SB.from('profiles').select('*').eq('id',USER.id).maybeSingle();PROF=p.data||{id:USER.id,email:USER.email,full_name:'',role:'TPL',department:'',is_admin:false};const {data}=await SB.from('progress').select('data').eq('user_id',USER.id).maybeSingle();if(data)load(data.data);else save();S.sync='cloud'}render()}
@@ -353,7 +387,7 @@ function vHome(){const PATH=pathState(),nowP=PATH.find(p=>p[2]=='now'),W=wrongTe
 <div class="stack" style="margin-top:14px">${nowP?`<button class="btn amber" onclick="start({path:'${nowP[0]}',cats:['${nowP[0]}'],mode:'quiz',n:8,name:'${nowP[1]}'})">Tiếp tục: ${nowP[1]} →</button>`:'<div class="card"><b>Bạn đã hoàn thành cả lộ trình!</b></div>'}
 <div class="card row" style="justify-content:space-between"><div><div class="lbl">Sổ từ sai</div><b style="font-family:var(--fd);font-size:1.4rem">${W.length}</b> <span class="mut">từ cần ôn</span></div>${W.length?`<button class="btn" onclick="reviewWrong()">Ôn ngay</button>`:'<span class="mut" style="font-size:.84rem">Chưa có từ sai</span>'}</div>
 ${USER?`<div class="mut row" style="font-size:.78rem;justify-content:space-between"><span>✓ ${esc(PROF?.full_name||USER.email)} · tiến độ lưu online</span><button class="mut" style="text-decoration:underline" onclick="go('me')">Tài khoản</button></div>`:loginBox()}
-<div class="card"><div class="lbl">Câu nói của ngày</div><div class="row" style="margin-top:6px;flex-wrap:nowrap"><div style="flex:1;min-width:0"><b>${esc(daily().ex)}</b><div class="mut" style="font-size:.86rem">${esc(daily().exvi)}</div></div>${spk(daily().ex)}</div>
+${dueHome()}<div class="card"><div class="lbl">Câu nói của ngày</div><div class="row" style="margin-top:6px;flex-wrap:nowrap"><div style="flex:1;min-width:0"><b>${esc(daily().ex)}</b><div class="mut" style="font-size:.86rem">${esc(daily().exvi)}</div></div>${spk(daily().ex)}</div>
 <button class="btn ghost" style="width:100%;margin-top:10px" onclick="S.speakItem=daily();go('speak')">Đọc thử & chấm điểm AI</button></div></div>
 <h2>Lộ trình học</h2><div class="path">${PATH.map(([c,n,s],i)=>`<button class="node ${s}" onclick="start({path:'${c}',cats:['${c}'],mode:'flash',n:8,name:'${n}'})"><i>${s=='done'?'✓':i+1}</i><div><b>${n}</b><div class="mut" style="font-size:.82rem">${CATS[c].d}</div></div><span class="lbl">${s=='done'?'Xong':s=='now'?'Đang học':''}</span></button>`).join('')}</div>
 <h2>Bài học của bạn</h2><div class="stack" style="margin-top:8px">${[...S.lessons,EXL].map((l,i)=>`<button class="card" style="text-align:left" onclick="start(${i<S.lessons.length?`S.lessons[${i}]`:'EXL'})"><div class="row" style="justify-content:space-between"><b>${esc(l.name)}</b><span class="chip">${modeName(l.mode)}</span></div><div class="mut" style="font-size:.84rem">${l.terms?l.terms.length+' từ · từ tài liệu “'+esc(l.src||'')+'”':l.n+' câu · '+l.cats.map(c=>CATS[c].n).join(', ')}${l.ex?' · bài mẫu':''}</div></button>`).join('')}<button class="btn ghost" onclick="go('make')">+ Tạo bài học riêng</button><button class="btn ghost" onclick="go('make');setTimeout(()=>$('#up').scrollIntoView(),50)">⬆ Tạo bài từ tài liệu tiếng Anh</button></div>`}
@@ -425,8 +459,8 @@ box.innerHTML='<div class="card mut">AI đang viết…</div>';try{const r=await
 function demoScene(w){return[{who:'Customer',en:'We found white rust on the GI coils after two weeks in our warehouse.',vi:'Chúng tôi thấy gỉ trắng trên cuộn GI sau hai tuần trong kho.'},{who:'TPL',en:`Thanks for reporting it. Could you send photos and the coil numbers so we can check traceability?`,vi:'Cảm ơn anh đã báo. Anh gửi giúp ảnh và số cuộn để bên em truy xuất nguồn gốc nhé?'},{who:'Customer',en:'Sure. Was the chemical treatment applied correctly?',vi:'Được. Lớp xử lý hóa học có được thực hiện đúng không?'},{who:'TPL',en:'We will review the Mill Test Certificate and the coating mass for that batch.',vi:'Bên em sẽ xem lại chứng chỉ MTC và khối lượng lớp mạ của lô đó.'},{who:'TPL',en:'Meanwhile, please store the coils in a dry, ventilated area.',vi:'Trong lúc đó, anh vui lòng để cuộn ở nơi khô ráo, thoáng khí.'}]}
 function sceneHtml(L,demo){return `<div class="card stack"><div class="lbl">Hội thoại nhập vai${demo?' · bản mẫu':''}</div>${L.map(l=>`<div class="row" style="flex-wrap:nowrap;align-items:flex-start"><span class="chip ${l.who=='TPL'?'on':''}" style="flex:none">${esc(l.who)}</span><div style="flex:1;min-width:0"><b>${esc(l.en)}</b><div class="mut" style="font-size:.84rem">${esc(l.vi)}</div></div>${spk(l.en)}</div>`).join('')}</div>`}
 /* ---- games ---- */
-function start(l){let pool=l.terms?l.terms.slice():TERMS.filter(t=>l.cats.includes(t.cat));pool=pool.sort(()=>Math.random()-.5).slice(0,l.terms?20:l.n);S.game={l,pool,i:0,ok:0,flip:false,ans:null};render();scrollTo(0,0)}
-function vGame(){const g=S.game,t=g.pool[g.i];if(!t)return vDone();const m=g.l.mode;const top=`<button class="mut" onclick="S.game=null;render()">← Thoát</button><div class="row" style="margin:8px 0;flex-wrap:nowrap"><div class="bar" style="flex:1"><i style="width:${g.i/g.pool.length*100}%"></i></div><span class="mono">${g.i+1}/${g.pool.length}</span></div><div class="lbl">${esc(g.l.name)} · ${modeName(m)}</div>`;
+function start(l){if(l.mode=='flash')return startFlash(l);let pool=l.terms?l.terms.slice():TERMS.filter(t=>l.cats.includes(t.cat));pool=pool.sort(()=>Math.random()-.5).slice(0,l.terms?20:l.n);S.game={l,pool,i:0,ok:0,flip:false,ans:null};render();scrollTo(0,0)}
+function vGame(){const g=S.game;if(g.fc)return vFlash();const t=g.pool[g.i];if(!t)return vDone();const m=g.l.mode;const top=`<button class="mut" onclick="S.game=null;render()">← Thoát</button><div class="row" style="margin:8px 0;flex-wrap:nowrap"><div class="bar" style="flex:1"><i style="width:${g.i/g.pool.length*100}%"></i></div><span class="mono">${g.i+1}/${g.pool.length}</span></div><div class="lbl">${esc(g.l.name)} · ${modeName(m)}</div>`;
 if(m=='flash')return top+`<button class="card flash" style="width:100%;margin-top:10px" onclick="S.game.flip=!S.game.flip;render()">${g.flip?`<div class="big" style="font-size:1.4rem">${esc(t.vi)}</div><i>${esc(t.ex)}</i><div class="mut">${esc(t.exvi)}</div>`:`<div class="big">${esc(t.en)}</div><div class="mut">Chạm để lật</div>`}<div class="row">${spk(g.flip?t.ex:t.en)}</div></button>
 <div class="row" style="margin-top:12px;flex-wrap:nowrap"><button class="btn ghost" style="flex:1" onclick="nx(0)">Chưa nhớ</button><button class="btn" style="flex:1" onclick="nx(1)">Đã nhớ</button></div>`;
 if(m=='speak'){S.speakItem=t;S.spMode='term';return top+`<div class="card flash" style="margin-top:10px"><div class="big">${esc(t.en)}</div><div class="mut">${esc(t.vi)}</div><div class="row">${spk(t.en)}${slow(t.en)}</div></div><button class="mic" id="micb" onclick="listen()">${svg('mic')}</button><p class="mut" id="mst" style="text-align:center">Chạm để đọc</p>${S.res?vRes(S.res):''}<button class="btn" style="width:100%" onclick="nx(S.res&&S.res.score>=70?1:0)">Tiếp →</button>`}
@@ -484,5 +518,59 @@ if(!/^\S+@\S+\.\S+$/.test(b.email))return st.textContent='Email chưa đúng đ�
 st.textContent='Đang lưu…';try{if(e&&e.id){await adminApi('update',{id:e.id,...b})}else{await adminApi('create',b)}
 const msg=(e&&e.id?'Đã cập nhật ':'Đã tạo ')+b.email+(b.password?'. Mật khẩu: '+b.password+' (hãy gửi riêng cho người dùng)':'');ADM.edit=null;await admLoad();$('#ast').textContent=msg}catch(x){st.textContent=x.message}}
 async function admBan(id,ban){try{await adminApi('ban',{id,ban});toast(ban?'Đã khoá tài khoản':'Đã mở khoá');admLoad()}catch(x){toast(x.message)}}
+/* ===================== FLASHCARDS (SRS) ===================== */
+S.srs=S.srs||{};S.fc=S.fc||{auto:true,front:'en'};
+const DAY=864e5;
+function cardState(t){return S.srs[t.en]}
+function dueTerms(){const now=Date.now();return Object.entries(S.srs).filter(([k,v])=>v.due<=now).map(([k])=>TERMS.find(x=>x.en==k)||S.lessons.flatMap(l=>l.terms||[]).find(x=>x.en==k)).filter(Boolean)}
+function dueHome(){const d=dueTerms().length,n=Object.keys(S.srs).length;if(!n)return '';return `<div class="card row" style="justify-content:space-between"><div><div class="lbl">Ôn tập ngắt quãng</div><b style="font-family:var(--fd);font-size:1.4rem">${d}</b> <span class="mut">thẻ đến hạn · ${n} thẻ đã học</span></div>${d?`<button class="btn" onclick="startFlash({name:'Ôn thẻ đến hạn',mode:'flash',terms:dueTerms(),review:true})">Ôn ngay</button>`:'<span class="mut" style="font-size:.84rem">Hôm nay đã ôn xong</span>'}</div>`}
+function nextIv(s,gr){s=s||{ef:2.5,iv:0,reps:0};let ef=s.ef,iv=s.iv,reps=s.reps;
+ if(gr==0)return{ef:Math.max(1.3,ef-.2),iv:0,reps:0,again:true};
+ if(gr==1){iv=reps==0?0.5:Math.max(1,iv*1.2);ef=Math.max(1.3,ef-.15)}
+ else if(gr==2){iv=reps==0?1:reps==1?3:Math.round(iv*ef)}
+ else{iv=reps==0?4:Math.round(Math.max(iv,1)*ef*1.3);ef+=.15}
+ return{ef,iv,reps:reps+1}}
+function ivLabel(n){if(n.again)return'<10 phút';const d=n.iv;if(d<1)return Math.round(d*24)+' giờ';if(d<30)return Math.round(d)+' ngày';if(d<365)return Math.round(d/30)+' tháng';return(d/365).toFixed(1)+' năm'}
+function startFlash(l){let pool=l.terms?l.terms.slice():TERMS.filter(t=>l.cats.includes(t.cat));
+ const now=Date.now();if(!l.review){const due=pool.filter(t=>S.srs[t.en]&&S.srs[t.en].due<=now),fresh=pool.filter(t=>!S.srs[t.en]).sort(()=>Math.random()-.5);pool=[...due,...fresh].slice(0,l.n||12);if(!pool.length)pool=l.terms?l.terms.slice():TERMS.filter(t=>l.cats.includes(t.cat)).sort(()=>Math.random()-.5).slice(0,l.n||12)}
+ S.game={fc:1,l,q:pool.slice(),total:pool.length,seen:{},grades:{0:0,1:0,2:0,3:0},flip:false,hist:[]};render();scrollTo(0,0);if(S.fc.auto)setTimeout(()=>sayFront(),250)}
+function sayFront(){const g=S.game;if(!g||!g.q[0])return;const t=g.q[0];say(S.fc.front=='en'?t.en:t.en)}
+function vFlash(){const g=S.game,t=g.q[0];if(!t)return vFlashDone();const s=cardState(t);const isNew=!s;const done=Object.keys(g.seen).length;
+ const nNew=g.q.filter(x=>!S.srs[x.en]).length,nLearn=g.q.filter(x=>S.srs[x.en]&&S.srs[x.en].iv<1).length,nRev=g.q.length-nNew-nLearn;
+ const enSide=`<div class="fc-tag">${isNew?'Thẻ mới':s.iv<1?'Đang học':'Ôn tập'} · ${esc((CATS[t.cat]||{n:'Từ tài liệu'}).n)}</div><div class="fc-term">${esc(t.en)}</div><div class="fc-hint mut">Chạm để lật · Space</div>`;
+ const viSide=`<div class="fc-tag">Nghĩa</div><div class="fc-vi">${esc(t.vi)}</div>${t.ex?`<div class="fc-ex"><i>${esc(t.ex)}</i><div class="mut">${esc(t.exvi||'')}</div></div>`:''}`;
+ const front=S.fc.front=='en'?enSide:viSide.replace('<div class="fc-tag">Nghĩa</div>','<div class="fc-tag">Từ tiếng Anh là gì?</div>'),back=S.fc.front=='en'?viSide:enSide.replace('Chạm để lật · Space','');
+ const btn=(gr,label,cls)=>{const n=nextIv(s,gr);return `<button class="fc-grade ${cls}" onclick="grade(${gr})"><b>${label}</b><span>${ivLabel(n)}</span></button>`};
+ return `<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><button class="mut" onclick="S.game=null;render()" aria-label="Thoát">← Thoát</button><div class="fc-counts" aria-label="Thẻ mới, đang học, ôn tập"><span class="c-new">${nNew}</span><span class="c-learn">${nLearn}</span><span class="c-rev">${nRev}</span></div><div class="row" style="gap:4px;flex-wrap:nowrap"><button class="ic" aria-label="Hoàn tác" onclick="undoFc()" ${g.hist.length?'':'disabled'}>↶</button><button class="ic" aria-label="Cài đặt thẻ" onclick="S.fcSet=!S.fcSet;render()">⚙</button></div></div>
+ <div class="bar" style="margin:10px 0 4px"><i style="width:${done/g.total*100}%"></i></div><div class="lbl">${esc(g.l.name)} · ${done}/${g.total} thẻ</div>
+ ${S.fcSet?`<div class="card stack" style="margin-top:10px"><label class="row" style="justify-content:space-between"><span>Tự đọc to khi hiện thẻ</span><input type="checkbox" ${S.fc.auto?'checked':''} onchange="S.fc.auto=this.checked;save()"></label><div class="row" style="justify-content:space-between"><span>Mặt trước</span><div class="chips"><button class="chip ${S.fc.front=='en'?'on':''}" onclick="S.fc.front='en';save();render()">Tiếng Anh</button><button class="chip ${S.fc.front=='vi'?'on':''}" onclick="S.fc.front='vi';save();render()">Tiếng Việt</button></div></div><button class="chip" onclick="S.game.q=S.game.q.sort(()=>Math.random()-.5);render()">Xáo trộn thẻ còn lại</button></div>`:''}
+ <div class="fc-stage"><div class="fc-peek fc-peek2"></div><div class="fc-peek"></div>
+ <div class="fc-card ${g.flip?'is-flipped':''}" id="fcc" role="button" tabindex="0" aria-label="Thẻ ghi nhớ, chạm để lật">
+  <div class="fc-face fc-front">${front}<div class="fc-speak">${spk(t.en)}${slow(t.en)}<button class="ic" aria-label="Luyện nói từ này" onclick="event.stopPropagation();S.speakItem=S.game.q[0];S.game=null;go('speak')">${svg('mic')}</button></div></div>
+  <div class="fc-face fc-back">${back}<div class="fc-speak">${spk(t.en)}${t.ex?spk(t.ex):''}</div></div>
+  <div class="fc-stamp fc-stamp-l">HỌC LẠI</div><div class="fc-stamp fc-stamp-r">ĐÃ NHỚ</div>
+ </div></div>
+ ${g.flip?`<div class="fc-grades">${btn(0,'Học lại','g0')}${btn(1,'Khó','g1')}${btn(2,'Tốt','g2')}${btn(3,'Dễ','g3')}</div><p class="mut" style="text-align:center;font-size:.78rem;margin:6px 0 0">Vuốt trái: Học lại · Vuốt phải: Tốt · Phím 1–4</p>`
+ :`<button class="btn" style="width:100%;margin-top:14px" onclick="flipFc()">Hiện đáp án</button><p class="mut" style="text-align:center;font-size:.78rem;margin:6px 0 0">Nhớ lại trong đầu trước khi lật, hiệu quả gấp đôi</p>`}`}
+function flipFc(){const g=S.game;g.flip=!g.flip;render();if(g.flip&&S.fc.auto&&S.fc.front=='vi')say(g.q[0].en)}
+function grade(gr){const g=S.game,t=g.q.shift();g.hist.push({t,prev:S.srs[t.en]?{...S.srs[t.en]}:null,q:[t,...g.q],seen:{...g.seen},grades:{...g.grades}});
+ const n=nextIv(S.srs[t.en],gr);g.grades[gr]++;
+ if(n.again){S.srs[t.en]={ef:n.ef,iv:0,reps:0,due:Date.now()+10*6e4};g.q.splice(Math.min(3,g.q.length),0,t);miss(t)}
+ else{S.srs[t.en]={ef:n.ef,iv:n.iv,reps:n.reps,due:Date.now()+n.iv*DAY};g.seen[t.en]=1;if(gr>=2)hit(t);S.xp+=gr==3?6:gr==2?5:3}
+ g.flip=false;tick();save();render();if(S.fc.auto&&g.q[0])setTimeout(sayFront,200)}
+function undoFc(){const g=S.game,h=g.hist.pop();if(!h)return;if(h.prev)S.srs[h.t.en]=h.prev;else delete S.srs[h.t.en];g.q=h.q;g.seen=h.seen;g.grades=h.grades;g.flip=true;save();render()}
+function vFlashDone(){const g=S.game,G=g.grades,tot=G[1]+G[2]+G[3];const nxt=Object.values(S.srs).filter(v=>v.due>Date.now()).sort((a,b)=>a.due-b.due)[0];
+ return `<div class="coil" style="text-align:center;margin-top:16px"><div class="lbl">Hoàn thành phiên ôn</div><h1>${tot} thẻ đã thuộc</h1><p style="margin:6px 0 0;color:#d4e3f2">Phải học lại ${G[0]} lần</p></div>
+ <div class="fc-sum"><div class="g0"><b>${G[0]}</b>Học lại</div><div class="g1"><b>${G[1]}</b>Khó</div><div class="g2"><b>${G[2]}</b>Tốt</div><div class="g3"><b>${G[3]}</b>Dễ</div></div>
+ <p class="mut" style="text-align:center">${nxt?'Lượt ôn tiếp theo: '+new Date(nxt.due).toLocaleString('vi',{weekday:'long',hour:'2-digit',minute:'2-digit'}):''}</p>
+ <div class="stack"><button class="btn" onclick="startFlash(S.game.l)">Học thêm thẻ mới</button>${Object.keys(S.wrong).length?'<button class="btn ghost" onclick="reviewWrong()">Ôn sổ từ sai</button>':''}<button class="btn ghost" onclick="S.game=null;render()">Về trang chính</button></div>`}
+/* gestures + keys */
+(function(){let x0=null,y0=0,dx=0,el=null;
+document.addEventListener('pointerdown',e=>{el=e.target.closest('#fcc');if(!el||e.target.closest('button'))return el=null;x0=e.clientX;y0=e.clientY;dx=0;el.setPointerCapture(e.pointerId);el.style.transition='none'});
+document.addEventListener('pointermove',e=>{if(!el||x0==null)return;dx=e.clientX-x0;if(Math.abs(dx)<6)return;el.style.transform=`translateX(${dx}px) rotate(${dx/18}deg)`+(S.game.flip?' rotateY(180deg)':'');el.classList.toggle('swipe-l',dx<-40);el.classList.toggle('swipe-r',dx>40)});
+document.addEventListener('pointerup',e=>{if(!el)return;const d=dx;el.style.transition='';el.style.transform='';el.classList.remove('swipe-l','swipe-r');const c=el;el=null;x0=null;
+ if(Math.abs(d)<8){flipFc();return}if(d>90){c.style.transform='translateX(120%) rotate(18deg)';setTimeout(()=>grade(2),160)}else if(d<-90){c.style.transform='translateX(-120%) rotate(-18deg)';setTimeout(()=>grade(0),160)}});
+document.addEventListener('keydown',e=>{if(!S.game||!S.game.fc||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.code=='Space'||e.key=='Enter'){e.preventDefault();flipFc()}else if(S.game.flip&&'1234'.includes(e.key)){grade(+e.key-1)}else if(e.key=='z'&&(e.ctrlKey||e.metaKey))undoFc()})})();
+
 render();boot();
 </script></body></html>
