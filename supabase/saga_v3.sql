@@ -29,7 +29,7 @@ language sql security definer set search_path = public stable as $$
          p.avatar,
          (select coalesce(sum(a.stars),0)::int from allbest a where a.user_id = b.user_id) as stars,
          (select count(*)::int from allbest a where a.user_id = b.user_id) as levels,
-         (select coalesce(max(a.level + case when a.od then 3 else 1 end),1)::int from allbest a where a.user_id = b.user_id) as max_level,
+         (select coalesce(max(a.level + 1),1)::int from allbest a where a.user_id = b.user_id) as max_level,
          sum(b.score)::int as score,
          b.user_id = auth.uid() as is_me
   from best b left join profiles p on p.id = b.user_id

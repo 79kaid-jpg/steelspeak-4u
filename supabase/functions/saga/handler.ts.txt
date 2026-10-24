@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     if (trackId) q = q.eq("track_id", trackId);
     const { data: rows } = await q;
     let maxOpen = 1;
-    for (const r of rows ?? []) maxOpen = Math.max(maxOpen, r.level + (r.overdrive ? 3 : 1));
+    for (const r of rows ?? []) maxOpen = Math.max(maxOpen, r.level + 1);
     if (level > maxOpen) return json({ error: "Level này chưa mở khoá" }, 403);
 
     // Chống gửi dồn dập: tối đa 1 lượt / 15 giây
