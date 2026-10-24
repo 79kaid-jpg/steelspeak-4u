@@ -36,4 +36,4 @@ create trigger on_auth_user_created after insert on auth.users
 insert into public.profiles (id, email) select id, email from auth.users on conflict (id) do nothing;
 
 -- CẤP QUYỀN ADMIN ĐẦU TIÊN: đổi email bên dưới thành email của bạn rồi chạy
-update public.profiles set is_admin = true where email = 'email-cua-ban@gmail.com';
+update public.profiles set is_admin = true where email = '79kaid@gmail.com';
