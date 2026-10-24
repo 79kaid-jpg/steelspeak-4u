@@ -183,6 +183,36 @@ nav{z-index:2147483647}
 .rk.me{background:color-mix(in srgb,var(--amber) 14%,var(--card))}
 .rk-n{width:22px;text-align:center;font:700 .95rem var(--fd);color:var(--mut)}.rk-av{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--steel);font:700 .8rem var(--fd)}.rk-s{font-family:var(--fd);font-size:1.05rem}
 @media (prefers-reduced-motion:reduce){.saga-node.cur,.saga-stars.huge i,.saga-sheet{animation:none}}
+
+/* ===== Saga scenes + avatar ===== */
+.saga-band{overflow:hidden}.saga-scene{position:absolute;inset:0;width:100%;height:100%}
+.saga-path .p0{stroke:rgba(60,40,20,.25);stroke-width:34px}.saga-path .p1{stroke:#fff8ec;stroke-width:28px}.saga-path .p2{stroke:#f2c9a0;stroke-width:5px;stroke-dasharray:1 14}
+.cloud{animation:sgcloud var(--s,40s) linear infinite;animation-delay:var(--d,0s)}@keyframes sgcloud{from{transform:translateX(-120px)}to{transform:translateX(520px)}}
+.smoke{animation:sgsmoke 3.2s ease-out infinite;transform-box:fill-box}@keyframes sgsmoke{0%{transform:translateY(8px) scale(.7);opacity:0}30%{opacity:1}100%{transform:translateY(-18px) scale(1.25);opacity:0}}
+.spin{animation:sgspin 9s linear infinite;transform-box:fill-box;transform-origin:center}.pp-gear:nth-of-type(2n) .spin{animation-direction:reverse}@keyframes sgspin{to{transform:rotate(360deg)}}
+.led,.win,.twk{animation:sgblink 1.6s ease-in-out infinite;animation-delay:var(--d,var(--w,0s))}@keyframes sgblink{50%{opacity:.25}}
+.bub{animation:sgbub 2s ease-in infinite}.b2{animation-delay:.8s}@keyframes sgbub{from{transform:translateY(0);opacity:1}to{transform:translateY(-26px);opacity:0}}
+.dot{animation:sgdot 2.4s ease-in-out infinite;animation-delay:var(--d);transform-box:fill-box;transform-origin:center}@keyframes sgdot{50%{transform:scale(1.35)}}
+.drip{animation:sgdrip 2.6s ease-in-out infinite}@keyframes sgdrip{50%{transform:translateY(3px)}}
+.barr{animation:sgbar 2.8s ease-in-out infinite;animation-delay:var(--d);transform-box:fill-box;transform-origin:bottom}@keyframes sgbar{50%{transform:scaleY(.6)}}
+.flip{animation:sgflip 2.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}@keyframes sgflip{50%{transform:scaleX(.15)}}
+.glow{animation:sgglow 2s ease-in-out infinite}@keyframes sgglow{50%{opacity:.6}}
+.beam{animation:sgbeam 3s ease-in-out infinite;transform-origin:0 0}@keyframes sgbeam{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(12deg)}}
+.pp{animation:none}
+.av-wrap{display:inline-block;border-radius:50%;overflow:hidden;line-height:0}.av-wrap svg{width:100%;height:100%}.av-img{border-radius:50%;object-fit:cover;display:block}
+.av-prev{width:84px;height:84px;border-radius:50%;box-shadow:0 0 0 3px var(--amber);flex:none;overflow:hidden}
+.pod-av,.rk-av{overflow:hidden;padding:0}.pod-av .av-wrap,.pod-av .av-img{width:100%!important;height:100%!important}.rk-av .av-wrap,.rk-av .av-img{width:100%!important;height:100%!important}
+.saga-friends span{overflow:hidden;padding:0;line-height:0}.saga-friends span>*{width:100%!important;height:100%!important}
+.saga-me{position:absolute;z-index:5;transform:translate(-50%,-158%);transition:left 1s cubic-bezier(.5,0,.5,1),top 1s cubic-bezier(.5,0,.5,1);pointer-events:none;display:flex;flex-direction:column;align-items:center}
+.saga-me-in{width:52px;height:52px;border-radius:50%;padding:3px;background:linear-gradient(135deg,#ffe08a,#e39b1a);box-shadow:0 6px 14px rgba(0,0,0,.35);animation:sgbob 1.4s ease-in-out infinite}
+.saga-me-in>*{width:100%!important;height:100%!important;border-radius:50%}
+.saga-me-pin{width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid #e39b1a;margin-top:-2px;animation:sgbob 1.4s ease-in-out infinite}
+.saga-me-shadow{width:28px;height:6px;border-radius:50%;background:rgba(0,0,0,.25);margin-top:4px;animation:sgshadow 1.4s ease-in-out infinite}
+@keyframes sgbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}@keyframes sgshadow{50%{transform:scale(.7);opacity:.6}}
+.saga-me.hop .saga-me-in,.saga-me.hop .saga-me-pin{animation:sghop .33s ease-in-out 3}@keyframes sghop{0%,100%{transform:translateY(0)}50%{transform:translateY(-28px) rotate(-8deg)}}
+.saga-me.land .saga-me-in{animation:sgland .5s ease-out,sgbob 1.4s ease-in-out .5s infinite}@keyframes sgland{0%{transform:scale(1.25,.8)}60%{transform:scale(.92,1.1)}100%{transform:scale(1)}}
+.saga-sign{background:linear-gradient(180deg,#8a5a2b,#5e3b1a);border:3px solid #f2c27a;border-radius:12px;box-shadow:0 4px 0 #3e260f,0 8px 16px rgba(0,0,0,.3)}
+@media (prefers-reduced-motion:reduce){.cloud,.smoke,.spin,.led,.win,.twk,.bub,.dot,.drip,.barr,.flip,.glow,.beam,.saga-me-in,.saga-me-pin,.saga-me-shadow{animation:none!important}.saga-me{transition:none}}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -549,6 +579,7 @@ function vMe(){if(!USER)return `<h1>Tài khoản</h1><div style="margin-top:12px
 const p=PROF||{};const ini=(p.full_name||USER.email).trim().split(/\s+/).map(w=>w[0]).slice(-2).join('').toUpperCase();
 return `<div class="coil row" style="flex-wrap:nowrap"><div style="width:56px;height:56px;flex:none;border-radius:50%;background:var(--amber);color:#1a1205;display:grid;place-items:center;font-family:var(--fd);font-weight:700;font-size:1.3rem">${esc(ini)}</div><div style="min-width:0"><h1 style="font-size:1.4rem">${esc(p.full_name||'Chưa đặt tên')}</h1><div style="color:#d4e3f2;font-size:.86rem">${esc(USER.email)} · ${esc(p.role||'')}${p.is_admin?' · Admin':''}</div></div></div>
 ${S.recover?'<p class="note" style="margin-top:12px">Bạn đang đặt lại mật khẩu. Nhập mật khẩu mới ở mục bên dưới.</p>':''}
+<h2>Ảnh đại diện</h2><div class="card row" style="margin-top:8px;flex-wrap:nowrap;gap:14px"><div class="av-prev">${avatarHTML(p.avatar,USER.id,84)}</div><div class="stack" style="flex:1;gap:8px"><label class="btn ghost" for="avf" style="display:block">Tải ảnh lên</label><input type="file" id="avf" accept="image/*" hidden onchange="avUpload(this.files[0])"><button class="btn ghost" onclick="avShuffle()">Đổi nhân vật</button></div></div>
 <h2>Hồ sơ</h2><div class="stack" style="margin-top:8px"><label class="lbl" for="pn">Họ tên</label>${inp('pn',p.full_name,'Nguyễn Văn A')}<label class="lbl" for="pr">Vai trò</label>${roleSel('pr',p.role)}<label class="lbl" for="pd">Phòng ban / Nhà máy</label>${inp('pd',p.department,'VD: Product Management – Phú Mỹ')}<button class="btn" onclick="saveProfile()">Lưu hồ sơ</button></div>
 <h2>Đổi mật khẩu</h2><div class="stack" style="margin-top:8px">${inp('np1','','Mật khẩu mới (ít nhất 8 ký tự)','password')}${inp('np2','','Nhập lại mật khẩu mới','password')}<button class="btn" onclick="changePw()">Cập nhật mật khẩu</button></div>
 <div class="stack" style="margin-top:22px">${p.is_admin?`<button class="btn amber" onclick="go('admin')">Quản trị người dùng</button>`:''}<button class="btn ghost" onclick="go('spec')">Xem bản thiết kế ứng dụng</button><button class="btn ghost" onclick="logout()">Đăng xuất</button></div>`}
@@ -657,16 +688,16 @@ function vMap(){const N=SAGA.LEVELS,open=sagaMaxOpen(),GAP=96,CHH=70,PADT=40;con
  // tính y từ trên xuống (level cao ở trên)
  let cy=PADT;for(let ci=SAGA.CHAPTERS.length-1;ci>=0;ci--){items.push({ch:ci,y:cy});cy+=CHH;for(let k=SAGA.PER_CH;k>=1;k--){const lv=ci*SAGA.PER_CH+k;pos[lv].y=cy+GAP/2;cy+=GAP}}
  const H=cy+PADT;let d='';for(let lv=1;lv<=N;lv++){const p=pos[lv];d+=(lv==1?'M':'L')+p.x+' '+p.y+' '}
- const bands=SAGA.CHAPTERS.map((c,ci)=>{const top=items.find(i=>i.ch==ci).y,h=CHH+SAGA.PER_CH*GAP;const [a,b]=CH_STYLE[ci];return `<div class="saga-band" style="top:${top}px;height:${h}px;background:linear-gradient(180deg,${a},${b})"><div class="saga-band-tex"></div></div><div class="saga-sign" style="top:${top+14}px"><span>Khu ${ci+1}</span>${esc(c.name)}</div>`}).join('');
+ const bands=SAGA.CHAPTERS.map((c,ci)=>{const top=items.find(i=>i.ch==ci).y,h=CHH+SAGA.PER_CH*GAP;const [a,b]=CH_STYLE[ci];return `<div class="saga-band" style="top:${top}px;height:${h}px">${sceneSVG(ci,h)}</div><div class="saga-sign" style="top:${top+14}px"><span>Khu ${ci+1}</span>${esc(c.name)}</div>`}).join('');
  const nodes=[];for(let lv=1;lv<=N;lv++){const p=pos[lv],b=SG.best[lv]||{},locked=lv>open,cur=lv==open,st=b.stars||0;
   const fr=friends[lv]||[];
   nodes.push(`<div class="saga-node-wrap" style="left:${p.x}%;top:${p.y}px">${!locked?`<div class="saga-stars">${[1,2,3].map(i=>`<i class="${i<=st?'on':''}">★</i>`).join('')}</div>`:''}
   <button class="saga-node ${locked?'locked':''} ${cur?'cur':''} ${st?'done':''}" ${locked?'disabled aria-label="Level '+lv+' chưa mở khoá"':`onclick="sagaIntro(${lv})" aria-label="Level ${lv}"`}>${locked?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>':lv}</button>
-  ${cur?`<div class="saga-me" aria-hidden="true">${esc(initials(PROF?.full_name||USER?.email||'Bạn'))}</div>`:''}
-  ${fr.length?`<div class="saga-friends">${fr.slice(0,2).map(u=>`<span title="${esc(u.name)}">${esc(initials(u.name))}</span>`).join('')}${fr.length>2?`<span>+${fr.length-2}</span>`:''}</div>`:''}</div>`)}
+  
+  ${fr.length?`<div class="saga-friends">${fr.slice(0,2).map(u=>`<span title="${esc(u.name)}">${avatarHTML(u.avatar,u.user_id||u.name,30)}</span>`).join('')}${fr.length>2?`<span>+${fr.length-2}</span>`:''}</div>`:''}</div>`)}
  setTimeout(()=>{const el=document.querySelector('.saga-node.cur');if(el&&!SG.scrolled){el.scrollIntoView({block:'center'});SG.scrolled=1}},60);
  return `<div class="saga-bar"><span>★ <b>${sagaStars()}</b>/${N*3}</span><span>Level <b>${open}</b></span>${USER?'':'<span class="mut" style="font-size:.75rem">Đăng nhập để lên bảng xếp hạng</span>'}</div>
- <div class="saga-map" style="height:${H}px">${bands}<svg class="saga-path" viewBox="0 0 100 ${H}" preserveAspectRatio="none"><path d="${d}" class="p1"/><path d="${d}" class="p2"/></svg>${nodes.join('')}</div>`}
+ <div class="saga-map" style="height:${H}px">${bands}<svg class="saga-path" viewBox="0 0 100 ${H}" preserveAspectRatio="none"><path d="${d}" class="p0"/><path d="${d}" class="p1"/><path d="${d}" class="p2"/></svg>${nodes.join('')}${meMarker(pos,open)}</div>`}
 function sagaIntro(lv){const L=SAGA.gen(lv),b=SG.best[lv]||{};const types={mean:'Chọn nghĩa',rev:'Chọn từ',listen:'Nghe & chọn',cloze:'Điền từ',order:'Xếp quy trình'};const cnt={};L.questions.forEach(q=>cnt[q.type]=(cnt[q.type]||0)+1);
  const m=document.createElement('div');m.className='saga-modal';m.innerHTML=`<div class="saga-sheet" role="dialog" aria-label="Level ${lv}"><div class="saga-sheet-top" style="background:linear-gradient(135deg,${CH_STYLE[L.chapter][0]},${CH_STYLE[L.chapter][1]})"><div class="lbl" style="color:#dfe9f3">Khu ${L.chapter+1} · ${esc(L.name)}</div><h1>Level ${lv}</h1><div class="saga-stars big">${[1,2,3].map(i=>`<i class="${i<=(b.stars||0)?'on':''}">★</i>`).join('')}</div></div>
  <div class="stack" style="padding:16px"><div class="chips">${Object.entries(cnt).map(([k,v])=>`<span class="chip">${types[k]} ×${v}</span>`).join('')}</div>
@@ -696,7 +727,7 @@ function sagaAnswer(a){const g=S.game,q=g.L.questions[g.i];const ms=Math.round(p
 async function sagaFinish(){const g=S.game;clearInterval(SG.timer);const payload=g.ans.map(x=>({a:x.a,ms:x.ms}));let r=SAGA.grade(g.L.level,payload),srv=false,err='';
  g.res={...r,pending:!!USER};render();
  if(USER){try{const {data:{session}}=await SB.auth.getSession();const resp=await fetch(window.SS_CONFIG.SUPABASE_URL+'/functions/v1/saga',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token,apikey:window.SS_CONFIG.SUPABASE_ANON_KEY},body:JSON.stringify({level:g.L.level,answers:payload})});const j=await resp.json();if(resp.ok){r=j;srv=true}else err=j.error||('Lỗi '+resp.status)}catch(e){err='Không kết nối được máy chủ'}}
- const b=SG.best[r.level]||{stars:0,score:0,od:false};const prevOpen=sagaMaxOpen();SG.best[r.level]={stars:Math.max(b.stars,r.stars),score:Math.max(b.score,r.score),od:b.od||r.overdrive};try{localStorage.setItem('saga_best',JSON.stringify(SG.best))}catch(e){}
+ const b=SG.best[r.level]||{stars:0,score:0,od:false};const prevOpen=sagaMaxOpen();SG.hopFrom=prevOpen;SG.best[r.level]={stars:Math.max(b.stars,r.stars),score:Math.max(b.score,r.score),od:b.od||r.overdrive};try{localStorage.setItem('saga_best',JSON.stringify(SG.best))}catch(e){}
  S.xp+=r.correct*10;tick();save();SG.board=null;SG.scrolled=0;
  if(S.game&&S.game.saga){S.game.res={...r,srv,err,unlocked:sagaMaxOpen()>prevOpen?sagaMaxOpen():0};render()}}
 function vSagaRes(){const g=S.game,r=g.res,L=g.L;const nxt=Math.min(sagaMaxOpen(),SAGA.LEVELS);
@@ -711,13 +742,80 @@ function vBoard(){if(!USER)return `<div class="card" style="margin-top:12px"><b>
  let L=SG.board.slice();const dept=PROF?.department||'';if(SG.team&&dept)L=L.filter(u=>u.department==dept);
  const me=SG.board.find(u=>u.is_me);const myScore=me?me.score:0;const tier=tierOf(SG.period=='week'?myScore:0);const nextT=TIERS[TIERS.indexOf(tier)+1];
  const top=L.slice(0,3),rest=L.slice(3);
- const pod=(u,rank)=>u?`<div class="pod pod${rank}"><div class="pod-av">${esc(initials(u.name))}${rank==1?'<span class="crown">♛</span>':''}</div><b>${esc(u.name)}</b><span>${u.score} điểm</span><div class="pod-block">${rank}</div></div>`:`<div class="pod pod${rank} empty"><div class="pod-block">${rank}</div></div>`;
+ const pod=(u,rank)=>u?`<div class="pod pod${rank}"><div class="pod-av">${avatarHTML(u.avatar,u.user_id||u.name,64)}${rank==1?'<span class="crown">♛</span>':''}</div><b>${esc(u.name)}</b><span>${u.score} điểm</span><div class="pod-block">${rank}</div></div>`:`<div class="pod pod${rank} empty"><div class="pod-block">${rank}</div></div>`;
  return `<div class="row" style="margin:12px 0 0"><div class="chips"><button class="chip ${SG.period=='week'?'on':''}" onclick="SG.period='week';SG.board=null;render()">Tuần này</button><button class="chip ${SG.period=='all'?'on':''}" onclick="SG.period='all';SG.board=null;render()">Mọi thời gian</button>${dept?`<button class="chip ${SG.team?'on':''}" onclick="SG.team=!SG.team;render()">Team ${esc(dept)}</button>`:''}</div></div>
  ${SG.period=='week'?`<div class="league" style="--tier:${tier[2]}"><div class="league-badge"><span>${tier[0][0]}</span></div><div><div class="lbl" style="color:#dfe9f3">Giải đấu tuần</div><b>Giải ${tier[0]}</b><span>${nextT?`Còn ${nextT[1]-myScore} điểm để lên giải ${nextT[0]}`:'Giải cao nhất'} · làm mới thứ Hai</span></div></div>`:''}
  ${SG.boardErr?`<p class="note">${esc(SG.boardErr)}</p>`:''}
  ${L.length?`<div class="podium">${pod(top[1],2)}${pod(top[0],1)}${pod(top[2],3)}</div>
- <div class="card" style="padding:0">${rest.map((u,i)=>`<div class="rk ${u.is_me?'me':''}"><span class="rk-n">${i+4}</span><span class="rk-av">${esc(initials(u.name))}</span><div style="min-width:0;flex:1"><b>${esc(u.name)}${u.is_me?' (bạn)':''}</b><div class="mut" style="font-size:.78rem">${u.department?esc(u.department)+' · ':''}${u.stars}★ · Level ${u.max_level}</div></div><b class="rk-s">${u.score}</b></div>`).join('')||'<p class="mut" style="padding:12px;margin:0">Chưa có thêm người chơi.</p>'}</div>
+ <div class="card" style="padding:0">${rest.map((u,i)=>`<div class="rk ${u.is_me?'me':''}"><span class="rk-n">${i+4}</span><span class="rk-av">${avatarHTML(u.avatar,u.user_id||u.name,36)}</span><div style="min-width:0;flex:1"><b>${esc(u.name)}${u.is_me?' (bạn)':''}</b><div class="mut" style="font-size:.78rem">${u.department?esc(u.department)+' · ':''}${u.stars}★ · Level ${u.max_level}</div></div><b class="rk-s">${u.score}</b></div>`).join('')||'<p class="mut" style="padding:12px;margin:0">Chưa có thêm người chơi.</p>'}</div>
  ${me&&L.indexOf(me)>=3?'':''}`:`<div class="card" style="margin-top:12px"><b>Chưa ai ghi điểm ${SG.period=='week'?'tuần này':''}</b><p class="mut">Chơi một level để là người đầu tiên lên bảng.</p><button class="btn amber" onclick="SG.view='map';render()">Vào bản đồ</button></div>`}`}
+
+/* ===================== AVATAR ===================== */
+function hsh(s){let h=2166136261;s=String(s||'x');for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function avatarSVG(seed){const h=hsh(seed),R=n=>(h>>>n)&255;
+ const skins=['#f6d3b3','#eac09a','#d9a77c','#c18a5e','#9c6a45'],hats=['#f2b233','#ffffff','#2f6ea8','#e66a2c','#3fae6a','#c6402f'],hairs=['#2b1d14','#4a2f1d','#7b4a24','#1e1e24','#a0522d'],bgs=['#bfe3ff','#ffe1b3','#d6f5d6','#f7d1e6','#e1dcff','#ffd6c9'];
+ const sk=skins[R(0)%5],hat=hats[R(3)%6],hr=hairs[R(6)%5],bg=bgs[R(9)%6],glasses=R(12)%5==0,beard=R(14)%6==0,smile=R(17)%3;
+ return `<svg viewBox="0 0 100 100" class="av-svg" role="img" aria-label="Nhân vật"><circle cx="50" cy="50" r="50" fill="${bg}"/>
+ <path d="M18 100c2-20 16-30 32-30s30 10 32 30z" fill="#2f6ea8"/><path d="M38 72h24l-4 10h-16z" fill="#f2b233"/><rect x="44" y="64" width="12" height="10" fill="${sk}"/>
+ <ellipse cx="50" cy="52" rx="22" ry="24" fill="${sk}"/><ellipse cx="28" cy="54" rx="4" ry="6" fill="${sk}"/><ellipse cx="72" cy="54" rx="4" ry="6" fill="${sk}"/>
+ <path d="M29 46c0-14 9-22 21-22s21 8 21 22c-6-6-14-8-21-8s-15 2-21 8z" fill="${hr}"/>
+ ${beard?`<path d="M30 56c2 16 12 22 20 22s18-6 20-22c-4 6-10 8-20 8s-16-2-20-8z" fill="${hr}"/>`:''}
+ <ellipse cx="41" cy="53" rx="3" ry="3.6" fill="#1d2630"/><ellipse cx="59" cy="53" rx="3" ry="3.6" fill="#1d2630"/><circle cx="42" cy="51.8" r="1" fill="#fff"/><circle cx="60" cy="51.8" r="1" fill="#fff"/>
+ ${glasses?'<g fill="none" stroke="#1d2630" stroke-width="2"><circle cx="41" cy="53" r="7"/><circle cx="59" cy="53" r="7"/><path d="M48 53h4"/></g>':''}
+ <ellipse cx="35" cy="61" rx="4" ry="2.4" fill="#ff8f8f" opacity=".5"/><ellipse cx="65" cy="61" rx="4" ry="2.4" fill="#ff8f8f" opacity=".5"/>
+ ${smile==0?'<path d="M42 64q8 7 16 0" fill="none" stroke="#7a2e2e" stroke-width="2.4" stroke-linecap="round"/>':smile==1?'<path d="M42 63q8 9 16 0z" fill="#7a2e2e"/><path d="M44 64q6 3 12 0" fill="#fff"/>':'<ellipse cx="50" cy="65" rx="4" ry="3" fill="#7a2e2e"/>'}
+ <path d="M24 40c0-15 12-24 26-24s26 9 26 24z" fill="${hat}"/><rect x="20" y="38" width="60" height="7" rx="3.5" fill="${hat}"/><path d="M47 16h6v22h-6z" fill="rgba(0,0,0,.12)"/><rect x="20" y="38" width="60" height="7" rx="3.5" fill="rgba(0,0,0,.1)"/><path d="M30 30c4-7 10-10 16-11" stroke="rgba(255,255,255,.55)" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`}
+function avatarHTML(av,seed,size){const s=`width:${size}px;height:${size}px`;if(av&&/^data:image\//.test(av))return `<img class="av-img" src="${esc(av)}" alt="" style="${s}">`;const sd=av&&av.startsWith('gen:')?av.slice(4):seed;return `<span class="av-wrap" style="${s}">${avatarSVG(sd)}</span>`}
+async function avSave(v){if(!USER)return toast('Đăng nhập để lưu ảnh đại diện');const {error}=await SB.from('profiles').upsert({id:USER.id,email:USER.email,avatar:v});if(error)return toast(/avatar/.test(error.message)?'Cần chạy file supabase/saga_v2.sql trên Supabase trước':'Chưa lưu được: '+error.message);PROF={...PROF,avatar:v};SG.board=null;toast('Đã cập nhật ảnh đại diện');render()}
+function avShuffle(){avSave('gen:'+Math.random().toString(36).slice(2,9))}
+function avUpload(f){if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');const m=Math.min(img.width,img.height);x.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,128,128);avSave(c.toDataURL('image/jpeg',0.82));URL.revokeObjectURL(img.src)};img.onerror=()=>toast('Không đọc được ảnh này');img.src=URL.createObjectURL(f)}
+function meMarker(pos,open){const p=pos[open];if(!p)return '';const from=SG.hopFrom&&SG.hopFrom!==open&&pos[SG.hopFrom]?pos[SG.hopFrom]:null;const av=avatarHTML(PROF?.avatar,USER?.id||'guest',46);
+ const html=`<div class="saga-me ${from?'hop':''}" id="sgme" style="left:${(from||p).x}%;top:${(from||p).y}px" aria-label="Vị trí của bạn"><div class="saga-me-in">${av}</div><div class="saga-me-pin"></div><div class="saga-me-shadow"></div></div>`;
+ if(from){SG.hopFrom=null;setTimeout(()=>{const e=document.getElementById('sgme');if(!e)return;e.style.left=p.x+'%';e.style.top=p.y+'px';setTimeout(()=>{e.classList.remove('hop');e.classList.add('land');const n=document.querySelector('.saga-node.cur');n&&n.scrollIntoView({block:'center',behavior:'smooth'})},1100)},500)}
+ return html}
+/* ===================== MAP SCENES ===================== */
+const SCN=[
+ {sky:['#7fd3ff','#c9f0ff'],hill:['#5bbf8a','#3f9e6e'],props:['coil','chimney','coil','tank']},
+ {sky:['#a8f0e0','#e6fff8'],hill:['#7fd6b8','#4fb594'],props:['flask','tube','flask','micro']},
+ {sky:['#b9c6ff','#e9edff'],hill:['#8e9df0','#6b78d6'],props:['tower','table','tower','board']},
+ {sky:['#ffcaa8','#fff0e2'],hill:['#ff9f7a','#e56c4f'],props:['bucket','splash','bucket','roller']},
+ {sky:['#d9c6ff','#f4eeff'],hill:['#b394f0','#8a68d6'],props:['gear','gear','bulb','gear']},
+ {sky:['#ffe7a3','#fff8e0'],hill:['#f2c94c','#d9a521'],props:['chart','coin','chart','coin']},
+ {sky:['#9fd2ff','#dff0ff'],hill:['#5a9fd6','#3a7fb8'],props:['server','server','cloud2','server']},
+ {sky:['#2b2f6e','#5a4a9e'],hill:['#3d3a7a','#2a275e'],props:['stage','star','spot','star']}];
+function prop(t,x,y,s,i){const g=(c)=>`<g transform="translate(${x} ${y}) scale(${s})" class="pp pp-${t}" style="--d:${(i%5)*0.6}s">${c}</g>`;
+ switch(t){
+ case 'coil':return g(`<ellipse cx="0" cy="22" rx="26" ry="6" fill="rgba(0,0,0,.15)"/><circle r="22" fill="#9fb3c4"/><circle r="22" fill="none" stroke="#cfdbe5" stroke-width="3"/><circle r="15" fill="#b9c9d6"/><circle r="8" fill="#5a6b7a"/><circle r="4" fill="#2c3a46"/>`);
+ case 'chimney':return g(`<rect x="-10" y="-40" width="20" height="60" rx="3" fill="#c8553d"/><rect x="-12" y="-44" width="24" height="7" rx="2" fill="#8f3a2a"/><rect x="-10" y="-20" width="20" height="5" fill="#fff" opacity=".7"/><g class="smoke"><circle cx="0" cy="-54" r="8" fill="#fff" opacity=".85"/><circle cx="8" cy="-66" r="10" fill="#fff" opacity=".7"/><circle cx="2" cy="-82" r="12" fill="#fff" opacity=".5"/></g>`);
+ case 'tank':return g(`<rect x="-20" y="-24" width="40" height="44" rx="8" fill="#e7eef3"/><rect x="-20" y="-6" width="40" height="6" fill="#2f6ea8"/><rect x="-14" y="20" width="6" height="8" fill="#5a6b7a"/><rect x="8" y="20" width="6" height="8" fill="#5a6b7a"/>`);
+ case 'flask':return g(`<path d="M-6 -30h12v16l14 30a6 6 0 0 1-5 8h-30a6 6 0 0 1-5-8l14-30z" fill="#ffffff" opacity=".9"/><path d="M-13 0h26l7 16a6 6 0 0 1-5 8h-30a6 6 0 0 1-5-8z" fill="#3fd0a8"/><circle class="bub" cx="-3" cy="8" r="2.5" fill="#fff"/><circle class="bub b2" cx="4" cy="14" r="2" fill="#fff"/>`);
+ case 'tube':return g(`<rect x="-24" y="-6" width="48" height="8" rx="3" fill="#8f6a4a"/>${[-16,-4,8].map((xx,k)=>`<rect x="${xx}" y="-34" width="9" height="34" rx="4.5" fill="#fff" opacity=".9"/><rect x="${xx}" y="${-16+k*4}" width="9" height="${16-k*4}" rx="4" fill="${['#ff7a9c','#ffd24d','#6fb7ff'][k]}"/>`).join('')}`);
+ case 'micro':return g(`<rect x="-16" y="16" width="32" height="6" rx="3" fill="#3d4a57"/><path d="M-4 16v-14l10-22" stroke="#3d4a57" stroke-width="7" fill="none" stroke-linecap="round"/><rect x="2" y="-30" width="10" height="16" rx="3" transform="rotate(25 7 -22)" fill="#5a6b7a"/>`);
+ case 'tower':return g(`<rect x="-18" y="-50" width="36" height="72" rx="4" fill="#5d6bd0"/>${[0,1,2,3,4].map(r=>[0,1,2].map(c=>`<rect class="win" style="--w:${(r*3+c)%7*0.4}s" x="${-13+c*10}" y="${-44+r*13}" width="6" height="8" fill="#ffe58a"/>`).join('')).join('')}`);
+ case 'table':return g(`<ellipse cx="0" cy="0" rx="28" ry="10" fill="#8a5a3c"/><rect x="-3" y="0" width="6" height="18" fill="#6b4329"/>${[-22,0,22].map(xx=>`<circle cx="${xx}" cy="-14" r="6" fill="#ffcf9a"/><rect x="${xx-6}" y="-8" width="12" height="10" rx="4" fill="#2f6ea8"/>`).join('')}`);
+ case 'board':return g(`<rect x="-24" y="-30" width="48" height="34" rx="3" fill="#fff"/><rect x="-24" y="-30" width="48" height="34" rx="3" fill="none" stroke="#8a95a3" stroke-width="3"/><path d="M-16 -4l8-10 8 6 12-14" stroke="#e66a2c" stroke-width="3" fill="none"/><path d="M-10 4l-6 20M10 4l6 20" stroke="#8a95a3" stroke-width="3"/>`);
+ case 'bucket':return g(`<path d="M-16 -14h32l-4 34h-24z" fill="#cfd8df"/><ellipse cx="0" cy="-14" rx="16" ry="5" fill="${['#ff5a5a','#3fae6a','#2f6ea8','#f2b233'][i%4]}"/><path d="M-16 -14c0 8 6 4 6 12s6 4 6-4 6-2 6-8" fill="${['#ff5a5a','#3fae6a','#2f6ea8','#f2b233'][i%4]}" class="drip"/>`);
+ case 'splash':return g(['#ff5a5a','#f2b233','#3fae6a','#6fb7ff','#b06aff'].map((c,k)=>`<circle class="dot" style="--d:${k*0.3}s" cx="${Math.cos(k*1.26)*18}" cy="${Math.sin(k*1.26)*18}" r="${6+k%2*3}" fill="${c}"/>`).join(''));
+ case 'roller':return g(`<rect x="-22" y="-10" width="44" height="16" rx="8" fill="#ff7a59"/><path d="M0 6v12h-12v20" stroke="#3d4a57" stroke-width="4" fill="none"/><rect x="-16" y="34" width="8" height="14" rx="3" fill="#3d4a57"/>`);
+ case 'gear':{let d='';for(let k=0;k<8;k++){const a=k*Math.PI/4;d+=`<rect x="-5" y="-26" width="10" height="12" rx="2" transform="rotate(${k*45})"/>`}return g(`<g class="spin" fill="${['#8a68d6','#f2b233','#5a9fd6'][i%3]}">${d}<circle r="18"/><circle r="7" fill="#fff"/></g>`)}
+ case 'bulb':return g(`<circle cy="-8" r="16" fill="#ffe066" class="glow"/><rect x="-7" y="6" width="14" height="10" rx="3" fill="#8a95a3"/><path d="M-4 -10l4 6 4-6" stroke="#c98a00" stroke-width="2" fill="none"/>`);
+ case 'chart':return g(`<rect x="-24" y="18" width="48" height="4" fill="#8a6a1a"/>${[0,1,2,3].map(k=>`<rect class="barr" style="--d:${k*0.25}s" x="${-22+k*12}" y="${18-(10+k*8)}" width="9" height="${10+k*8}" rx="2" fill="${['#ff7a59','#3fae6a','#2f6ea8','#e3a51a'][k]}"/>`).join('')}`);
+ case 'coin':return g(`<g class="flip"><circle r="12" fill="#ffcf4a"/><circle r="8" fill="none" stroke="#e3a51a" stroke-width="2"/><text y="4" text-anchor="middle" font-size="11" font-weight="700" fill="#b37d00">$</text></g>`);
+ case 'server':return g(`<rect x="-16" y="-34" width="32" height="56" rx="4" fill="#26384a"/>${[0,1,2,3].map(r=>`<rect x="-12" y="${-30+r*13}" width="24" height="9" rx="2" fill="#344b61"/><circle class="led" style="--d:${(r+i)%4*0.35}s" cx="8" cy="${-25.5+r*13}" r="2" fill="${r%2?'#3fe08a':'#5ab8ff'}"/>`).join('')}`);
+ case 'cloud2':return g(`<path d="M-20 6a10 10 0 0 1 2-19a14 14 0 0 1 26-4a10 10 0 0 1 12 23z" fill="#fff"/><path d="M0 8v14M-6 16l6 6 6-6" stroke="#2f6ea8" stroke-width="3" fill="none"/>`);
+ case 'stage':return g(`<path d="M-30 10h60l-6 14h-48z" fill="#7a3b9e"/><rect x="-24" y="-30" width="48" height="40" fill="#3a2a6e"/><path d="M-24 -30c8 10 8 30 0 40M24 -30c-8 10-8 30 0 40" fill="#c0392b"/><rect x="-3" y="-14" width="6" height="20" fill="#ddd"/><circle cy="-16" r="4" fill="#ddd"/>`);
+ case 'star':return g(`<path class="twk" d="M0 -12l3.5 8 8.5 1-6.5 5.5 2 8.5-7.5-4.5-7.5 4.5 2-8.5-6.5-5.5 8.5-1z" fill="#ffe58a"/>`);
+ case 'spot':return g(`<path class="beam" d="M0 0l-28 70h56z" fill="#fff6c2" opacity=".35"/><rect x="-8" y="-10" width="16" height="12" rx="3" fill="#9aa5b1"/>`);
+ }return ''}
+function sceneSVG(ci,h){const S0=SCN[ci],W=400;let r=rng2(ci*977+13),o='';
+ o+=`<defs><linearGradient id="sk${ci}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${S0.sky[0]}"/><stop offset="1" stop-color="${S0.sky[1]}"/></linearGradient></defs><rect width="${W}" height="${h}" fill="url(#sk${ci})"/>`;
+ if(ci==7)for(let k=0;k<40;k++)o+=`<circle class="twk" style="--d:${(k%7)*0.4}s" cx="${r()*W}" cy="${r()*h*0.7}" r="${0.8+r()*1.6}" fill="#fff"/>`;
+ else{o+=`<circle cx="${ci%2?330:70}" cy="60" r="28" fill="#fff6c2" opacity=".9"/>`;for(let k=0;k<3;k++){const cy=40+k*(h/3.2),cx=r()*W;o+=`<g class="cloud" style="--d:${k*-12}s;--s:${38+k*10}s"><g transform="translate(${cx} ${cy})"><ellipse rx="34" ry="12" fill="#fff" opacity=".85"/><ellipse cx="-14" cy="-8" rx="16" ry="12" fill="#fff" opacity=".85"/><ellipse cx="10" cy="-12" rx="18" ry="14" fill="#fff" opacity=".85"/></g></g>`}}
+ for(let k=0;k<3;k++){const y=h*(0.3+k*0.28);o+=`<path d="M-20 ${y+60} Q ${W*0.25} ${y-10} ${W*0.5} ${y+40} T ${W+20} ${y+20} V ${h} H -20z" fill="${S0.hill[k%2]}" opacity="${0.55+k*0.15}"/>`}
+ for(let k=0;k<10;k++){const left=k%2==0;const x=left?16+r()*40:W-16-r()*40,y=60+k*(h-90)/10;o+=`<g transform="translate(${x} ${y})"><circle r="${9+r()*6}" fill="${S0.hill[1]}"/><circle cx="8" cy="3" r="${7+r()*4}" fill="${S0.hill[0]}"/></g>`}
+ S0.props.forEach((p,k)=>{const left=k%2==0;const x=left?34+r()*26:W-34-r()*26,y=h*(0.22+k*0.2);o+=prop(p,x,y,0.9+r()*0.3,k)});
+ return `<svg class="saga-scene" viewBox="0 0 ${W} ${h}" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${o}</svg>`}
+function rng2(s){let a=s>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
 
 render();boot();
 </script></body></html>
