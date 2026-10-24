@@ -84,3 +84,15 @@ Mỗi khóa có bản đồ, câu hỏi và bảng xếp hạng riêng; chỉ ng
 1. **SQL Editor** → `supabase/saga_v3.sql` → **Run** (điểm đua theo khóa, bảng xếp hạng theo khóa).
 2. **SQL Editor** → `supabase/general_a1.sql` → **Run** (156 từ A1 đầu tiên cho General English; danh sách từ theo CEFR-J Vocabulary Profile 1.5 – Tono Laboratory, TUFS).
 3. **Edge Functions → saga** → dán lại toàn bộ `supabase/functions/saga/index.ts` → **Deploy**.
+
+## Góp từ cộng đồng
+
+Người học (đã tham gia khóa) vào **Từ vựng → Góp từ cho khóa…**, nhập từ, nghĩa, ví dụ và **level đề nghị** (CEFR A1–C2, hoặc 1–5 với khóa chuyên ngành).
+- AI (Gemini) chấm level. **Khớp level người học + AI xác nhận từ hợp lệ, đúng ngành → tự vào kho từ.**
+- Không khớp → đồng nghiệp bình chọn ▲/▼. Đủ `vote_threshold` phiếu (mặc định 3) → chuyển **admin duyệt** (Quản trị → Từ chờ duyệt). Ngược lại đủ phiếu phản đối → loại.
+- Mỗi người tối đa 10 từ / 24 giờ; không tự bình chọn từ của mình.
+
+### Cài đặt (1 lần)
+1. **SQL Editor** → `supabase/community.sql` → **Run**.
+2. **Edge Functions → Deploy a new function → Via Editor**, tên `suggest`, dán `supabase/functions/suggest/index.ts` → **Deploy** (dùng chung secret `GEMINI_API_KEY`).
+3. Đổi ngưỡng phiếu: `update tracks set vote_threshold = 5 where slug = 'steel';`

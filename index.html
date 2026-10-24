@@ -273,6 +273,20 @@ button:focus-visible,label.btn:focus-within,.link:focus-visible{outline:3px soli
 .drive{animation:sgdrive 6s ease-in-out infinite}@keyframes sgdrive{50%{transform:translateX(10px)}}
 .flame{animation:sgglow .4s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){.swing,.float,.drive,.flame,.saga-od-badge{animation:none!important}}
+
+.trk-bar{display:flex}.trk{flex:1 1 0;min-width:120px;max-width:none}.trk.add{flex:0 0 auto;min-width:0;padding:0 14px}
+.contrib-entry{width:100%;display:flex;gap:12px;align-items:center;text-align:left;padding:12px 14px;margin-bottom:12px;border-radius:14px;border:1.5px dashed color-mix(in srgb,var(--steel) 45%,var(--line));background:color-mix(in srgb,var(--steel) 6%,var(--card));cursor:pointer}
+.contrib-entry b{display:block}.contrib-entry small{color:var(--mut)}
+.contrib-ic{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:1.3rem;font-weight:700;color:var(--onsteel);background:var(--steel)}
+.ct-res{border-radius:12px;padding:10px 12px;background:var(--soft);border-left:4px solid var(--steel)}.ct-res.approved{border-color:var(--good);background:color-mix(in srgb,var(--good) 10%,var(--card))}
+.sug{display:flex;flex-direction:column;gap:8px}.sug-term{font-family:var(--fd);font-size:1.25rem}.sug-ex{font-size:.9rem}
+.sug-st{flex:none;min-height:28px;padding:3px 10px;font-size:.74rem}.sug-st.approved{background:var(--good);color:#fff;border-color:var(--good)}.sug-st.needs_admin{color:var(--warn);border-color:var(--amber)}.sug-st.rejected{color:var(--bad)}
+.sug-lv{display:flex;gap:6px;flex-wrap:wrap}.lv-chip{font-size:.78rem;padding:4px 10px;border-radius:99px;background:var(--soft)}.lv-chip.ai{background:color-mix(in srgb,var(--steel) 12%,var(--card))}.lv-chip.ai.ok{background:color-mix(in srgb,var(--good) 18%,var(--card));color:var(--good)}
+.sug-vote{display:flex;align-items:center;gap:8px}
+.vote{min-width:64px;min-height:44px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);font-weight:700;cursor:pointer}.vote:disabled{opacity:.4;cursor:not-allowed}
+.vote.up.on{background:var(--good);border-color:var(--good);color:#fff}.vote.down.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.vote-bar{flex:1;position:relative;height:28px;border-radius:99px;background:var(--soft);overflow:hidden}.vote-bar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--good),#5fd39a);border-radius:99px}.vote-bar span{position:relative;display:block;text-align:center;font:600 .78rem/28px var(--fm)}
+.count-pill{display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 8px;border-radius:99px;background:var(--bad);color:#fff;font-size:.85rem;vertical-align:middle}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -530,15 +544,15 @@ const slow=(t)=>`<button class="ic" aria-label="Nghe chậm" onclick="event.stop
 const TABS=[['home','Học','home'],['vocab','Từ vựng','book'],['saga','Đua level','trophy'],['make','Tạo bài','plus'],['me','Tài khoản','user']];
 function go(t){S.tab=t;S.game=null;render();scrollTo(0,0)}
 function render(){$('#nav').innerHTML=TABS.map(([k,n,i])=>`<button class="${S.tab==k?'on':''}" onclick="go('${k}')">${svg(i)}${n}</button>`).join('');
-const GATED=['vocab','speak','make','saga'];$('#app').innerHTML=S.game?vGame():(GATED.includes(S.tab)&&!canLearn()?trackBar()+vGate():({home:vHome,vocab:vVocab,speak:vSpeak,make:vMake,spec:vSpec,me:vMe,admin:vAdmin,saga:vSaga,tracks:vTracks})[S.tab]())}
+const GATED=['vocab','speak','make','saga','contrib'];$('#app').innerHTML=S.game?vGame():(GATED.includes(S.tab)&&!canLearn()?trackBar()+vGate():({home:vHome,vocab:vVocab,speak:vSpeak,make:vMake,spec:vSpec,me:vMe,admin:vAdmin,saga:vSaga,tracks:vTracks,contrib:vContrib})[S.tab]())}
 /* ---- home ---- */
 const PATH_STEEL=[['coat','Cấu trúc thép phủ màu'],['qual','Thử nghiệm & khiếu nại'],['nspe','Quy trình NSPE'],['colr','Pha màu & chạy thử'],['npd','Phát triển sản phẩm mới'],['talk','Họp & email với CFT']];
 function pathList(){const tr=curTrack();if(!tr||tr.slug=='steel')return PATH_STEEL;const used=new Set(TERMS.map(x=>x.cat));return Object.entries(tr.cats||{}).filter(([k])=>used.has(k)).map(([k,v])=>[k,v])}
 function pathState(){let now=false;return pathList().map(([c,n])=>{const key=doneKey(c);let s=S.done[key]?'done':(!now?(now=true,'now'):'next');return[c,n,s]})}
 function doneKey(c){const tr=curTrack();return !tr||tr.slug=='steel'?c:tr.slug+':'+c}
 function vHome(){if(!canLearn())return trackBar()+vGate()+(USER?'':`<div style="margin-top:12px">${loginBox()}</div>`);if(!TERMS.length)return trackBar()+vEmptyTrack();return trackBar()+vHomeMain()}
-function vHomeMain(){const PATH=pathState(),nowP=PATH.find(p=>p[2]=='now'),W=wrongTerms();const lv=Math.floor(S.xp/200)+1;return `<div class="coil"><div class="lbl">Lộ trình Technical Product Lead · QA/QC</div><h1>Chào buổi tối! Hôm nay luyện 10 phút nhé.</h1>
-<div class="stats"><div class="stat"><b>${S.streak}🔥</b><span>ngày liên tiếp</span></div><div class="stat"><b>${S.xp}</b><span>XP · Cấp ${lv}</span></div><div class="stat"><b>${TERMS.length}</b><span>thuật ngữ</span></div></div></div>
+function vHomeMain(){const PATH=pathState(),nowP=PATH.find(p=>p[2]=='now'),W=wrongTerms();const lv=Math.floor(S.xp/200)+1;return `<div class="coil"><div class="lbl">${esc(heroLabel())}</div><h1>Chào buổi tối! Hôm nay luyện 10 phút nhé.</h1>
+<div class="stats"><div class="stat"><b>${S.streak}🔥</b><span>ngày liên tiếp</span></div><div class="stat"><b>${S.xp}</b><span>XP · Cấp ${lv}</span></div><div class="stat"><b>${TERMS.length}</b><span>${curTrack()?.kind=='cefr'?'từ vựng':'thuật ngữ'}</span></div></div></div>
 <div class="stack" style="margin-top:14px">${nowP?`<button class="btn amber" onclick="start({path:'${nowP[0]}',cats:['${nowP[0]}'],mode:'quiz',n:8,name:'${nowP[1]}'})">Tiếp tục: ${nowP[1]} →</button>`:'<div class="card"><b>Bạn đã hoàn thành cả lộ trình!</b></div>'}
 <div class="card row" style="justify-content:space-between"><div><div class="lbl">Sổ từ sai</div><b style="font-family:var(--fd);font-size:1.4rem">${W.length}</b> <span class="mut">từ cần ôn</span></div>${W.length?`<button class="btn" onclick="reviewWrong()">Ôn ngay</button>`:'<span class="mut" style="font-size:.84rem">Chưa có từ sai</span>'}</div>
 ${USER?`<div class="mut row" style="font-size:.78rem;justify-content:space-between"><span>✓ ${esc(PROF?.full_name||USER.email)} · tiến độ lưu online</span><button class="link" onclick="go('me')">Tài khoản</button></div>`:loginBox()}
@@ -550,7 +564,7 @@ function reviewWrong(){const W=wrongTerms();start({name:'Ôn từ sai',mode:'qui
 function daily(){const d=new Date().getDate();const t=TERMS.filter(x=>x.cat=='talk');return t[d%t.length]||TERMS[d%Math.max(1,TERMS.length)]||{en:'Welcome',vi:'Chào mừng',ex:'Welcome to SteelSpeak.',exvi:'Chào mừng bạn đến SteelSpeak.',cat:'talk'}}
 const modeName=m=>({flash:'Thẻ ghi nhớ',quiz:'Trắc nghiệm',listen:'Nghe & chọn',speak:'Nói theo'}[m]);
 /* ---- vocab ---- */
-function vVocab(){return trackBar()+vVocabMain()}
+function vVocab(){return trackBar()+contribEntry()+vVocabMain()}
 function vVocabMain(){const docT=S.lessons.filter(l=>l.terms).flatMap(l=>l.terms);const L=VL=S.cat=='wrong'?wrongTerms():S.cat=='doc'?docT:TERMS.filter(t=>(S.cat=='all'||t.cat==S.cat)&&(!S.q||(t.en+t.vi).toLowerCase().includes(S.q.toLowerCase())));
 return `<h1>Từ điển chuyên ngành</h1><p class="mut">Thép phủ, chất lượng, NSPE, pha màu… Chạm vào loa để nghe giọng Mỹ.</p>
 <input type="text" id="q" placeholder="Tìm: coating mass, độ bền kéo…" value="${esc(S.q)}" oninput="S.q=this.value;const p=this.selectionStart;render();const e=$('#q');e.focus();e.setSelectionRange(p,p)">
@@ -656,7 +670,7 @@ let ADM={list:null,q:'',edit:null,err:''};
 async function adminApi(action,body={}){const {data:{session}}=await SB.auth.getSession();const r=await fetch(window.SS_CONFIG.SUPABASE_URL+'/functions/v1/admin',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token,apikey:window.SS_CONFIG.SUPABASE_ANON_KEY},body:JSON.stringify({action,...body})});
 const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('Lỗi '+r.status));return j}
 async function admLoad(){try{ADM.list=(await adminApi('list')).users;ADM.err=''}catch(e){ADM.err=e.message;ADM.list=[]}render()}
-function vAdmin(){if(!PROF?.is_admin)return `<h1>Quản trị</h1><p class="mut">Chỉ admin mới vào được trang này.</p>`;return vEnrAdmin()+vTrackAdmin()+vAdminUsers()}
+function vAdmin(){if(!PROF?.is_admin)return `<h1>Quản trị</h1><p class="mut">Chỉ admin mới vào được trang này.</p>`;return vEnrAdmin()+vSugAdmin()+vTrackAdmin()+vAdminUsers()}
 function vAdminUsers(){if(!ADM.list){admLoad();return `<h1>Quản trị người dùng</h1><p class="mut">Đang tải danh sách…</p>`}
 const L=ADM.list.filter(u=>!ADM.q||(u.email+' '+(u.full_name||'')+' '+(u.department||'')).toLowerCase().includes(ADM.q.toLowerCase()));const e=ADM.edit;
 return `<h1 style="margin-top:6px">Quản trị người dùng</h1>${ADM.err?`<p class="note">${esc(ADM.err)}</p>`:''}
@@ -949,20 +963,20 @@ async function loadWords(){const tr=curTrack();if(!tr||!canLearn()){TERMS=tr&&tr
  if(tr.slug=='steel'&&!TERMS.length)TERMS=STEEL_TERMS}
 async function switchTrack(slug){TR.active=slug;try{localStorage.setItem('track',slug)}catch(e){}S.cat='all';S.speakItem=null;SG.loaded=false;SG.board=null;SG.scrolled=0;_sctx=null;await loadWords();sgLoadLocal();render();scrollTo(0,0)}
 function trackBar(){if(!TR.ready||TR.legacy)return '';const mine=TR.tracks.filter(x=>x.join_policy=='open'||(enrOf(x)&&enrOf(x).status!='rejected'));
- return `<div class="trk-bar" role="tablist" aria-label="Khóa học">${mine.map(x=>{const e=enrOf(x),pend=x.join_policy=='approval'&&(!e||e.status!='approved');return `<button role="tab" aria-selected="${x.slug==TR.active}" class="trk ${x.slug==TR.active?'on':''}" onclick="switchTrack('${x.slug}')"><span class="trk-k">${x.kind=='cefr'?'CEFR':'Chuyên ngành'}</span>${esc(x.name)}${pend?' · <i>chờ duyệt</i>':''}</button>`}).join('')}<button class="trk add" onclick="go('tracks')" aria-label="Thư viện khóa học">＋ Khóa học</button></div>`}
+ return `<div class="trk-bar" role="tablist" aria-label="Khóa học">${mine.map(x=>{const e=enrOf(x),pend=x.join_policy=='approval'&&(!e||e.status!='approved');return `<button role="tab" aria-selected="${x.slug==TR.active}" class="trk ${x.slug==TR.active?'on':''}" title="${esc(x.name)}" onclick="switchTrack('${x.slug}')"><span class="trk-k">${x.kind=='cefr'?'CEFR':'Chuyên ngành'}</span>${esc(shortName(x))}${pend?' · <i>chờ duyệt</i>':''}</button>`}).join('')}<button class="trk add" onclick="go('tracks')" aria-label="Thư viện khóa học">＋ Khóa học</button></div>`}
 function vGate(){const tr=curTrack();if(!TR.ready)return '';if(!tr)return `<div class="card" style="margin-top:12px"><b>Chọn một khóa học</b><p class="mut">Mở Thư viện để tham gia khóa học.</p><button class="btn" onclick="go('tracks')">Mở thư viện khóa học</button></div>`;
  const e=enrOf(tr);if(!USER)return `<div class="card stack" style="margin-top:12px"><b>${esc(tr.name)}</b><p class="mut" style="margin:0">Khóa này cần đăng nhập và được admin duyệt trước khi học.</p></div>`;
  if(e&&e.status=='pending')return `<div class="card stack" style="margin-top:12px"><div class="lbl">Đang chờ duyệt</div><b>${esc(tr.name)}</b><p class="mut" style="margin:0">Đơn tham gia của bạn đã gửi lúc ${new Date(e.requested_at).toLocaleString('vi')}. Admin duyệt xong là bạn học được ngay. Trong lúc chờ, bạn có thể học General English.</p>${TR.tracks.some(x=>x.join_policy=='open')?`<button class="btn ghost" onclick="switchTrack('${TR.tracks.find(x=>x.join_policy=='open').slug}')">Học General English</button>`:''}</div>`;
  if(e&&e.status=='rejected')return `<div class="card" style="margin-top:12px"><b>Đơn tham gia ${esc(tr.name)} chưa được duyệt</b><p class="mut">Liên hệ admin nếu bạn cần học khóa này.</p></div>`;
  return `<div class="card stack" style="margin-top:12px"><div class="lbl">${tr.kind=='cefr'?'CEFR':'Chuyên ngành'} · cần admin duyệt</div><b>${esc(tr.name)}</b><p class="mut" style="margin:0">${esc(tr.description||'')}</p><label class="lbl" for="enrnote">Giới thiệu ngắn (công ty, vị trí)</label><input type="text" id="enrnote" placeholder="VD: QA – Nhà máy Phú Mỹ"><button class="btn" onclick="joinTrack('${tr.id}')">Gửi đơn tham gia</button></div>`}
-function vEmptyTrack(){const tr=curTrack();return `<div class="card stack" style="margin-top:12px"><div class="lbl">${tr&&tr.kind=='cefr'?'CEFR A1–C2':'Khóa học'}</div><b>${esc(tr?tr.name:'')}</b><p class="mut" style="margin:0">Khóa này đang được biên soạn từ vựng. Bạn đã tham gia; khi có bài học mới, chúng sẽ hiện ở đây.</p></div>`}
+function vEmptyTrack(){const tr=curTrack();return `<div class="card stack" style="margin-top:12px"><div class="lbl">${tr&&tr.kind=='cefr'?'CEFR A1–C2':'Khóa học'}</div><b>${esc(tr?tr.name:'')}</b><p class="mut" style="margin:0">Khóa này đang được biên soạn từ vựng. Bạn đã tham gia; khi có bài học mới, chúng sẽ hiện ở đây.</p></div>`+contribEntry()}
 async function joinTrack(id){if(!USER){go('me');return toast('Đăng nhập để tham gia khóa học')}const note=($('#enrnote')||{}).value||'';const {error}=await SB.from('enrollments').insert({user_id:USER.id,track_id:id,note});
  if(error&&!/duplicate/i.test(error.message))return toast('Chưa gửi được: '+error.message);const e=await SB.from('enrollments').select('*').eq('user_id',USER.id).eq('track_id',id).maybeSingle();if(e.data)TR.enr[id]=e.data;
  toast(e.data&&e.data.status=='approved'?'Đã tham gia khóa học':'Đã gửi đơn, chờ admin duyệt');await loadWords();render()}
 function vTracks(){if(!TR.ready)return `<h1>Thư viện khóa học</h1><p class="mut">${TR.legacy?'Cần chạy file supabase/platform.sql trên Supabase để bật nhiều khóa học.':'Đang tải…'}</p>`;
  return `<button class="back" onclick="go('home')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Học</button><h1 style="margin-top:6px">Thư viện khóa học</h1><p class="mut">Tham gia nhiều khóa cùng lúc. Mỗi khóa có level, thẻ ôn và bảng xếp hạng riêng.</p><div class="stack" style="margin-top:10px">${TR.tracks.map(x=>{const e=enrOf(x);const st=x.join_policy=='open'?(e?'Đã tham gia':'Mở cho mọi người'):e?{pending:'Chờ duyệt',approved:'Đã tham gia',rejected:'Chưa được duyệt'}[e.status]:'Cần admin duyệt';
  return `<div class="card trk-card"><div class="row" style="justify-content:space-between;flex-wrap:nowrap;align-items:flex-start"><div style="min-width:0"><div class="lbl">${x.kind=='cefr'?'Chuẩn quốc tế CEFR':'Chuyên ngành'}</div><h3>${esc(x.name)}</h3></div><span class="chip ${e&&e.status=='approved'?'on':''}" style="flex:none">${st}</span></div><p class="mut" style="margin:6px 0">${esc(x.description||'')}</p>${x.audience?`<div class="mut" style="font-size:.8rem">Dành cho: ${esc(x.audience)}</div>`:''}
- <div class="row" style="margin-top:10px">${(x.join_policy=='open'||(e&&e.status=='approved'))?`<button class="btn" onclick="(${!e&&x.join_policy=='open'&&!!USER}?joinTrack('${x.id}'):Promise.resolve()).then(()=>switchTrack('${x.slug}')).then(()=>go('home'))">Vào học</button>`:e&&e.status=='pending'?'<span class="mut">Đã gửi đơn</span>':`<button class="btn ghost" onclick="TR.active='${x.slug}';go('home')">Đăng ký tham gia</button>`}</div></div>`}).join('')}</div>
+ <div class="row" style="margin-top:10px">${PROF?.is_admin?`<button class="btn ghost" onclick="renameTrack('${x.id}')">Đổi tên</button>`:''}${(x.join_policy=='open'||(e&&e.status=='approved'))?`<button class="btn" onclick="(${!e&&x.join_policy=='open'&&!!USER}?joinTrack('${x.id}'):Promise.resolve()).then(()=>switchTrack('${x.slug}')).then(()=>go('home'))">Vào học</button>`:e&&e.status=='pending'?'<span class="mut">Đã gửi đơn</span>':`<button class="btn ghost" onclick="TR.active='${x.slug}';go('home')">Đăng ký tham gia</button>`}</div></div>`}).join('')}</div>
  <p class="mut" style="font-size:.78rem;margin-top:16px">Nguồn từ vựng General English: CEFR-J Vocabulary Profile (Tono Laboratory, TUFS), Octanove Vocabulary Profile (CC BY-SA 4.0), New General Service List (CC BY-SA 4.0).</p>`}
 /* admin: đơn tham gia */
 const EA={list:null,all:false};
@@ -1002,6 +1016,61 @@ async function taSave(){const e=TA.edit,st=$('#tast');const name=$('#tn').value.
 function vBadges(){const best=Object.values(SG.best||{});const od=best.filter(x=>x.od).length,three=best.filter(x=>x.stars==3).length,lv=best.filter(x=>x.stars>=1).length;const tr=curTrack();
  const B=(ic,n,label,on)=>`<div class="badge ${on?'on':''}"><div class="badge-ic">${ic}</div><b>${n}</b><span>${label}</span></div>`;
  return `<h2>Huy hiệu${tr?' · '+esc(tr.kind=='cefr'?'General English':tr.name):''}</h2><div class="badges">${B('⚡',od,'Overdrive',od>0)}${B('★',three,'Level 3 sao',three>0)}${B('🏁',lv,'Level đã qua',lv>0)}</div>`}
+
+/* ===================== GÓP TỪ CỘNG ĐỒNG ===================== */
+function heroLabel(){const tr=curTrack();if(!tr||tr.slug=='steel')return 'Lộ trình Technical Product Lead · QA/QC';return tr.kind=='cefr'?'Lộ trình General English · CEFR A1–C2':'Lộ trình '+tr.name}
+function shortName(x){return x.kind=='cefr'?'General English':(x.name.split(/\s[–-]\s/)[0]||x.name)}
+const CEFR_LV=[['A1','A1 – Mới bắt đầu'],['A2','A2 – Sơ cấp'],['B1','B1 – Trung cấp'],['B2','B2 – Trung cao'],['C1','C1 – Cao cấp'],['C2','C2 – Thành thạo']];
+const SPEC_LV=[['1','1 – Cơ bản, từ chung'],['2','2 – Dễ'],['3','3 – Thuật ngữ phổ biến'],['4','4 – Khó'],['5','5 – Rất chuyên sâu']];
+const lvName=(tr,l)=>((tr&&tr.kind=='cefr'?CEFR_LV:SPEC_LV).find(x=>x[0]==l)||[l,l])[1];
+const CT={tab:'voting',list:null,busy:false,res:null};
+function contribEntry(){const tr=curTrack();if(!tr||!USER||TR.legacy||!TR.ready||!(enrOf(tr)&&enrOf(tr).status=='approved'))return '';return `<button class="contrib-entry" onclick="CT.list=null;go('contrib')"><span class="contrib-ic">＋</span><span><b>Góp từ cho khóa ${esc(shortName(tr))}</b><small>Đề xuất từ mới, bình chọn từ của đồng nghiệp</small></span></button>`}
+async function ctLoad(){const tr=curTrack();if(!tr)return;const {data,error}=await SB.rpc('list_suggestions',{track:tr.id,st:CT.tab});CT.list=error?[]:data;CT.err=error?(/does not exist|schema cache/.test(error.message)?'Cần chạy file supabase/community.sql trên Supabase để bật Góp từ.':error.message):'';if(S.tab=='contrib')render()}
+function vContrib(){const tr=curTrack();if(!tr)return '';if(!(enrOf(tr)&&enrOf(tr).status=='approved'))return `<div class="card">Bạn cần tham gia khóa này để góp từ.</div>`;
+ if(!CT.list&&!CT.loading){CT.loading=1;ctLoad().finally(()=>CT.loading=0)}
+ const cefr=tr.kind=='cefr',LV=cefr?CEFR_LV:SPEC_LV;const r=CT.res;
+ return `<button class="back" onclick="go('vocab')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Từ vựng</button>
+ <h1 style="margin-top:6px">Góp từ</h1><p class="mut">${esc(tr.name)}. AI chấm level ngay; nếu AI đồng ý với level bạn chọn, từ vào kho luôn. Nếu không, đồng nghiệp bình chọn, đủ ${tr.vote_threshold||3} phiếu thì admin duyệt.</p>
+ <div class="card stack" style="margin-top:10px">
+  <label class="lbl" for="cw">Từ / cụm từ tiếng Anh</label>${inp('cw','',cefr?'VD: delicious':'VD: edge wave')}
+  <label class="lbl" for="cm">Nghĩa tiếng Việt</label>${inp('cm','','VD: gợn sóng mép tôn')}
+  <label class="lbl" for="ce">Câu ví dụ (không bắt buộc)</label>${inp('ce','','VD: The coil shows edge wave on the drive side.')}
+  ${cefr?'':`<label class="lbl" for="cc">Chủ đề</label><select id="cc">${Object.entries(tr.cats||{}).map(([k,v])=>`<option value="${esc(k)}">${esc(v)}</option>`).join('')}</select>`}
+  <label class="lbl" for="cl">Level bạn đề nghị</label><select id="cl">${LV.map(([k,v])=>`<option value="${k}" ${k==(cefr?'A2':'3')?'selected':''}>${v}</option>`).join('')}</select>
+  <button class="btn" id="ctgo" onclick="ctSubmit()" ${CT.busy?'disabled':''}>${CT.busy?'AI đang chấm…':'Gửi từ'}</button>
+  ${r?`<div class="ct-res ${r.status}"><b>${r.status=='approved'?'✓ Đã thêm vào kho từ':r.error?'Chưa gửi được':'Đang chờ bình chọn'}</b><div>${r.error?esc(r.error):r.status=='approved'?`AI đồng ý level ${esc(lvName(tr,r.ai_level))}.`:`Bạn chọn ${esc(lvName(tr,r.user_level))}${r.ai_level?`, AI đề xuất ${esc(lvName(tr,r.ai_level))}`:''}${r.ai_valid===false?' · AI cho rằng từ chưa hợp lệ':''}.`}</div>${r.note?`<div class="mut" style="font-size:.84rem">${esc(r.note)}</div>`:''}</div>`:''}
+ </div>
+ <div class="chips" style="margin:16px 0 8px">${[['voting','Đang bình chọn'],['mine','Của tôi'],['needs_admin','Chờ admin'],['approved','Đã duyệt']].map(([k,n])=>`<button class="chip ${CT.tab==k?'on':''}" onclick="CT.tab='${k}';CT.list=null;render()">${n}</button>`).join('')}</div>
+ ${CT.err?`<p class="note">${esc(CT.err)}</p>`:''}
+ ${!CT.list?'<p class="mut">Đang tải…</p>':CT.list.length?`<div class="stack">${CT.list.map(s=>sugCard(tr,s)).join('')}</div>`:`<div class="card mut">${CT.tab=='voting'?'Chưa có từ nào đang bình chọn. Hãy là người góp từ đầu tiên.':'Chưa có từ nào.'}</div>`}`}
+function sugCard(tr,s){const th=tr.vote_threshold||3,net=s.up-s.down,pct=Math.max(0,Math.min(100,net/th*100));const match=s.ai_level&&s.ai_level==s.user_level;
+ const st={voting:'Đang bình chọn',needs_admin:'Chờ admin duyệt',approved:'Đã vào kho',rejected:'Không được chọn'}[s.status];
+ return `<div class="card sug"><div class="row" style="justify-content:space-between;flex-wrap:nowrap;align-items:flex-start"><div style="min-width:0"><div class="row" style="gap:6px;flex-wrap:nowrap"><b class="sug-term">${esc(s.term)}</b>${spk(s.term)}</div><div class="mut">${esc(s.meaning_vi||'')}</div></div><span class="chip sug-st ${s.status}">${st}</span></div>
+ ${s.example?`<i class="sug-ex">${esc(s.example)}</i>`:''}
+ <div class="sug-lv"><span class="lv-chip">Đề nghị: <b>${esc(lvName(tr,s.user_level))}</b></span><span class="lv-chip ai ${match?'ok':''}">AI: <b>${s.ai_level?esc(lvName(tr,s.ai_level)):'—'}</b>${s.ai_valid===false?' · chưa hợp lệ':''}</span></div>
+ ${s.ai_note?`<div class="mut" style="font-size:.8rem">${esc(s.ai_note)}</div>`:''}
+ ${s.status=='voting'?`<div class="sug-vote"><button class="vote up ${s.my_vote==1?'on':''}" ${s.mine?'disabled title="Không tự bình chọn"':''} onclick="ctVote(${s.id},1)" aria-label="Đồng ý thêm từ">▲ <b>${s.up}</b></button><div class="vote-bar" aria-label="Tiến độ đến ngưỡng duyệt"><i style="width:${pct}%"></i><span>${Math.max(0,net)}/${th} phiếu</span></div><button class="vote down ${s.my_vote==-1?'on':''}" ${s.mine?'disabled':''} onclick="ctVote(${s.id},-1)" aria-label="Không đồng ý">▼ <b>${s.down}</b></button></div>`:''}
+ <div class="mut" style="font-size:.74rem">Góp bởi ${esc(s.author||'Người học')}${s.mine?' (bạn)':''} · ${new Date(s.created_at).toLocaleDateString('vi')}</div></div>`}
+async function ctSubmit(){const tr=curTrack();const term=$('#cw').value.trim(),meaning=$('#cm').value.trim(),example=$('#ce').value.trim(),level=$('#cl').value,cat=$('#cc')?$('#cc').value:level;
+ if(term.length<2)return toast('Nhập từ tiếng Anh');if(!meaning)return toast('Nhập nghĩa tiếng Việt');CT.busy=true;CT.res=null;render();
+ try{const {data:{session}}=await SB.auth.getSession();const r=await fetch(window.SS_CONFIG.SUPABASE_URL+'/functions/v1/suggest',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token,apikey:window.SS_CONFIG.SUPABASE_ANON_KEY},body:JSON.stringify({track:tr.slug,term,meaning_vi:meaning,example,level,cat})});
+  const j=await r.json().catch(()=>({}));CT.res=r.ok?{...j,user_level:level}:{error:j.error||('Lỗi '+r.status+(r.status==404?' – cần deploy Edge Function "suggest"':''))};
+  if(r.ok&&j.status=='approved'){toast('Từ đã vào kho');await loadWords();_sctx=null}}catch(e){CT.res={error:'Không kết nối được máy chủ'}}
+ CT.busy=false;CT.list=null;render()}
+async function ctVote(id,v){const {error}=await SB.rpc('vote_suggestion',{sid:id,v});if(error)return toast(error.message);toast(v>0?'Đã đồng ý':'Đã không đồng ý');CT.list=null;render()}
+/* admin duyệt từ */
+const SA={list:null};
+async function saLoad(){const out=[];for(const tr of TR.tracks){const {data}=await SB.rpc('list_suggestions',{track:tr.id,st:'needs_admin'});(data||[]).forEach(s=>out.push({...s,tr}))}SA.list=out;if(S.tab=='admin')render()}
+function vSugAdmin(){if(TR.legacy||!TR.ready)return '';if(!SA.list){saLoad();return ''}
+ return `<h2>Từ chờ duyệt ${SA.list.length?`<span class="count-pill">${SA.list.length}</span>`:''}</h2>${SA.list.length?`<div class="stack" style="margin-top:8px">${SA.list.map(s=>{const LV=s.tr.kind=='cefr'?CEFR_LV:SPEC_LV;return `<div class="card stack"><div class="lbl">${esc(s.tr.name)} · ${s.up}▲ ${s.down}▼</div><b class="sug-term">${esc(s.term)}</b><div class="mut">${esc(s.meaning_vi||'')}</div>
+ <div class="sug-lv"><span class="lv-chip">Người góp: <b>${esc(lvName(s.tr,s.user_level))}</b></span><span class="lv-chip ai">AI: <b>${s.ai_level?esc(lvName(s.tr,s.ai_level)):'—'}</b></span></div>${s.ai_note?`<div class="mut" style="font-size:.8rem">${esc(s.ai_note)}</div>`:''}
+ <label class="lbl" for="sal${s.id}">Level duyệt</label><select id="sal${s.id}">${LV.map(([k,v])=>`<option value="${k}" ${k==(s.ai_level||s.user_level)?'selected':''}>${v}</option>`).join('')}</select>
+ <div class="row" style="flex-wrap:nowrap"><button class="btn" style="flex:1" onclick="saReview(${s.id},true)">Duyệt vào kho</button><button class="btn danger" onclick="saReview(${s.id},false)">Từ chối</button></div></div>`}).join('')}</div>`:'<p class="mut">Không có từ nào chờ duyệt.</p>'}`}
+async function saReview(id,ok){const lv=$('#sal'+id)?.value;const {error}=await SB.rpc('admin_review_suggestion',{sid:id,approve:ok,final_level:lv,final_meaning:null});if(error)return toast(error.message);toast(ok?'Đã thêm vào kho từ':'Đã từ chối');SA.list=null;render()}
+/* admin đổi tên khóa học nhanh */
+function renameTrack(id){const tr=TR.tracks.find(x=>x.id==id);const m=document.createElement('div');m.className='saga-modal';m.innerHTML=`<div class="saga-sheet stack" style="padding:18px" role="dialog" aria-label="Đổi tên khóa học"><h3>Đổi tên khóa học</h3><label class="lbl" for="rnm">Tên mới</label><input type="text" id="rnm" value="${esc(tr.name)}" style="width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit"><div class="row" style="flex-wrap:nowrap"><button class="btn" style="flex:1" id="rnok">Lưu tên</button><button class="btn ghost" id="rnx">Huỷ</button></div><div id="rnst" class="mut" style="font-size:.84rem"></div></div>`;
+ document.body.appendChild(m);const inpEl=m.querySelector('#rnm');inpEl.focus();inpEl.select();m.querySelector('#rnx').onclick=()=>m.remove();m.onclick=e=>{if(e.target===m)m.remove()};
+ m.querySelector('#rnok').onclick=async()=>{const name=inpEl.value.trim();if(!name)return;const {error}=await SB.from('tracks').update({name}).eq('id',id);if(error){m.querySelector('#rnst').textContent='Chưa lưu được: '+error.message;return}tr.name=name;m.remove();toast('Đã đổi tên khóa học');render()}}
 
 render();boot();
 </script></body></html>
