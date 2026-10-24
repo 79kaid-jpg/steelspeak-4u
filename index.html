@@ -659,7 +659,7 @@ async function admLoad(){try{ADM.list=(await adminApi('list')).users;ADM.err=''}
 function vAdmin(){if(!PROF?.is_admin)return `<h1>Quản trị</h1><p class="mut">Chỉ admin mới vào được trang này.</p>`;return vEnrAdmin()+vTrackAdmin()+vAdminUsers()}
 function vAdminUsers(){if(!ADM.list){admLoad();return `<h1>Quản trị người dùng</h1><p class="mut">Đang tải danh sách…</p>`}
 const L=ADM.list.filter(u=>!ADM.q||(u.email+' '+(u.full_name||'')+' '+(u.department||'')).toLowerCase().includes(ADM.q.toLowerCase()));const e=ADM.edit;
-return `<button class="back" onclick="go('me')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Tài khoản</button><h1 style="margin-top:6px">Quản trị người dùng</h1>${ADM.err?`<p class="note">${esc(ADM.err)}</p>`:''}
+return `<h1 style="margin-top:6px">Quản trị người dùng</h1>${ADM.err?`<p class="note">${esc(ADM.err)}</p>`:''}
 <div class="card stack" style="margin-top:12px"><div class="lbl">${e&&e.id?'Sửa tài khoản':'Tạo tài khoản mới'}</div>
 ${inp('ae',e?.email,'email@congty.com')}${inp('an',e?.full_name,'Họ tên')}<div class="row" style="flex-wrap:nowrap"><div style="flex:1">${roleSel('ar',e?.role||'TPL')}</div><div style="flex:1.4">${inp('ad',e?.department,'Phòng ban')}</div></div>
 ${inp('ap','',e&&e.id?'Mật khẩu mới (để trống nếu không đổi)':'Mật khẩu ban đầu (ít nhất 8 ký tự)','text')}
