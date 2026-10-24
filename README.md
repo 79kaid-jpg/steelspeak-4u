@@ -64,3 +64,14 @@ Bạn bè mở link → nhập email → bấm link trong email là vào học. 
 1. **SQL Editor** → dán `supabase/saga.sql` → **Run**.
 2. **Edge Functions → Deploy a new function → Via Editor**, tên `saga`, dán **toàn bộ** `supabase/functions/saga/index.ts` → **Deploy**.
 3. Sửa `saga-core.js` (thêm level, đổi luật điểm) thì chạy `tools/build-saga-fn.sh` rồi deploy lại function `saga`, để đề và điểm trên máy chủ khớp với web.
+
+## Nhiều khóa học (Giai đoạn 1 nền tảng)
+
+Khóa học (track) và từ vựng nằm trong cơ sở dữ liệu. Khóa **Thép phủ** cần admin duyệt đơn tham gia; khóa **General English (CEFR)** mở cho mọi người. Người dùng đã có tài khoản được cho vào khóa Thép sẵn.
+
+### Cài đặt (1 lần)
+1. **SQL Editor** → dán `supabase/platform.sql` → **Run** (tạo bảng `tracks`, `enrollments`, `words`, nạp 148 thuật ngữ thép, tạo 2 khóa học).
+2. Muốn email công ty được duyệt tự động: chạy `update tracks set auto_domains = '{congty.com.vn}' where slug = 'steel';`
+3. Admin duyệt đơn ở **Tài khoản → Quản trị người dùng → Đơn tham gia khóa học**.
+
+Chưa chạy `platform.sql` thì app vẫn chạy như cũ (chỉ một khóa Thép).
