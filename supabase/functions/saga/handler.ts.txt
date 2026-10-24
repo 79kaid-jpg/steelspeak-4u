@@ -1,0 +1,39 @@
+
+// ===== Supabase Edge Function "saga": chấm điểm level trên máy chủ (chống sửa điểm) =====
+// @ts-nocheck
+import { createClient } from "npm:@supabase/supabase-js@2.45.4";
+const SAGA = (globalThis as any).SAGA;
+const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" };
+const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...cors, "Content-Type": "application/json" } });
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  try {
+    const url = Deno.env.get("SUPABASE_URL")!;
+    const uc = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } });
+    const { data: { user } } = await uc.auth.getUser();
+    if (!user) return json({ error: "Chưa đăng nhập" }, 401);
+    const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const b = await req.json();
+    const level = Math.floor(Number(b.level));
+    if (!(level >= 1 && level <= SAGA.LEVELS)) return json({ error: "Level không hợp lệ" }, 400);
+
+    // Chỉ được chơi level đã mở khoá
+    const { data: rows } = await admin.from("saga_scores").select("level,stars,overdrive").eq("user_id", user.id).gte("stars", 1);
+    let maxOpen = 1;
+    for (const r of rows ?? []) maxOpen = Math.max(maxOpen, r.level + (r.overdrive ? 3 : 1));
+    if (level > maxOpen) return json({ error: "Level này chưa mở khoá" }, 403);
+
+    // Chống gửi dồn dập: tối đa 1 lượt / 15 giây
+    const { data: last } = await admin.from("saga_scores").select("created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (last && Date.now() - new Date(last.created_at).getTime() < 15000) return json({ error: "Thao tác quá nhanh, thử lại sau ít giây" }, 429);
+
+    const answers = Array.isArray(b.answers) ? b.answers.slice(0, 20) : [];
+    const r = SAGA.grade(level, answers);
+    const { error } = await admin.from("saga_scores").insert({ user_id: user.id, level, correct: r.correct, ms: r.ms, score: r.score, stars: r.stars, overdrive: r.overdrive });
+    if (error) return json({ error: error.message }, 500);
+    return json(r);
+  } catch (e) {
+    return json({ error: String((e as Error).message ?? e) }, 500);
+  }
+});

@@ -126,11 +126,69 @@ nav button.on::before{content:"";position:absolute;top:0;left:28%;right:28%;heig
 /* Đưa thanh tab lên trên mọi lớp nổi chèn từ bên ngoài (VD: huy hiệu của nhà cung cấp hosting) */
 nav{z-index:2147483647}
 .toast{z-index:2147483647}
+
+/* ===== Speed Saga ===== */
+.saga-hero{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;color:#fff;padding:16px;border-radius:18px;background:linear-gradient(135deg,#7a3b16,#c9711c 55%,#e39b1a);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 6px 18px rgba(201,113,28,.3)}
+.saga-hero b{display:block;font:700 1.25rem/1.2 var(--fd)}.saga-hero span{font-size:.82rem;color:#ffeccc}
+.saga-hero-go{flex:none;background:#fff;color:#7a3b16!important;font:700 .95rem var(--fd)!important;padding:10px 14px;border-radius:99px}
+.saga-tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--soft);border-radius:12px;padding:4px;gap:4px}
+.saga-tabs button{min-height:40px;border-radius:9px;font-weight:600;color:var(--mut)}.saga-tabs button.on{background:var(--card);color:var(--steel);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.saga-bar{display:flex;gap:14px;align-items:center;justify-content:space-between;margin:10px 0;font-family:var(--fd);font-size:1rem}.saga-bar b{color:var(--amber);font-size:1.2rem}
+.saga-map{position:relative;margin:0 -16px;overflow:hidden;border-radius:0}
+.saga-band{position:absolute;left:0;right:0}
+.saga-band-tex{position:absolute;inset:0;background:repeating-linear-gradient(100deg,rgba(255,255,255,.05) 0 14px,transparent 14px 28px),radial-gradient(circle at 85% 20%,rgba(255,255,255,.12),transparent 40%)}
+.saga-sign{position:absolute;left:50%;transform:translateX(-50%);z-index:2;white-space:nowrap;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.3);background:rgba(10,18,26,.55);color:#fff;font:700 1rem/1.1 var(--fd);padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(2px)}
+.saga-sign span{display:block;font:600 .68rem/1 var(--fd);letter-spacing:.1em;text-transform:uppercase;color:#ffd58a;margin-bottom:3px}
+.saga-path{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.saga-path path{fill:none;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round}
+.saga-path .p1{stroke:rgba(0,0,0,.25);stroke-width:22px}.saga-path .p2{stroke:#d9e1e8;stroke-width:14px;stroke-dasharray:2 18}
+.saga-node-wrap{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center}
+.saga-node{width:60px;height:60px;border-radius:50%;font:700 1.35rem/1 var(--fd);color:#fff;background:radial-gradient(circle at 35% 30%,#8fb6dc,#2f6ea8 45%,#163a5c);box-shadow:inset 0 -4px 0 rgba(0,0,0,.3),inset 0 2px 0 rgba(255,255,255,.4),0 4px 10px rgba(0,0,0,.35);border:3px solid #e8eef3;display:grid;place-items:center}
+.saga-node.done{background:radial-gradient(circle at 35% 30%,#ffe2a1,#e39b1a 45%,#9a5f0a);color:#2a1600}
+.saga-node.locked{background:radial-gradient(circle at 35% 30%,#c5ced6,#8796a4 50%,#5b6977);color:#eef2f5;border-color:#aab6c1;cursor:not-allowed}
+.saga-node.locked svg{width:24px;height:24px}
+.saga-node.cur{width:72px;height:72px;font-size:1.6rem;animation:sgpulse 1.6s infinite}
+@keyframes sgpulse{0%,100%{box-shadow:inset 0 -4px 0 rgba(0,0,0,.3),inset 0 2px 0 rgba(255,255,255,.4),0 0 0 0 rgba(255,213,138,.8)}50%{box-shadow:inset 0 -4px 0 rgba(0,0,0,.3),inset 0 2px 0 rgba(255,255,255,.4),0 0 0 14px rgba(255,213,138,0)}}
+.saga-stars{display:flex;gap:1px;margin-bottom:-6px;position:relative;z-index:1}.saga-stars i{font-style:normal;font-size:1.05rem;color:rgba(255,255,255,.35);text-shadow:0 1px 2px rgba(0,0,0,.5)}.saga-stars i.on{color:#ffcf4a}
+.saga-stars i:nth-child(2){transform:translateY(-5px)}
+.saga-stars.big i{font-size:2rem}.saga-stars.huge{justify-content:center;margin:8px 0}.saga-stars.huge i{font-size:3.4rem;animation:sgstar .5s both}
+@keyframes sgstar{from{transform:scale(0) rotate(-30deg);opacity:0}to{opacity:1}}
+.saga-me{position:absolute;right:-30px;top:-14px;width:34px;height:34px;border-radius:50%;background:#fff;color:var(--steel);display:grid;place-items:center;font:700 .8rem var(--fd);border:3px solid #ffcf4a;box-shadow:0 3px 8px rgba(0,0,0,.35)}
+.saga-friends{position:absolute;left:-40px;top:8px;display:flex}.saga-friends span{width:28px;height:28px;margin-left:-8px;border-radius:50%;background:#fff;color:#3b4a7a;font:700 .7rem/28px var(--fd);text-align:center;border:2px solid #9fb6d3;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.saga-modal{position:fixed;inset:0;z-index:2147483646;background:rgba(8,14,20,.6);display:flex;align-items:flex-end;justify-content:center;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.saga-sheet{width:100%;max-width:440px;background:var(--card);border-radius:22px;overflow:hidden;animation:sgup .25s ease-out}
+@keyframes sgup{from{transform:translateY(30px);opacity:0}}
+.saga-sheet-top{padding:18px;color:#fff;text-align:center}.saga-sheet-top h1{color:#fff;font-size:2.2rem}
+.saga-goal{width:100%;font-size:.88rem}.saga-goal td:first-child{color:var(--warn);font-weight:700;width:52px;white-space:nowrap}
+.saga-timer{font:500 1rem var(--fm);background:var(--soft);padding:4px 10px;border-radius:99px}
+.saga-q{margin-top:10px}.saga-opts{display:grid;gap:8px;margin-top:12px}
+.saga-ord{display:flex;gap:10px;align-items:center}.saga-ordn{flex:none;width:28px;height:28px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font:700 .9rem var(--fd)}
+.saga-ord.picked{border-color:var(--steel)}.saga-ord.picked .saga-ordn{background:var(--steel);color:var(--onsteel);border-color:var(--steel)}
+.saga-stun{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);background:var(--bad);color:#fff;font:700 1.1rem var(--fd);padding:14px 20px;border-radius:14px;z-index:9;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.saga-res{margin-top:12px;border-radius:22px;padding:20px;text-align:center;color:#fff;background:repeating-linear-gradient(100deg,#1b3f61 0 14px,#214b72 14px 28px)}
+.saga-res h1{color:#fff;font-size:2rem}.saga-od{display:inline-block;background:#ffcf4a;color:#2a1600;font:700 .9rem var(--fd);padding:6px 12px;border-radius:99px;margin-bottom:8px}
+.saga-res-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.saga-res-stats div{background:rgba(255,255,255,.12);border-radius:12px;padding:8px;font-size:.78rem;color:#d4e3f2}.saga-res-stats b{display:block;font:700 1.3rem var(--fd);color:#fff}
+.league{display:flex;gap:12px;align-items:center;margin-top:12px;padding:14px;border-radius:16px;color:#fff;background:linear-gradient(135deg,#1b3f61,var(--tier))}
+.league b{display:block;font:700 1.2rem var(--fd)}.league span{font-size:.8rem;color:#e3edf6}
+.league-badge{flex:none;width:52px;height:52px;border-radius:14px;transform:rotate(45deg);display:grid;place-items:center;background:var(--tier);border:3px solid rgba(255,255,255,.7);font:700 1.3rem var(--fd)}
+.league-badge>*{transform:rotate(-45deg)}
+.podium{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:end;gap:8px;margin:18px 0 12px}
+.pod{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;min-width:0}.pod b{font-size:.84rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pod span{font-size:.74rem;color:var(--mut)}
+.pod-av{position:relative;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font:700 1.05rem var(--fd);background:var(--soft);color:var(--steel);border:3px solid var(--zinc)}
+.pod1 .pod-av{width:64px;height:64px;border-color:#ffcf4a}.pod2 .pod-av{border-color:#b9c4cf}.pod3 .pod-av{border-color:#c98a55}
+.crown{position:absolute;top:-20px;font-size:1.3rem;color:#e3a51a}
+.pod-block{width:100%;margin-top:6px;border-radius:10px 10px 0 0;color:#fff;font:700 1.4rem var(--fd);display:grid;place-items:center}
+.pod1 .pod-block{height:86px;background:linear-gradient(180deg,#f0b347,#c9711c)}.pod2 .pod-block{height:64px;background:linear-gradient(180deg,#b9c4cf,#7d8c99)}.pod3 .pod-block{height:50px;background:linear-gradient(180deg,#d69a66,#9a5f2e)}
+.rk{display:flex;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}.rk:last-child{border-bottom:0}
+.rk.me{background:color-mix(in srgb,var(--amber) 14%,var(--card))}
+.rk-n{width:22px;text-align:center;font:700 .95rem var(--fd);color:var(--mut)}.rk-av{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--steel);font:700 .8rem var(--fd)}.rk-s{font-family:var(--fd);font-size:1.05rem}
+@media (prefers-reduced-motion:reduce){.saga-node.cur,.saga-stars.huge i,.saga-sheet{animation:none}}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
 <div class="toast" id="toast" hidden></div>
 <script src="config.js"></script>
+<script src="saga-core.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const CATS = {
@@ -344,7 +402,7 @@ function vSpec(){return `<h1>Bản thiết kế ứng dụng</h1><p class="mut">
 const TERMS=RAW.map(r=>({cat:r[0],en:r[1],vi:r[2],ex:r[3],exvi:r[4]}));
 CATS.doc={n:'Từ tài liệu',d:'Tạo từ tài liệu bạn tải lên'};
 let VL=[];
-const IC={user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',book:'<path d="M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4zM20 4h-5a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h6z"/>',mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',plus:'<path d="M12 5v14M5 12h14"/><rect x="3" y="3" width="18" height="18" rx="4"/>',spec:'<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',spk:'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>',slow:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M10 2h4"/>'};
+const IC={trophy:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',book:'<path d="M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4zM20 4h-5a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h6z"/>',mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',plus:'<path d="M12 5v14M5 12h14"/><rect x="3" y="3" width="18" height="18" rx="4"/>',spec:'<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',spk:'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>',slow:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M10 2h4"/>'};
 const svg=(k)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</svg>`;
 const $=s=>document.querySelector(s);const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let S={tab:'home',xp:0,streak:0,last:'',done:{},wrong:{},lessons:[],cat:'all',q:'',game:null,sync:'local'};
@@ -355,7 +413,7 @@ const SB=supabase.createClient(window.SS_CONFIG.SUPABASE_URL,window.SS_CONFIG.SU
 function save(){const v={xp:S.xp,streak:S.streak,last:S.last,done:S.done,wrong:S.wrong,lessons:S.lessons,srs:S.srs||{},fc:S.fc||{}};try{localStorage.setItem('ss2',JSON.stringify(v))}catch(e){}
 if(USER){clearTimeout(saveT);saveT=setTimeout(async()=>{const {error}=await SB.from('progress').upsert({user_id:USER.id,data:v,updated_at:new Date().toISOString()});S.sync=error?'err':'cloud'},600)}}
 let PROF=null;const ROLES=['TPL','QA','QC','Khác'];
-async function boot(){const {data:{session}}=await SB.auth.getSession();USER=session?.user||null;PROF=null;if(USER){const p=await SB.from('profiles').select('*').eq('id',USER.id).maybeSingle();PROF=p.data||{id:USER.id,email:USER.email,full_name:'',role:'TPL',department:'',is_admin:false};const {data}=await SB.from('progress').select('data').eq('user_id',USER.id).maybeSingle();if(data)load(data.data);else save();S.sync='cloud'}render()}
+async function boot(){const {data:{session}}=await SB.auth.getSession();USER=session?.user||null;PROF=null;if(USER){const p=await SB.from('profiles').select('*').eq('id',USER.id).maybeSingle();PROF=p.data||{id:USER.id,email:USER.email,full_name:'',role:'TPL',department:'',is_admin:false};const {data}=await SB.from('progress').select('data').eq('user_id',USER.id).maybeSingle();if(data)load(data.data);else save();S.sync='cloud';SG.loaded=false;SG.board=null}render()}
 SB.auth.onAuthStateChange((ev,s)=>{if(ev=='PASSWORD_RECOVERY'){S.tab='me';S.recover=1}const was=!!USER;USER=s?.user||null;if(!!USER!==was||ev=='PASSWORD_RECOVERY')boot()});
 async function loginPw(){const em=$('#em').value.trim(),pw=$('#pw').value;if(!em||!pw)return toast('Nhập email và mật khẩu');const {error}=await SB.auth.signInWithPassword({email:em,password:pw});
 if(error){const m=/Invalid login/i.test(error.message)?'Email hoặc mật khẩu chưa đúng.':/not confirmed/i.test(error.message)?'Email chưa được xác nhận.':'Chưa đăng nhập được: '+error.message;$('#lst').innerHTML='<b style="color:var(--bad)">'+m+'</b>';toast(m)}else toast('Đăng nhập thành công')}
@@ -379,10 +437,10 @@ function say(t,rate=0.95){if(!('speechSynthesis' in window))return toast('Thiế
 const spk=(t)=>`<button class="ic" aria-label="Nghe giọng Mỹ" onclick="event.stopPropagation();say(${esc(JSON.stringify(t))})">${svg('spk')}</button>`;
 const slow=(t)=>`<button class="ic" aria-label="Nghe chậm" onclick="event.stopPropagation();say(${esc(JSON.stringify(t))},0.6)">${svg('slow')}</button>`;
 /* ---- nav ---- */
-const TABS=[['home','Học','home'],['vocab','Từ vựng','book'],['speak','Luyện nói','mic'],['make','Tạo bài','plus'],['me','Tài khoản','user']];
+const TABS=[['home','Học','home'],['vocab','Từ vựng','book'],['saga','Đua level','trophy'],['make','Tạo bài','plus'],['me','Tài khoản','user']];
 function go(t){S.tab=t;S.game=null;render();scrollTo(0,0)}
 function render(){$('#nav').innerHTML=TABS.map(([k,n,i])=>`<button class="${S.tab==k?'on':''}" onclick="go('${k}')">${svg(i)}${n}</button>`).join('');
-$('#app').innerHTML=S.game?vGame():({home:vHome,vocab:vVocab,speak:vSpeak,make:vMake,spec:vSpec,me:vMe,admin:vAdmin})[S.tab]()}
+$('#app').innerHTML=S.game?vGame():({home:vHome,vocab:vVocab,speak:vSpeak,make:vMake,spec:vSpec,me:vMe,admin:vAdmin,saga:vSaga})[S.tab]()}
 /* ---- home ---- */
 const PATH0=[['coat','Cấu trúc thép phủ màu'],['qual','Thử nghiệm & khiếu nại'],['nspe','Quy trình NSPE'],['colr','Pha màu & chạy thử'],['npd','Phát triển sản phẩm mới'],['talk','Họp & email với CFT']];
 function pathState(){let now=false;return PATH0.map(([c,n])=>{let s=S.done[c]?'done':(!now?(now=true,'now'):'next');return[c,n,s]})}
@@ -391,7 +449,7 @@ function vHome(){const PATH=pathState(),nowP=PATH.find(p=>p[2]=='now'),W=wrongTe
 <div class="stack" style="margin-top:14px">${nowP?`<button class="btn amber" onclick="start({path:'${nowP[0]}',cats:['${nowP[0]}'],mode:'quiz',n:8,name:'${nowP[1]}'})">Tiếp tục: ${nowP[1]} →</button>`:'<div class="card"><b>Bạn đã hoàn thành cả lộ trình!</b></div>'}
 <div class="card row" style="justify-content:space-between"><div><div class="lbl">Sổ từ sai</div><b style="font-family:var(--fd);font-size:1.4rem">${W.length}</b> <span class="mut">từ cần ôn</span></div>${W.length?`<button class="btn" onclick="reviewWrong()">Ôn ngay</button>`:'<span class="mut" style="font-size:.84rem">Chưa có từ sai</span>'}</div>
 ${USER?`<div class="mut row" style="font-size:.78rem;justify-content:space-between"><span>✓ ${esc(PROF?.full_name||USER.email)} · tiến độ lưu online</span><button class="mut" style="text-decoration:underline" onclick="go('me')">Tài khoản</button></div>`:loginBox()}
-${dueHome()}<div class="card"><div class="lbl">Câu nói của ngày</div><div class="row" style="margin-top:6px;flex-wrap:nowrap"><div style="flex:1;min-width:0"><b>${esc(daily().ex)}</b><div class="mut" style="font-size:.86rem">${esc(daily().exvi)}</div></div>${spk(daily().ex)}</div>
+${sagaHome()}${dueHome()}<div class="card"><div class="lbl">Câu nói của ngày</div><div class="row" style="margin-top:6px;flex-wrap:nowrap"><div style="flex:1;min-width:0"><b>${esc(daily().ex)}</b><div class="mut" style="font-size:.86rem">${esc(daily().exvi)}</div></div>${spk(daily().ex)}</div>
 <button class="btn ghost" style="width:100%;margin-top:10px" onclick="S.speakItem=daily();go('speak')">Đọc thử & chấm điểm AI</button></div></div>
 <h2>Lộ trình học</h2><div class="path">${PATH.map(([c,n,s],i)=>`<button class="node ${s}" onclick="start({path:'${c}',cats:['${c}'],mode:'flash',n:8,name:'${n}'})"><i>${s=='done'?'✓':i+1}</i><div><b>${n}</b><div class="mut" style="font-size:.82rem">${CATS[c].d}</div></div><span class="lbl">${s=='done'?'Xong':s=='now'?'Đang học':''}</span></button>`).join('')}</div>
 <h2>Bài học của bạn</h2><div class="stack" style="margin-top:8px">${[...S.lessons,EXL].map((l,i)=>`<button class="card" style="text-align:left" onclick="start(${i<S.lessons.length?`S.lessons[${i}]`:'EXL'})"><div class="row" style="justify-content:space-between"><b>${esc(l.name)}</b><span class="chip">${modeName(l.mode)}</span></div><div class="mut" style="font-size:.84rem">${l.terms?l.terms.length+' từ · từ tài liệu “'+esc(l.src||'')+'”':l.n+' câu · '+l.cats.map(c=>CATS[c].n).join(', ')}${l.ex?' · bài mẫu':''}</div></button>`).join('')}<button class="btn ghost" onclick="go('make')">+ Tạo bài học riêng</button><button class="btn ghost" onclick="go('make');setTimeout(()=>$('#up').scrollIntoView(),50)">⬆ Tạo bài từ tài liệu tiếng Anh</button></div>`}
@@ -464,7 +522,7 @@ function demoScene(w){return[{who:'Customer',en:'We found white rust on the GI c
 function sceneHtml(L,demo){return `<div class="card stack"><div class="lbl">Hội thoại nhập vai${demo?' · bản mẫu':''}</div>${L.map(l=>`<div class="row" style="flex-wrap:nowrap;align-items:flex-start"><span class="chip ${l.who=='TPL'?'on':''}" style="flex:none">${esc(l.who)}</span><div style="flex:1;min-width:0"><b>${esc(l.en)}</b><div class="mut" style="font-size:.84rem">${esc(l.vi)}</div></div>${spk(l.en)}</div>`).join('')}</div>`}
 /* ---- games ---- */
 function start(l){if(l.mode=='flash')return startFlash(l);let pool=l.terms?l.terms.slice():TERMS.filter(t=>l.cats.includes(t.cat));pool=pool.sort(()=>Math.random()-.5).slice(0,l.terms?20:l.n);S.game={l,pool,i:0,ok:0,flip:false,ans:null};render();scrollTo(0,0)}
-function vGame(){const g=S.game;if(g.fc)return vFlash();const t=g.pool[g.i];if(!t)return vDone();const m=g.l.mode;const top=`<button class="mut" onclick="S.game=null;render()">← Thoát</button><div class="row" style="margin:8px 0;flex-wrap:nowrap"><div class="bar" style="flex:1"><i style="width:${g.i/g.pool.length*100}%"></i></div><span class="mono">${g.i+1}/${g.pool.length}</span></div><div class="lbl">${esc(g.l.name)} · ${modeName(m)}</div>`;
+function vGame(){const g=S.game;if(g.saga)return vSagaPlay();if(g.fc)return vFlash();const t=g.pool[g.i];if(!t)return vDone();const m=g.l.mode;const top=`<button class="mut" onclick="S.game=null;render()">← Thoát</button><div class="row" style="margin:8px 0;flex-wrap:nowrap"><div class="bar" style="flex:1"><i style="width:${g.i/g.pool.length*100}%"></i></div><span class="mono">${g.i+1}/${g.pool.length}</span></div><div class="lbl">${esc(g.l.name)} · ${modeName(m)}</div>`;
 if(m=='flash')return top+`<button class="card flash" style="width:100%;margin-top:10px" onclick="S.game.flip=!S.game.flip;render()">${g.flip?`<div class="big" style="font-size:1.4rem">${esc(t.vi)}</div><i>${esc(t.ex)}</i><div class="mut">${esc(t.exvi)}</div>`:`<div class="big">${esc(t.en)}</div><div class="mut">Chạm để lật</div>`}<div class="row">${spk(g.flip?t.ex:t.en)}</div></button>
 <div class="row" style="margin-top:12px;flex-wrap:nowrap"><button class="btn ghost" style="flex:1" onclick="nx(0)">Chưa nhớ</button><button class="btn" style="flex:1" onclick="nx(1)">Đã nhớ</button></div>`;
 if(m=='speak'){S.speakItem=t;S.spMode='term';return top+`<div class="card flash" style="margin-top:10px"><div class="big">${esc(t.en)}</div><div class="mut">${esc(t.vi)}</div><div class="row">${spk(t.en)}${slow(t.en)}</div></div><button class="mic" id="micb" onclick="listen()">${svg('mic')}</button><p class="mut" id="mst" style="text-align:center">Chạm để đọc</p>${S.res?vRes(S.res):''}<button class="btn" style="width:100%" onclick="nx(S.res&&S.res.score>=70?1:0)">Tiếp →</button>`}
@@ -575,6 +633,91 @@ document.addEventListener('pointermove',e=>{if(!el||x0==null)return;dx=e.clientX
 document.addEventListener('pointerup',e=>{if(!el)return;const d=dx;el.style.transition='';el.style.transform='';el.classList.remove('swipe-l','swipe-r');const c=el;el=null;x0=null;
  if(Math.abs(d)<8){flipFc();return}if(d>90){c.style.transform='translateX(120%) rotate(18deg)';setTimeout(()=>grade(2),160)}else if(d<-90){c.style.transform='translateX(-120%) rotate(-18deg)';setTimeout(()=>grade(0),160)}});
 document.addEventListener('keydown',e=>{if(!S.game||!S.game.fc||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.code=='Space'||e.key=='Enter'){e.preventDefault();flipFc()}else if(S.game.flip&&'1234'.includes(e.key)){grade(+e.key-1)}else if(e.key=='z'&&(e.ctrlKey||e.metaKey))undoFc()})})();
+
+/* ===================== SPEED SAGA ===================== */
+const SG={best:{},board:null,period:'week',view:'map',team:false,loaded:false};
+try{SG.best=JSON.parse(localStorage.getItem('saga_best')||'{}')}catch(e){}
+function sagaMaxOpen(){let m=1;for(const[l,b]of Object.entries(SG.best))if(b.stars>=1)m=Math.max(m,+l+(b.od?3:1));return Math.min(m,SAGA.LEVELS)}
+function sagaStars(){return Object.values(SG.best).reduce((a,b)=>a+(b.stars||0),0)}
+async function sagaLoad(){if(!USER){SG.loaded=true;return}const {data}=await SB.from('saga_scores').select('level,stars,score,overdrive').eq('user_id',USER.id);
+ const b={};(data||[]).forEach(r=>{const x=b[r.level]||{stars:0,score:0,od:false};x.stars=Math.max(x.stars,r.stars);x.score=Math.max(x.score,r.score);x.od=x.od||r.overdrive;b[r.level]=x});
+ for(const[l,x]of Object.entries(SG.best))if(!b[l])b[l]=x;SG.best=b;SG.loaded=true;try{localStorage.setItem('saga_best',JSON.stringify(b))}catch(e){}if(S.tab=='saga'&&!S.game)render()}
+async function sagaBoard(){if(!USER){SG.board=[];return}const {data,error}=await SB.rpc('saga_board',{period:SG.period});SG.board=error?[]:data;SG.boardErr=error?error.message:'';if(S.tab=='saga'&&!S.game)render()}
+const TIERS=[['Đồng',0,'#a86b3c'],['Bạc',1500,'#8a9aa8'],['Vàng',4000,'#c9971c'],['Kim cương',8000,'#3fa7c9']];
+function tierOf(sc){let r=TIERS[0];for(const x of TIERS)if(sc>=x[1])r=x;return r}
+function sagaHome(){const open=sagaMaxOpen(),st=sagaStars();return `<button class="saga-hero" onclick="go('saga')"><div><div class="lbl" style="color:#ffe3a8">Speed Saga · Đua level</div><b>Level ${open} đang chờ bạn</b><span>${st} ★ · ${SAGA.LEVELS} level · 8 khu vực nhà máy</span></div><span class="saga-hero-go">Chơi ▶</span></button>`}
+const CH_STYLE=[['#3a556f','#6f8aa3'],['#2f5f5a','#5d9a90'],['#3b4a7a','#7383b8'],['#7a3b3b','#c06a4f'],['#4b3b7a','#8d74c4'],['#5a4a2a','#b08f4a'],['#23465f','#3f88a8'],['#2f3b47','#6b7f92']];
+function initials(n){return (n||'?').trim().split(/\s+/).map(w=>w[0]).slice(-2).join('').toUpperCase()}
+function vSaga(){if(!SG.loaded){sagaLoad();}if(SG.view=='board'){if(!SG.board)sagaBoard();return sagaTabs()+vBoard()}return sagaTabs()+vMap()}
+function sagaTabs(){return `<div class="saga-tabs"><button class="${SG.view=='map'?'on':''}" onclick="SG.view='map';render()">Bản đồ</button><button class="${SG.view=='board'?'on':''}" onclick="SG.view='board';SG.board=null;render()">Xếp hạng</button></div>`}
+function vMap(){const N=SAGA.LEVELS,open=sagaMaxOpen(),GAP=96,CHH=70,PADT=40;const friends={};(SG.board||[]).forEach(u=>{if(!u.is_me)(friends[Math.min(u.max_level,N)]=friends[Math.min(u.max_level,N)]||[]).push(u)});if(!SG.board&&USER)sagaBoard();
+ const pos=[];let y=PADT;const totalH=N*GAP+SAGA.CHAPTERS.length*CHH+PADT*2;
+ const items=[];
+ for(let lv=N;lv>=1;lv--){const ci=Math.floor((lv-1)/SAGA.PER_CH);const x=50+Math.sin(lv*0.85)*28;pos[lv]={x,y:0};}
+ // tính y từ trên xuống (level cao ở trên)
+ let cy=PADT;for(let ci=SAGA.CHAPTERS.length-1;ci>=0;ci--){items.push({ch:ci,y:cy});cy+=CHH;for(let k=SAGA.PER_CH;k>=1;k--){const lv=ci*SAGA.PER_CH+k;pos[lv].y=cy+GAP/2;cy+=GAP}}
+ const H=cy+PADT;let d='';for(let lv=1;lv<=N;lv++){const p=pos[lv];d+=(lv==1?'M':'L')+p.x+' '+p.y+' '}
+ const bands=SAGA.CHAPTERS.map((c,ci)=>{const top=items.find(i=>i.ch==ci).y,h=CHH+SAGA.PER_CH*GAP;const [a,b]=CH_STYLE[ci];return `<div class="saga-band" style="top:${top}px;height:${h}px;background:linear-gradient(180deg,${a},${b})"><div class="saga-band-tex"></div></div><div class="saga-sign" style="top:${top+14}px"><span>Khu ${ci+1}</span>${esc(c.name)}</div>`}).join('');
+ const nodes=[];for(let lv=1;lv<=N;lv++){const p=pos[lv],b=SG.best[lv]||{},locked=lv>open,cur=lv==open,st=b.stars||0;
+  const fr=friends[lv]||[];
+  nodes.push(`<div class="saga-node-wrap" style="left:${p.x}%;top:${p.y}px">${!locked?`<div class="saga-stars">${[1,2,3].map(i=>`<i class="${i<=st?'on':''}">★</i>`).join('')}</div>`:''}
+  <button class="saga-node ${locked?'locked':''} ${cur?'cur':''} ${st?'done':''}" ${locked?'disabled aria-label="Level '+lv+' chưa mở khoá"':`onclick="sagaIntro(${lv})" aria-label="Level ${lv}"`}>${locked?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>':lv}</button>
+  ${cur?`<div class="saga-me" aria-hidden="true">${esc(initials(PROF?.full_name||USER?.email||'Bạn'))}</div>`:''}
+  ${fr.length?`<div class="saga-friends">${fr.slice(0,2).map(u=>`<span title="${esc(u.name)}">${esc(initials(u.name))}</span>`).join('')}${fr.length>2?`<span>+${fr.length-2}</span>`:''}</div>`:''}</div>`)}
+ setTimeout(()=>{const el=document.querySelector('.saga-node.cur');if(el&&!SG.scrolled){el.scrollIntoView({block:'center'});SG.scrolled=1}},60);
+ return `<div class="saga-bar"><span>★ <b>${sagaStars()}</b>/${N*3}</span><span>Level <b>${open}</b></span>${USER?'':'<span class="mut" style="font-size:.75rem">Đăng nhập để lên bảng xếp hạng</span>'}</div>
+ <div class="saga-map" style="height:${H}px">${bands}<svg class="saga-path" viewBox="0 0 100 ${H}" preserveAspectRatio="none"><path d="${d}" class="p1"/><path d="${d}" class="p2"/></svg>${nodes.join('')}</div>`}
+function sagaIntro(lv){const L=SAGA.gen(lv),b=SG.best[lv]||{};const types={mean:'Chọn nghĩa',rev:'Chọn từ',listen:'Nghe & chọn',cloze:'Điền từ',order:'Xếp quy trình'};const cnt={};L.questions.forEach(q=>cnt[q.type]=(cnt[q.type]||0)+1);
+ const m=document.createElement('div');m.className='saga-modal';m.innerHTML=`<div class="saga-sheet" role="dialog" aria-label="Level ${lv}"><div class="saga-sheet-top" style="background:linear-gradient(135deg,${CH_STYLE[L.chapter][0]},${CH_STYLE[L.chapter][1]})"><div class="lbl" style="color:#dfe9f3">Khu ${L.chapter+1} · ${esc(L.name)}</div><h1>Level ${lv}</h1><div class="saga-stars big">${[1,2,3].map(i=>`<i class="${i<=(b.stars||0)?'on':''}">★</i>`).join('')}</div></div>
+ <div class="stack" style="padding:16px"><div class="chips">${Object.entries(cnt).map(([k,v])=>`<span class="chip">${types[k]} ×${v}</span>`).join('')}</div>
+ <table class="saga-goal"><tr><td>★</td><td>Đúng ≥ 6/10</td></tr><tr><td>★★</td><td>Đúng ≥ 8 và xong trong ${Math.round(L.std/1000)} giây</td></tr><tr><td>★★★</td><td>Đúng 10/10 trong ${Math.round(L.std*0.75/1000)} giây</td></tr><tr><td>⚡</td><td>Overdrive: 10/10 trong ${Math.round(L.std*0.5/1000)} giây, nhảy cóc 2 level</td></tr></table>
+ <p class="mut" style="font-size:.84rem;margin:0">Trả lời sai bị khoá 2 giây. Mọi người chơi cùng một đề.${b.score?' Điểm cao nhất của bạn: <b>'+b.score+'</b>.':''}</p>
+ <button class="btn amber" id="sgplay">Chơi</button><button class="btn ghost" id="sgclose">Để sau</button></div></div>`;
+ document.body.appendChild(m);m.querySelector('#sgclose').onclick=()=>m.remove();m.onclick=e=>{if(e.target===m)m.remove()};m.querySelector('#sgplay').onclick=()=>{m.remove();sagaStart(lv)}}
+function sagaStart(lv){const L=SAGA.gen(lv);S.game={saga:1,L,i:0,ans:[],t0:performance.now(),qt0:performance.now(),stun:0,sel:[],picked:null};render();scrollTo(0,0);sagaTick();sagaAutoListen()}
+function sagaTick(){clearInterval(SG.timer);SG.timer=setInterval(()=>{const g=S.game;if(!g||!g.saga||g.res){clearInterval(SG.timer);return}const e=document.getElementById('sgtime');if(e)e.textContent=fmtS(performance.now()-g.t0+g.ans.filter(a=>a.wrong).length*2000)},200)}
+const fmtS=ms=>(ms/1000).toFixed(1)+'s';
+function sagaAutoListen(){const g=S.game;const q=g&&g.L.questions[g.i];if(q&&q.type=='listen'){setTimeout(()=>{say(q.prompt);g.qt0=performance.now()},300)}}
+function vSagaPlay(){const g=S.game;if(g.res)return vSagaRes();const L=g.L,q=L.questions[g.i];const pct=g.i/L.questions.length*100;
+ const head=`<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><button class="mut" onclick="clearInterval(SG.timer);S.game=null;render()">← Bỏ cuộc</button><span class="lbl">Level ${L.level}</span><span class="saga-timer" id="sgtime">0.0s</span></div><div class="bar" style="margin:10px 0"><i style="width:${pct}%"></i></div><div class="lbl">Câu ${g.i+1}/${L.questions.length}</div>`;
+ let body='';
+ if(q.type=='order'){const chosen=g.sel;body=`<div class="card saga-q"><div class="lbl">Xếp đúng thứ tự</div><b>${esc(q.prompt)}</b></div>
+  <div class="stack" style="margin-top:10px">${q.items.map((it,k)=>{const n=chosen.indexOf(k);return `<button class="opt saga-ord ${n>=0?'picked':''}" onclick="sagaOrd(${k})" ${g.stun?'disabled':''}><span class="saga-ordn">${n>=0?n+1:''}</span>${esc(it.t)}</button>`}).join('')}</div>
+  <div class="row" style="margin-top:10px;flex-wrap:nowrap"><button class="btn ghost" style="flex:1" onclick="S.game.sel=[];render()">Làm lại</button><button class="btn" style="flex:1" ${chosen.length==q.n?'':'disabled'} onclick="sagaAnswer(S.game.sel.slice())">Xác nhận</button></div>`}
+ else{const P={mean:['Nghĩa đúng là gì?',`<div class="big">${esc(q.prompt)}</div>`],rev:['Từ tiếng Anh là gì?',`<div class="big" style="font-size:1.4rem">${esc(q.prompt)}</div>`],listen:['Nghe và chọn từ đúng',`<button class="mic" style="background:var(--steel)" onclick="say(${esc(JSON.stringify(q.prompt))})" aria-label="Nghe lại">${svg('spk')}</button>`],cloze:['Điền từ còn thiếu',`<div style="font-size:1.08rem;font-weight:500">${esc(q.prompt)}</div><div class="mut" style="font-size:.86rem">${esc(q.hint||'')}</div>`]}[q.type];
+  body=`<div class="card saga-q flash" style="min-height:170px"><div class="lbl">${P[0]}</div>${P[1]}</div><div class="saga-opts">${q.opts.map((o,k)=>`<button class="opt ${g.picked!=null?(k===q.ans&&g.picked===k?'ok':k===g.picked?'no':''):''}" onclick="sagaAnswer(${k})" ${g.stun||g.picked!=null?'disabled':''}>${esc(o)}</button>`).join('')}</div>`}
+ return head+body+(g.stun?`<div class="saga-stun" role="status">Sai rồi · khoá 2 giây</div>`:'')}
+function sagaOrd(k){const g=S.game;const i=g.sel.indexOf(k);if(i>=0)g.sel.splice(i,1);else g.sel.push(k);render()}
+function sagaAnswer(a){const g=S.game,q=g.L.questions[g.i];const ms=Math.round(performance.now()-g.qt0);
+ const ok=q.type=='order'?a.every((v,j)=>q.items[v].i===j):a===q.ans;g.ans.push({a,ms,wrong:!ok});
+ const next=()=>{g.i++;g.sel=[];g.picked=null;g.stun=0;g.qt0=performance.now();if(g.i>=g.L.questions.length)return sagaFinish();render();sagaAutoListen()};
+ if(q.type!='order'){g.picked=a}
+ if(ok){if(q.type!='listen')say(q.term||'',1.05);render();setTimeout(next,450)}else{g.stun=1;render();setTimeout(next,2000)}}
+async function sagaFinish(){const g=S.game;clearInterval(SG.timer);const payload=g.ans.map(x=>({a:x.a,ms:x.ms}));let r=SAGA.grade(g.L.level,payload),srv=false,err='';
+ g.res={...r,pending:!!USER};render();
+ if(USER){try{const {data:{session}}=await SB.auth.getSession();const resp=await fetch(window.SS_CONFIG.SUPABASE_URL+'/functions/v1/saga',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token,apikey:window.SS_CONFIG.SUPABASE_ANON_KEY},body:JSON.stringify({level:g.L.level,answers:payload})});const j=await resp.json();if(resp.ok){r=j;srv=true}else err=j.error||('Lỗi '+resp.status)}catch(e){err='Không kết nối được máy chủ'}}
+ const b=SG.best[r.level]||{stars:0,score:0,od:false};const prevOpen=sagaMaxOpen();SG.best[r.level]={stars:Math.max(b.stars,r.stars),score:Math.max(b.score,r.score),od:b.od||r.overdrive};try{localStorage.setItem('saga_best',JSON.stringify(SG.best))}catch(e){}
+ S.xp+=r.correct*10;tick();save();SG.board=null;SG.scrolled=0;
+ if(S.game&&S.game.saga){S.game.res={...r,srv,err,unlocked:sagaMaxOpen()>prevOpen?sagaMaxOpen():0};render()}}
+function vSagaRes(){const g=S.game,r=g.res,L=g.L;const nxt=Math.min(sagaMaxOpen(),SAGA.LEVELS);
+ return `<div class="saga-res"><div class="lbl" style="color:#dfe9f3">Level ${L.level} · ${esc(L.name)}</div><h1>${r.stars?['','Qua màn!','Tuyệt vời!','Hoàn hảo!'][r.stars]:'Chưa qua màn'}</h1>
+ <div class="saga-stars huge">${[1,2,3].map(i=>`<i class="${i<=r.stars?'on':''}" style="animation-delay:${i*0.25}s">★</i>`).join('')}</div>
+ ${r.overdrive?'<div class="saga-od">⚡ OVERDRIVE · nhảy cóc 2 level</div>':''}
+ <div class="saga-res-stats"><div><b>${r.score}</b>Điểm</div><div><b>${r.correct}/${r.total}</b>Đúng</div><div><b>${fmtS(r.ms)}</b>Thời gian</div></div></div>
+ <p class="mut" style="text-align:center;font-size:.84rem">${r.pending?'Đang gửi điểm lên máy chủ…':r.srv?'✓ Điểm đã được máy chủ xác nhận và tính vào bảng xếp hạng.':USER?'Chưa lưu được điểm online: '+esc(r.err||''):'Đăng nhập để lưu điểm và lên bảng xếp hạng.'}${r.unlocked?' Đã mở khoá Level '+r.unlocked+'.':''}</p>
+ <div class="stack">${r.stars&&nxt>L.level?`<button class="btn amber" onclick="S.game=null;sagaIntro(${nxt})">Level ${nxt} ▶</button>`:''}<button class="btn" onclick="sagaStart(${L.level})">Chơi lại</button><button class="btn ghost" onclick="S.game=null;SG.view='board';S.tab='saga';render()">Xem xếp hạng</button><button class="btn ghost" onclick="S.game=null;S.tab='saga';SG.view='map';render()">Về bản đồ</button></div>`}
+function vBoard(){if(!USER)return `<div class="card" style="margin-top:12px"><b>Đăng nhập để xem bảng xếp hạng</b><p class="mut">Điểm chỉ được tính khi máy chủ xác nhận, nên cần tài khoản.</p><button class="btn" onclick="go('me')">Đăng nhập</button></div>`;
+ if(!SG.board)return '<p class="mut" style="margin-top:14px">Đang tải bảng xếp hạng…</p>';
+ let L=SG.board.slice();const dept=PROF?.department||'';if(SG.team&&dept)L=L.filter(u=>u.department==dept);
+ const me=SG.board.find(u=>u.is_me);const myScore=me?me.score:0;const tier=tierOf(SG.period=='week'?myScore:0);const nextT=TIERS[TIERS.indexOf(tier)+1];
+ const top=L.slice(0,3),rest=L.slice(3);
+ const pod=(u,rank)=>u?`<div class="pod pod${rank}"><div class="pod-av">${esc(initials(u.name))}${rank==1?'<span class="crown">♛</span>':''}</div><b>${esc(u.name)}</b><span>${u.score} điểm</span><div class="pod-block">${rank}</div></div>`:`<div class="pod pod${rank} empty"><div class="pod-block">${rank}</div></div>`;
+ return `<div class="row" style="margin:12px 0 0"><div class="chips"><button class="chip ${SG.period=='week'?'on':''}" onclick="SG.period='week';SG.board=null;render()">Tuần này</button><button class="chip ${SG.period=='all'?'on':''}" onclick="SG.period='all';SG.board=null;render()">Mọi thời gian</button>${dept?`<button class="chip ${SG.team?'on':''}" onclick="SG.team=!SG.team;render()">Team ${esc(dept)}</button>`:''}</div></div>
+ ${SG.period=='week'?`<div class="league" style="--tier:${tier[2]}"><div class="league-badge"><span>${tier[0][0]}</span></div><div><div class="lbl" style="color:#dfe9f3">Giải đấu tuần</div><b>Giải ${tier[0]}</b><span>${nextT?`Còn ${nextT[1]-myScore} điểm để lên giải ${nextT[0]}`:'Giải cao nhất'} · làm mới thứ Hai</span></div></div>`:''}
+ ${SG.boardErr?`<p class="note">${esc(SG.boardErr)}</p>`:''}
+ ${L.length?`<div class="podium">${pod(top[1],2)}${pod(top[0],1)}${pod(top[2],3)}</div>
+ <div class="card" style="padding:0">${rest.map((u,i)=>`<div class="rk ${u.is_me?'me':''}"><span class="rk-n">${i+4}</span><span class="rk-av">${esc(initials(u.name))}</span><div style="min-width:0;flex:1"><b>${esc(u.name)}${u.is_me?' (bạn)':''}</b><div class="mut" style="font-size:.78rem">${u.department?esc(u.department)+' · ':''}${u.stars}★ · Level ${u.max_level}</div></div><b class="rk-s">${u.score}</b></div>`).join('')||'<p class="mut" style="padding:12px;margin:0">Chưa có thêm người chơi.</p>'}</div>
+ ${me&&L.indexOf(me)>=3?'':''}`:`<div class="card" style="margin-top:12px"><b>Chưa ai ghi điểm ${SG.period=='week'?'tuần này':''}</b><p class="mut">Chơi một level để là người đầu tiên lên bảng.</p><button class="btn amber" onclick="SG.view='map';render()">Vào bản đồ</button></div>`}`}
 
 render();boot();
 </script></body></html>

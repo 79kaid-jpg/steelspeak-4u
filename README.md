@@ -55,3 +55,12 @@ Bạn bè mở link → nhập email → bấm link trong email là vào học. 
 3. Muốn chỉ admin tạo được tài khoản (không cho người lạ tự đăng ký): **Authentication → Sign In / Providers** → tắt **Allow new users to sign up**.
 4. Bật đăng nhập bằng mật khẩu: **Authentication → Sign In / Providers → Email** → bật **Email** (mặc định đã bật).
 5. Link "Quên mật khẩu" dùng **Redirect URLs** đã khai báo ở bước 5 phía trên.
+
+## Speed Saga (đua level)
+
+32 level trong 8 khu vực nhà máy, mỗi level 10 câu trộn 5 dạng (chọn nghĩa, chọn từ, nghe & chọn, điền từ, xếp quy trình). Mọi người chơi **cùng một đề** (tạo theo seed trong `saga-core.js`). Sai bị khoá 2 giây. 1–3 sao, Overdrive nhảy cóc 2 level. Điểm do **máy chủ chấm lại** rồi mới ghi vào bảng xếp hạng tuần (Đồng → Bạc → Vàng → Kim cương).
+
+### Cài đặt (1 lần)
+1. **SQL Editor** → dán `supabase/saga.sql` → **Run**.
+2. **Edge Functions → Deploy a new function → Via Editor**, tên `saga`, dán **toàn bộ** `supabase/functions/saga/index.ts` → **Deploy**.
+3. Sửa `saga-core.js` (thêm level, đổi luật điểm) thì chạy `tools/build-saga-fn.sh` rồi deploy lại function `saga`, để đề và điểm trên máy chủ khớp với web.
