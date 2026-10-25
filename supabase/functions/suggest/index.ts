@@ -8,6 +8,37 @@ const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: 
 const CEFR = ["A1", "A2", "B1", "B2", "C1", "C2"];
 const SPEC = ["1", "2", "3", "4", "5"];
 
+
+// LLM: ưu tiên Anthropic (ANTHROPIC_API_KEY), nếu không có thì dùng Gemini (GEMINI_API_KEY)
+async function llmJSON(prompt: string, temperature = 0.3): Promise<any> {
+  const ak = Deno.env.get("ANTHROPIC_API_KEY");
+  let out = "";
+  if (ak) {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": ak, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({ model: Deno.env.get("ANTHROPIC_MODEL") ?? "claude-haiku-5-5", max_tokens: 4000, temperature,
+        messages: [{ role: "user", content: prompt + "\n\nRespond with the JSON object only, no prose, no code fences." }] }),
+    });
+    if (r.status === 429) throw new Error("AI đang bận");
+    if (!r.ok) throw new Error("Lỗi AI: " + (await r.text()).slice(0, 200));
+    const g = await r.json();
+    out = (g.content ?? []).map((c: { text?: string }) => c.text ?? "").join("");
+  } else {
+    const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${Deno.env.get("GEMINI_API_KEY")}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", temperature } }),
+    });
+    if (r.status === 429) throw new Error("AI đang bận");
+    if (!r.ok) throw new Error("Lỗi AI: " + (await r.text()).slice(0, 200));
+    const g = await r.json();
+    out = g.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "{}";
+  }
+  const a = out.indexOf("{"), b = out.lastIndexOf("}");
+  return JSON.parse(a >= 0 && b > a ? out.slice(a, b + 1) : out);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -56,16 +87,7 @@ Decide:
 - "level": ${isCefr ? 'the CEFR level of this word for learners, one of "A1","A2","B1","B2","C1","C2"' : 'difficulty for Vietnamese technical staff, one of "1" (basic, common), "2", "3" (common technical term), "4", "5" (highly specialised)'}.
 - "meaning_vi": the best concise Vietnamese meaning. "example": a short natural example sentence. "example_vi": its Vietnamese translation. "note": one short sentence in Vietnamese explaining your level or why it is invalid.
 Return JSON only: {"valid":true,"level":"","meaning_vi":"","example":"","example_vi":"","note":""}`;
-      const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${Deno.env.get("GEMINI_API_KEY")}`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", temperature: 0.2 } }),
-      });
-      if (r.ok) {
-        const g = await r.json();
-        const out = g.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text ?? "").join("") ?? "{}";
-        ai = JSON.parse(out.replace(/^```json|```$/g, "").trim());
-      }
+      ai = await llmJSON(prompt, 0.2);
     } catch (_) { ai = {}; }
     const aiLevel = scale.includes(String(ai.level)) ? String(ai.level) : null;
     const match = ai.valid === true && aiLevel === userLevel;

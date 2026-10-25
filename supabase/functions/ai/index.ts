@@ -1,5 +1,5 @@
 // Supabase Edge Function: gọi Google Gemini (free tier) để tạo bài học / hội thoại.
-// Secrets cần đặt: GEMINI_API_KEY (bắt buộc), GEMINI_MODEL (tuỳ chọn), DAILY_LIMIT (tuỳ chọn)
+// Secrets: ANTHROPIC_API_KEY (ưu tiên) hoặc GEMINI_API_KEY; GEMINI_API_KEY cần cho chấm phát âm qua ghi âm, GEMINI_MODEL (tuỳ chọn), DAILY_LIMIT (tuỳ chọn)
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const cors = {
@@ -13,61 +13,34 @@ const json = (b: unknown, status = 200) =>
 const AUDIENCE =
   "Vietnamese Technical Product Leads, QA and QC engineers at a coated steel manufacturer (metallic coated and pre-painted steel: GI, GL/zinc-aluminium, primer, top coat, MTC, NSPE, colour matching).";
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  try {
-    const url = Deno.env.get("SUPABASE_URL")!;
-    const auth = req.headers.get("Authorization") ?? "";
-    const userClient = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: auth } } });
-    const { data: { user } } = await userClient.auth.getUser();
-    if (!user) return json({ error: "Chưa đăng nhập" }, 401);
 
-    // Giới hạn lượt/ngày
-    const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const limit = Number(Deno.env.get("DAILY_LIMIT") ?? "30");
-    const today = new Date().toISOString().slice(0, 10);
-    const { data: u } = await admin.from("ai_usage").select("n").eq("user_id", user.id).eq("day", today).maybeSingle();
-    if ((u?.n ?? 0) >= limit) return json({ error: "Hết lượt AI hôm nay" }, 429);
-    await admin.from("ai_usage").upsert({ user_id: user.id, day: today, n: (u?.n ?? 0) + 1 });
-
-    const body = await req.json();
-    let prompt = "";
-    let parts: unknown[] | null = null;
-    if (body.task === "lesson") {
-      const n = Math.min(Math.max(Number(body.n) || 12, 4), 20);
-      const text = String(body.text ?? "").slice(0, 14000);
-      if (text.length < 80) return json({ error: "Văn bản quá ngắn" }, 400);
-      prompt = `You build vocabulary lessons for ${AUDIENCE}
-From the DOCUMENT below, pick the ${n} most useful technical or professional English terms/phrases for this audience (prefer product, quality, testing, material, process terms; skip trivial words). For each give: "en" (term as in document), "vi" (accurate Vietnamese technical translation), "ex" (a short sentence from or closely based on the document using the term), "exvi" (Vietnamese translation of ex). Also give "title": a short Vietnamese lesson title.
-Return JSON only: {"title":"...","terms":[{"en":"","vi":"","ex":"","exvi":""}]}
-DOCUMENT:
-"""${text}"""`;
-    } else if (body.task === "scene") {
-      const words = (body.words ?? []).slice(0, 8).map(String).join(", ");
-      const ctx = String(body.context ?? "").slice(0, 500);
-      prompt = `You write short workplace English role-play dialogues for ${AUDIENCE} Context (Vietnamese): "${ctx}". Use these terms naturally: ${words}. Return JSON only: {"lines":[{"who":"Customer" or "TPL","en":"...","vi":"Vietnamese translation"}]} with 6 lines, B1-B2 level, American English.`;
-    } else if (body.task === "pron") {
-      const audio = String(body.audio ?? "");
-      if (audio.length < 1000 || audio.length > 4_000_000) return json({ error: "Bản ghi không hợp lệ" }, 400);
-      const target = String(body.target ?? "").slice(0, 300);
-      const mime = /^audio\/[a-z0-9.+-]+$/.test(String(body.mime)) ? String(body.mime) : "audio/mp4";
-      parts = [
-        { inlineData: { mimeType: mime, data: audio } },
-        { text: `A Vietnamese learner tried to say this English text: "${target}". Transcribe EXACTLY what they actually said in English (do not correct it toward the target; write mispronounced words as they sounded). Return JSON only: {"heard":"transcript","tip":"one short pronunciation tip in Vietnamese about their biggest error, or empty"}` },
-      ];
-    } else return json({ error: "task không hợp lệ" }, 400);
-
+// LLM: ưu tiên Anthropic (ANTHROPIC_API_KEY), nếu không có thì dùng Gemini (GEMINI_API_KEY)
+async function llmJSON(prompt: string, temperature = 0.3): Promise<any> {
+  const ak = Deno.env.get("ANTHROPIC_API_KEY");
+  let out = "";
+  if (ak) {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": ak, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({ model: Deno.env.get("ANTHROPIC_MODEL") ?? "claude-haiku-5-5", max_tokens: 4000, temperature,
+        messages: [{ role: "user", content: prompt + "\n\nRespond with the JSON object only, no prose, no code fences." }] }),
+    });
+    if (r.status === 429) throw new Error("AI đang bận");
+    if (!r.ok) throw new Error("Lỗi AI: " + (await r.text()).slice(0, 200));
+    const g = await r.json();
+    out = (g.content ?? []).map((c: { text?: string }) => c.text ?? "").join("");
+  } else {
+    if (!parts) {
+      try { return json(await llmJSON(prompt, 0.4)); }
+      catch (e) { return json({ error: String((e as Error).message ?? e) }, 502); }
+    }
+    // Chấm phát âm từ ghi âm: cần Gemini (Claude API chưa nhận âm thanh)
+    if (!Deno.env.get("GEMINI_API_KEY")) return json({ error: "Chấm qua ghi âm cần GEMINI_API_KEY" }, 501);
     const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
     const r = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${Deno.env.get("GEMINI_API_KEY")}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: parts ?? [{ text: prompt }] }],
-          generationConfig: { responseMimeType: "application/json", temperature: 0.4 },
-        }),
-      },
+      { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ role: "user", parts }], generationConfig: { responseMimeType: "application/json", temperature: 0.2 } }) },
     );
     if (r.status === 429) return json({ error: "AI đang bận" }, 429);
     if (!r.ok) return json({ error: "Lỗi AI: " + (await r.text()).slice(0, 200) }, 502);
