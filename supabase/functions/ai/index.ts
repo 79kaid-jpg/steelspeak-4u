@@ -31,6 +31,32 @@ const OAI_URL: Record<string, string> = {
 const env = (k: string) => Deno.env.get(k) ?? "";
 const modelOf = (p: string) => env(p.toUpperCase() + "_MODEL") || PROVIDERS[p].model;
 function parseJSON(out: string) { const a = out.indexOf("{"), b = out.lastIndexOf("}"); return JSON.parse(a >= 0 && b > a ? out.slice(a, b + 1) : out); }
+
+// Tự tìm model còn hoạt động nếu model mặc định bị gỡ
+const MODEL_CACHE: Record<string, string> = {};
+async function autoModel(p: string, kind: "chat" | "stt" = "chat"): Promise<string> {
+  const ck = p + kind; if (MODEL_CACHE[ck]) return MODEL_CACHE[ck];
+  const k = env(PROVIDERS[p].key); let ids: string[] = [];
+  if (p === "gemini") {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${k}&pageSize=200`);
+    const g = await r.json();
+    ids = (g.models ?? []).filter((m: any) => (m.supportedGenerationMethods ?? []).includes("generateContent")).map((m: any) => String(m.name).replace("models/", ""))
+      .filter((n: string) => /flash/.test(n) && !/image|tts|live|thinking|exp|preview/.test(n)).sort().reverse();
+  } else if (p === "anthropic") {
+    const r = await fetch("https://api.anthropic.com/v1/models", { headers: { "x-api-key": k, "anthropic-version": "2023-06-01" } });
+    ids = ((await r.json()).data ?? []).map((m: any) => m.id).filter((n: string) => /haiku/.test(n));
+  } else {
+    const base = OAI_URL[p].replace("/chat/completions", "/models");
+    const r = await fetch(base, { headers: { Authorization: "Bearer " + k } });
+    const all: string[] = ((await r.json()).data ?? []).map((m: any) => String(m.id));
+    if (kind === "stt") ids = all.filter((n) => /whisper/.test(n)).sort((a, b) => (/turbo/.test(b) ? 1 : 0) - (/turbo/.test(a) ? 1 : 0));
+    else { const pref = [/llama-3\.3-70b/, /gpt-oss-120b/, /llama-4/, /qwen/, /llama/, /gpt-oss/];
+      const ok = all.filter((n) => !/whisper|tts|guard|embed|vision|orpheus|playai/.test(n) && (p !== "openrouter" || /:free$/.test(n)));
+      for (const re of pref) { const f = ok.find((n) => re.test(n)); if (f) { ids = [f]; break; } } if (!ids.length) ids = ok; }
+  }
+  if (!ids.length) throw new Error(p + ": không tìm được model");
+  return (MODEL_CACHE[ck] = ids[0]);
+}
 async function preferredOrder(admin: any): Promise<string[]> {
   let pref = "";
   try { const { data } = await admin.from("app_settings").select("value").eq("key", "ai_provider").maybeSingle(); pref = String(data?.value ?? ""); } catch (_) { /* bảng chưa có */ }
@@ -38,7 +64,11 @@ async function preferredOrder(admin: any): Promise<string[]> {
   return pref && all.includes(pref) ? [pref, ...all.filter((p) => p !== pref)] : all;
 }
 async function callOne(p: string, prompt: string, temperature: number): Promise<string> {
-  const k = env(PROVIDERS[p].key), model = modelOf(p);
+  try { return await callOneM(p, prompt, temperature, MODEL_CACHE[p + "chat"] ?? modelOf(p)); }
+  catch (e) { if (!/ 40[04]/.test(String(e))) throw e; return await callOneM(p, prompt, temperature, await autoModel(p)); }
+}
+async function callOneM(p: string, prompt: string, temperature: number, model: string): Promise<string> {
+  const k = env(PROVIDERS[p].key);
   const sys = "Respond with one valid JSON object only. No prose, no code fences.";
   let r: Response;
   if (p === "gemini") {
@@ -81,7 +111,7 @@ async function transcribe(admin: any, b64: string, mime: string, target: string)
         const ext = mime.includes("webm") ? "webm" : mime.includes("ogg") ? "ogg" : mime.includes("wav") ? "wav" : "m4a";
         const fd = new FormData();
         fd.append("file", new Blob([bin], { type: mime }), "speech." + ext);
-        fd.append("model", env("GROQ_STT_MODEL") || "whisper-large-v3-turbo");
+        fd.append("model", env("GROQ_STT_MODEL") || await autoModel("groq", "stt"));
         fd.append("language", "en"); fd.append("response_format", "json"); fd.append("temperature", "0");
         const r = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", { method: "POST", headers: { Authorization: "Bearer " + env("GROQ_API_KEY") }, body: fd });
         if (!r.ok) throw new Error(`groq ${r.status}: ${(await r.text()).slice(0, 160)}`);
@@ -90,7 +120,7 @@ async function transcribe(admin: any, b64: string, mime: string, target: string)
         try { tip = String((await llmJSON(admin, `A Vietnamese learner tried to say "${target}" and a speech recognizer heard "${heard}". Give one short pronunciation tip in Vietnamese about the biggest difference, or empty string if they match. JSON: {"tip":""}`, 0.2)).tip ?? ""); } catch (_) { /* bỏ qua */ }
         return { heard, tip, _provider: "groq" };
       }
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelOf("gemini")}:generateContent?key=${env("GEMINI_API_KEY")}`, {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${env("GEMINI_MODEL") || await autoModel("gemini")}:generateContent?key=${env("GEMINI_API_KEY")}`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ contents: [{ role: "user", parts: [{ inlineData: { mimeType: mime, data: b64 } }, { text: `A Vietnamese learner tried to say this English text: "${target}". Transcribe EXACTLY what they actually said in English (do not correct it toward the target). Return JSON only: {"heard":"transcript","tip":"one short pronunciation tip in Vietnamese about their biggest error, or empty"}` }] }],
           generationConfig: { responseMimeType: "application/json", temperature: 0.2 } }) });
