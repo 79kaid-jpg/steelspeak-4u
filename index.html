@@ -683,7 +683,7 @@ function toast(t){const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeou
 /* ---- US voice ---- */
 let VOICE=null;function pickVoice(){const vs=speechSynthesis.getVoices().filter(v=>/en[-_]US/i.test(v.lang));VOICE=vs.find(v=>/Samantha|Google US|Aria|Jenny|Natural/i.test(v.name))||vs[0]||null}
 if('speechSynthesis' in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
-function say(t,rate=0.95){if(!('speechSynthesis' in window))return toast('Thiết bị chưa hỗ trợ đọc');speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(VOICE)u.voice=VOICE;u.rate=rate;speechSynthesis.speak(u)}
+function say(t,rate=0.95){if(!('speechSynthesis' in window))return toast('Thiết bị chưa hỗ trợ đọc');const ss=speechSynthesis;if(!VOICE)pickVoice();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(VOICE)u.voice=VOICE;u.rate=rate;u.volume=1;window._utt=u;u.onerror=e=>{if(e.error!='interrupted'&&e.error!='canceled')toast('Không phát được âm thanh. iPhone: gạt nút im lặng bên hông máy & tăng âm lượng.')};if(ss.speaking||ss.pending)ss.cancel();ss.resume();ss.speak(u)}
 const spk=(t)=>`<button class="ic" aria-label="Nghe giọng Mỹ" onclick="event.stopPropagation();say(${esc(JSON.stringify(t))})">${svg('spk')}</button>`;
 const slow=(t)=>`<button class="ic" aria-label="Nghe chậm" onclick="event.stopPropagation();say(${esc(JSON.stringify(t))},0.6)">${svg('slow')}</button>`;
 /* ---- nav ---- */
