@@ -233,9 +233,9 @@ function gen(level,ctx){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.ch
  var ci=Math.floor((level-1)/PER_CH), k=(level-1)%PER_CH, ch=CHAPTERS[ci], r=rng(hash(ctx.slug==='steel'?'steelspeak-saga-v1-L'+level:'steelspeak-saga-v1-'+ctx.slug+'-L'+level));
  var own=ch.pool||TERMS.filter(function(t){return t.cat===ch.cat});
  var prev=ci>0?[].concat.apply([],CHAPTERS.slice(0,ci).map(function(c){return c.pool||TERMS.filter(function(t){return t.cat===c.cat})})):[];
- var pool=k<3?own:own.concat(pick(prev,6,r,[]));
- var boss=(k===PER_CH-1)||level%10===0;
- var plan=boss?['cloze','listen','rev','cloze','listen','rev','cloze','listen','order','rev','cloze','listen']:[['mean','mean','rev','mean','listen','rev','mean','listen','cloze','mean'],
+ var pool=kaka?own.concat(prev):k<3?own:own.concat(pick(prev,6,r,[]));
+ var boss=(k===PER_CH-1)||level%10===0, kaka=level%10===0;
+ var plan=kaka?['cloze','listen','cloze','rev','listen','cloze','listen','rev','cloze','listen','order','cloze','listen','rev','cloze','listen','cloze','listen']:boss?['cloze','listen','rev','cloze','listen','rev','cloze','listen','order','rev','cloze','listen']:[['mean','mean','rev','mean','listen','rev','mean','listen','cloze','mean'],
            ['mean','rev','listen','cloze','mean','rev','listen','cloze','mean','rev'],
            ['rev','listen','cloze','mean','listen','cloze','rev','mean','cloze','order'],
            ['cloze','listen','rev','cloze','listen','mean','cloze','rev','listen','order']][k];
@@ -256,8 +256,8 @@ function gen(level,ctx){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.ch
   else if(type==='listen'){q.prompt=t.en;q.opts=opts.map(function(o){return o.en})}
   else{q.prompt=blank(t);q.hint=t.exvi;q.opts=opts.map(function(o){return o.en})}
   qs.push(q)});
- var std=qs.reduce(function(a,q){return a+STD[q.type]},0);if(boss)std=Math.round(std*0.8);
- return {level:level,chapter:ci,name:ch.name,cat:ch.cat,questions:qs,std:std,boss:boss,s1:boss?0.75:0.6,s2:boss?0.85:0.8}}
+ var std=qs.reduce(function(a,q){return a+STD[q.type]},0);if(kaka)std=Math.round(std*0.55);else if(boss)std=Math.round(std*0.8);
+ return {level:level,chapter:ci,name:ch.name,cat:ch.cat,questions:qs,std:std,boss:boss,kaka:kaka,penalty:kaka?6000:2000,bonus:kaka?900:boss?300:0,s1:kaka?0.85:boss?0.75:0.6,s2:kaka?0.95:boss?0.85:0.8}}
 
 /* answers: [{a: số thứ tự đáp án | mảng thứ tự (order), ms: thời gian của câu}] */
 function grade(level,answers,ctx){
@@ -266,13 +266,13 @@ function grade(level,answers,ctx){
   var ok=q.type==='order'?(Array.isArray(x.a)&&x.a.length===q.n&&x.a.every(function(v,j){return q.items[v]&&q.items[v].i===j})):(x.a===q.ans);
   if(ok)correct++;else wrong++});
  var minHuman=L.questions.length*900;var suspicious=ms<minHuman;
- ms+=wrong*2000;
+ ms+=wrong*L.penalty;
  var n=L.questions.length,rt=correct/n;
  var stars=correct===n&&ms<=L.std*0.75?3:rt>=L.s2&&ms<=L.std?2:rt>=L.s1?1:0;
  var overdrive=correct===n&&ms<=L.std*0.5;
- var score=correct*100+Math.max(0,Math.round((L.std-ms)/100))+(overdrive?200:0)+(L.boss&&stars?300:0);
+ var score=correct*100+Math.max(0,Math.round((L.std-ms)/100))+(overdrive?200:0)+(stars?L.bonus:0);
  if(suspicious){stars=0;score=0;overdrive=false}
- return {level:level,correct:correct,total:L.questions.length,ms:ms,std:L.std,stars:stars,score:score,overdrive:overdrive,suspicious:suspicious,boss:L.boss}}
+ return {level:level,correct:correct,total:L.questions.length,ms:ms,std:L.std,stars:stars,score:score,overdrive:overdrive,suspicious:suspicious,boss:L.boss,kaka:L.kaka}}
 
 var api={TERMS:TERMS,CATS:CATS,CHAPTERS:CHAPTERS,PER_CH:PER_CH,LEVELS:LEVELS,gen:gen,grade:grade,buildCtx:buildCtx};
 root.SAGA=api;
