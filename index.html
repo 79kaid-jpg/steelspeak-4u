@@ -446,6 +446,7 @@ body.in-game #nav{display:none}
 .ghost-racer .gplus{position:absolute;right:-4px;bottom:-4px;width:16px;height:16px;border-radius:50%;background:var(--amber);color:#1a1205;font:700 11px/16px var(--fd);text-align:center}
 .ghost-racer:hover,.ghost-racer:focus-visible{opacity:1}
 .sw{flex:none;width:42px;height:24px;border-radius:99px;background:var(--line);position:relative;transition:background .2s}.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}.sw.on{background:var(--good)}.sw.on::after{transform:translateX(18px)}
+.saga-ord{display:flex;align-items:center;gap:10px}.saga-ord.ok{border-color:var(--good)!important}.saga-ord.bad{border-color:var(--bad)!important}.ord-fix{flex:none;font:700 .8rem var(--fd);color:#fff;background:var(--good);padding:3px 8px;border-radius:99px}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -1009,17 +1010,18 @@ function vSagaPlay(){const g=S.game;if(g.res)return vSagaRes();const L=g.L,q=L.q
  const head=`<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><button class="back" onclick="clearInterval(SG.timer);S.game=null;render()"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Bỏ cuộc</button><span class="lbl">${L.boss?'<b style="color:var(--bad)">⚔ Trùm ${bossName(L.level)}</b> · ':''}Level ${L.level}</span><span class="saga-timer" id="sgtime">0.0s</span></div><div class="bar" style="margin:10px 0"><i style="width:${pct}%"></i></div><div class="lbl">Câu ${g.i+1}/${L.questions.length}</div>`;
  let body='';
  if(q.type=='order'){const chosen=g.sel;body=`<div class="card saga-q"><div class="lbl">Xếp đúng thứ tự</div><b>${esc(q.prompt)}</b></div>
-  <div class="stack" style="margin-top:10px">${q.items.map((it,k)=>{const n=chosen.indexOf(k);return `<button class="opt saga-ord ${n>=0?'picked':''}" onclick="sagaOrd(${k})" ${g.stun?'disabled':''}><span class="saga-ordn">${n>=0?n+1:''}</span>${esc(it.t)}</button>`}).join('')}</div>
+  <p class="mut" style="margin:8px 0 0;font-size:.85rem">Chạm lần lượt từ bước 1 → ${q.n}. Chạm lại một mục để bỏ chọn từ mục đó trở đi.</p>
+  <div class="stack" style="margin-top:8px">${q.items.map((it,k)=>{const n=chosen.indexOf(k);const rev=g.stun;const right=rev&&n===it.i;return `<button class="opt saga-ord ${n>=0?'picked':''} ${rev?(right?'ok':'bad'):''}" onclick="sagaOrd(${k})" ${g.stun?'disabled':''}><span class="saga-ordn">${n>=0?n+1:''}</span><span style="flex:1;text-align:left">${esc(it.t)}</span>${rev&&!right?`<span class="ord-fix">Đúng: ${it.i+1}</span>`:''}</button>`}).join('')}</div>
   <div class="row" style="margin-top:10px;flex-wrap:nowrap"><button class="btn ghost" style="flex:1" onclick="S.game.sel=[];render()">Làm lại</button><button class="btn" style="flex:1" ${chosen.length==q.n?'':'disabled'} onclick="sagaAnswer(S.game.sel.slice())">Xác nhận</button></div>`}
  else{const P={mean:['Nghĩa đúng là gì?',`<div class="big">${esc(q.prompt)}</div>`],rev:['Từ tiếng Anh là gì?',`<div class="big" style="font-size:1.4rem">${esc(q.prompt)}</div>`],listen:['Nghe và chọn từ đúng',`<button class="mic" style="background:var(--steel)" onclick="say(${esc(JSON.stringify(q.prompt))})" aria-label="Nghe lại">${svg('spk')}</button>`],cloze:['Điền từ còn thiếu',`<div style="font-size:1.08rem;font-weight:500">${esc(q.prompt)}</div><div class="mut" style="font-size:.86rem">${esc(q.hint||'')}</div>`]}[q.type];
   body=`<div class="card saga-q flash" style="min-height:170px"><div class="lbl">${P[0]}</div>${P[1]}</div><div class="saga-opts">${q.opts.map((o,k)=>`<button class="opt ${g.picked!=null?(k===q.ans&&g.picked===k?'ok':k===g.picked?'no':''):''}" onclick="sagaAnswer(${k})" ${g.stun||g.picked!=null?'disabled':''}>${esc(o)}</button>`).join('')}</div>`}
  return head+body+(g.stun?`<div class="saga-stun" role="status">Sai rồi · khoá ${(g.L.penalty||2000)/1000} giây</div>`:'')}
-function sagaOrd(k){const g=S.game;const i=g.sel.indexOf(k);if(i>=0)g.sel.splice(i,1);else g.sel.push(k);render()}
+function sagaOrd(k){const g=S.game;if(g.stun)return;const i=g.sel.indexOf(k);if(i>=0)g.sel=g.sel.slice(0,i);else g.sel.push(k);render()}
 function sagaAnswer(a){const g=S.game,q=g.L.questions[g.i];const ms=Math.round(performance.now()-g.qt0);
  const ok=q.type=='order'?a.every((v,j)=>q.items[v].i===j):a===q.ans;g.ans.push({a,ms,wrong:!ok});
  const next=()=>{g.i++;g.sel=[];g.picked=null;g.stun=0;g.qt0=performance.now();if(g.i>=g.L.questions.length)return sagaFinish();render();sagaAutoListen()};
  if(q.type!='order'){g.picked=a}
- if(ok){if(q.type!='listen')say(q.term||'',1.05);render();setTimeout(next,450)}else{g.stun=1;render();setTimeout(next,g.L.penalty||2000)}}
+ if(ok){if(q.type!='listen')say(q.term||'',1.05);render();setTimeout(next,450)}else{g.stun=1;render();setTimeout(next,q.type=='order'?Math.max(3500,g.L.penalty||2000):(g.L.penalty||2000))}}
 async function sagaFinish(){const g=S.game;clearInterval(SG.timer);const payload=g.ans.map(x=>({a:x.a,ms:x.ms}));let r=SAGA.grade(g.L.level,payload,SCTX()),srv=false,err='';
  g.res={...r,pending:!!USER};render();
  if(USER){try{const {data:{session}}=await SB.auth.getSession();const resp=await fetch(window.SS_CONFIG.SUPABASE_URL+'/functions/v1/saga',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token,apikey:window.SS_CONFIG.SUPABASE_ANON_KEY},body:JSON.stringify({level:g.L.level,answers:payload,track:curTrack()?.slug||'steel'})});const j=await resp.json();if(resp.ok){r=j;srv=true}else err=j.error||('Lỗi '+resp.status)}catch(e){err='Không kết nối được máy chủ'}}
