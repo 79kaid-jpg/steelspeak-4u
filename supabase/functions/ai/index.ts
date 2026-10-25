@@ -23,6 +23,7 @@ const PROVIDERS: Record<string, { key: string; model: string }> = {
   cerebras: { key: "CEREBRAS_API_KEY", model: "llama-3.3-70b" },
   anthropic: { key: "ANTHROPIC_API_KEY", model: "claude-haiku-5-5" },
 };
+const PAID = ["anthropic"];
 const OAI_URL: Record<string, string> = {
   groq: "https://api.groq.com/openai/v1/chat/completions",
   openrouter: "https://openrouter.ai/api/v1/chat/completions",
@@ -61,7 +62,9 @@ async function preferredOrder(admin: any): Promise<string[]> {
   let pref = "";
   try { const { data } = await admin.from("app_settings").select("value").eq("key", "ai_provider").maybeSingle(); pref = String(data?.value ?? ""); } catch (_) { /* bảng chưa có */ }
   const all = Object.keys(PROVIDERS).filter((p) => env(PROVIDERS[p].key));
-  return pref && all.includes(pref) ? [pref, ...all.filter((p) => p !== pref)] : all;
+  // AI trả phí (Anthropic) chỉ dùng khi admin chủ động chọn, không tự chuyển sang
+  const free = all.filter((p) => !PAID.includes(p));
+  return pref && all.includes(pref) ? [pref, ...free.filter((p) => p !== pref)] : free;
 }
 async function callOne(p: string, prompt: string, temperature: number): Promise<string> {
   try { return await callOneM(p, prompt, temperature, MODEL_CACHE[p + "chat"] ?? modelOf(p)); }
