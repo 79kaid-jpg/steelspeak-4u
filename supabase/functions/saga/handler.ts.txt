@@ -25,7 +25,9 @@ Deno.serve(async (req) => {
       if (!enr || enr.status !== "approved") return json({ error: "Bạn chưa tham gia khóa học này" }, 403);
       const { data: ws } = await admin.from("words").select("term,meaning_vi,example,example_vi,cat,cefr").eq("track_id", track.id).eq("status", "approved").order("ord").order("id").limit(5000);
       const words = (ws ?? []).map((w) => ({ cat: w.cat || w.cefr || "misc", en: w.term, vi: w.meaning_vi, ex: w.example || "", exvi: w.example_vi || "" }));
-      ctx = SAGA.buildCtx(track, words);
+      let bank: unknown[] = [];
+      try { const { data: qb } = await admin.from("question_bank").select("id,type,prompt,options,answer,explanation,cat,level_min").eq("track_id", track.id).eq("status", "live").order("id").limit(2000); bank = qb ?? []; } catch (_) { /* chưa có bảng */ }
+      ctx = SAGA.buildCtx(track, words, bank);
     } else if (slug !== "steel") return json({ error: "Không tìm thấy khóa học" }, 404);
     const LEVELS = ctx ? ctx.LEVELS : SAGA.LEVELS;
     const level = Math.floor(Number(b.level));

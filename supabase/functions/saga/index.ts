@@ -211,7 +211,7 @@ var CHAPTERS = [
  {cat:'talk', name:'Hội nghị khách hàng', seq:null}
 ];
 var PER_CH = 4, LEVELS = CHAPTERS.length * PER_CH;
-var STD = {mean:6000, rev:7000, listen:7000, cloze:10000, order:25000};
+var STD = {mean:6000, rev:7000, listen:7000, cloze:10000, order:25000, bank:9000};
 
 function hash(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function rng(seed){var a=seed>>>0;return function(){a=(a+0x6D2B79F5)>>>0;var t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
@@ -222,7 +222,10 @@ function blank(t){var i=t.ex.toLowerCase().indexOf(t.en.toLowerCase());if(i<0){v
 /* level: 1..LEVELS. Trả về {level, chapter, questions:[...], std} — giống hệt nhau với mọi người */
 var DEFAULT_CTX={slug:'steel',terms:TERMS,chapters:CHAPTERS,LEVELS:LEVELS};
 /* Dựng bối cảnh đề cho một khóa học. words: [{cat,en,vi,ex,exvi}] theo đúng thứ tự trong DB (ord, id). */
-function buildCtx(track,words){
+/* bank: câu hỏi từ ngân hàng (status live) [{id,type,prompt,options,answer,cat,level_min}] */
+function normBank(bank){return (bank||[]).filter(function(q){return q&&q.prompt&&Array.isArray(q.options)&&q.options.length>=2&&(q.type==='order'||(q.answer>=0&&q.answer<q.options.length))}).sort(function(a,b){return a.id-b.id})}
+function buildCtx(track,words,bank){var c=buildCtx0(track,words);c.bank=normBank(bank);return c}
+function buildCtx0(track,words){
  if(!track||track.slug==='steel'){var tw=(words&&words.length)?words:TERMS;return {slug:'steel',terms:tw,chapters:CHAPTERS,LEVELS:LEVELS}}
  var cats=Object.keys(track.cats||{}),chs=[],per=track.words_per_level||40;
  if(track.kind==='cefr'){cats.forEach(function(b){var bw=words.filter(function(w){return w.cat===b});for(var i=0;i*per<bw.length;i++){chs.push({cat:b,name:b+'.'+(i+1)+' · '+track.cats[b],seq:null,pool:bw.slice(i*per,(i+1)*per)})}})}
@@ -244,8 +247,8 @@ function gen(level,ctx){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.ch
  var used=[],qs=[];
  plan.forEach(function(type){
   if(type==='order'){
-   if(seq){var start=Math.floor(r()*Math.max(1,seq.steps.length-4)),steps=seq.steps.slice(start,start+5);
-    qs.push({type:'order',prompt:seq.title,items:shuffle(steps.map(function(s,i){return {i:i,t:s}}),r),n:steps.length});return}
+   if(seq){var all=seq.steps.length<=7,start=all?0:Math.floor(r()*Math.max(1,seq.steps.length-4)),steps=all?seq.steps.slice():seq.steps.slice(start,start+5);
+    qs.push({type:'order',prompt:all?seq.title:seq.title+' (bước '+(start+1)+'–'+(start+steps.length)+')',items:shuffle(steps.map(function(s,i){return {i:i,t:s}}),r),n:steps.length});return}
    type='cloze'}
   var t=pick(pool,1,r,used)[0]||pick(own,1,r,[])[0];used.push(t);
   if(type==='cloze'&&!blank(t))type='rev';
@@ -256,6 +259,14 @@ function gen(level,ctx){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.ch
   else if(type==='listen'){q.prompt=t.en;q.opts=opts.map(function(o){return o.en})}
   else{q.prompt=blank(t);q.hint=t.exvi;q.opts=opts.map(function(o){return o.en})}
   qs.push(q)});
+ // Trộn câu hỏi từ ngân hàng (thay câu mean/rev/cloze, tối đa 2; trùm 3)
+ var bk=(ctx.bank||[]).filter(function(q){return (q.level_min||1)<=level&&(!q.cat||q.cat===ch.cat)});
+ if(bk.length){var rb=rng(hash('bank-'+ctx.slug+'-L'+level+'-'+bk.length)),take=pick(bk,boss?3:2,rb,[]);
+  var slots=[];qs.forEach(function(q,i){if(q.type==='mean'||q.type==='rev'||q.type==='cloze')slots.push(i)});slots=shuffle(slots,rb);
+  take.forEach(function(b,j){if(j>=slots.length)return;var nq;
+   if(b.type==='order')nq={type:'order',bank:b.id,prompt:b.prompt,items:shuffle(b.options.map(function(t,i){return {i:i,t:String(t)}}),rb),n:b.options.length};
+   else{var o=shuffle(b.options.map(function(t,i){return {i:i,t:String(t)}}),rb);nq={type:'bank',bank:b.id,prompt:b.prompt,opts:o.map(function(x){return x.t}),ans:o.map(function(x){return x.i}).indexOf(b.answer),expl:b.explanation||''}}
+   qs[slots[j]]=nq})}
  var std=qs.reduce(function(a,q){return a+STD[q.type]},0);if(kaka)std=Math.round(std*0.55);else if(boss)std=Math.round(std*0.8);
  return {level:level,chapter:ci,name:ch.name,cat:ch.cat,questions:qs,std:std,boss:boss,kaka:kaka,penalty:kaka?6000:2000,bonus:kaka?900:boss?300:0,s1:kaka?0.85:boss?0.75:0.6,s2:kaka?0.95:boss?0.85:0.8}}
 
@@ -304,7 +315,9 @@ Deno.serve(async (req) => {
       if (!enr || enr.status !== "approved") return json({ error: "Bạn chưa tham gia khóa học này" }, 403);
       const { data: ws } = await admin.from("words").select("term,meaning_vi,example,example_vi,cat,cefr").eq("track_id", track.id).eq("status", "approved").order("ord").order("id").limit(5000);
       const words = (ws ?? []).map((w) => ({ cat: w.cat || w.cefr || "misc", en: w.term, vi: w.meaning_vi, ex: w.example || "", exvi: w.example_vi || "" }));
-      ctx = SAGA.buildCtx(track, words);
+      let bank: unknown[] = [];
+      try { const { data: qb } = await admin.from("question_bank").select("id,type,prompt,options,answer,explanation,cat,level_min").eq("track_id", track.id).eq("status", "live").order("id").limit(2000); bank = qb ?? []; } catch (_) { /* chưa có bảng */ }
+      ctx = SAGA.buildCtx(track, words, bank);
     } else if (slug !== "steel") return json({ error: "Không tìm thấy khóa học" }, 404);
     const LEVELS = ctx ? ctx.LEVELS : SAGA.LEVELS;
     const level = Math.floor(Number(b.level));

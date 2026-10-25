@@ -170,6 +170,18 @@ DOCUMENT:
       const words = (body.words ?? []).slice(0, 8).map(String).join(", ");
       const ctx = String(body.context ?? "").slice(0, 500);
       prompt = `You write short workplace English role-play dialogues for ${AUDIENCE} Context (Vietnamese): "${ctx}". Use these terms naturally: ${words}. Return JSON only: {"lines":[{"who":"Customer" or "TPL","en":"...","vi":"Vietnamese translation"}]} with 6 lines, B1-B2 level, American English.`;
+    } else if (body.task === "qbank") {
+      const n = Math.min(Math.max(Number(body.n) || 8, 3), 15);
+      const text = String(body.text ?? "").slice(0, 14000);
+      if (text.length < 80) return json({ error: "Văn bản quá ngắn" }, 400);
+      prompt = `You write quiz questions for an English-learning course "${String(body.course ?? "").slice(0, 120)}" for Vietnamese learners (${AUDIENCE}).
+From the DOCUMENT, write ${n} questions that test understanding of its key English terms, facts and processes. Mix types:
+- "mcq": English question (or Vietnamese prompt asking for the English term) with exactly 4 options, one correct; "answer" = 0-based index of the correct option. Distractors must be plausible and from the same domain.
+- "order": only when the document describes a clear sequence; "options" = 3-7 steps in the CORRECT order (short English phrases), no "answer".
+Every fact must be supported by the document. Add "explanation": one short Vietnamese sentence why the answer is right.
+Return JSON only: {"questions":[{"type":"mcq","prompt":"","options":["","","",""],"answer":0,"explanation":""}]}
+DOCUMENT:
+"""${text}"""`;
     } else if (body.task === "pron") {
       const audio = String(body.audio ?? "");
       if (audio.length < 1000 || audio.length > 4_000_000) return json({ error: "Bản ghi không hợp lệ" }, 400);
