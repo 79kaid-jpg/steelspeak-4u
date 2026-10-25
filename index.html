@@ -287,6 +287,7 @@ button:focus-visible,label.btn:focus-within,.link:focus-visible{outline:3px soli
 .vote.up.on{background:var(--good);border-color:var(--good);color:#fff}.vote.down.on{background:var(--bad);border-color:var(--bad);color:#fff}
 .vote-bar{flex:1;position:relative;height:28px;border-radius:99px;background:var(--soft);overflow:hidden}.vote-bar i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--good),#5fd39a);border-radius:99px}.vote-bar span{position:relative;display:block;text-align:center;font:600 .78rem/28px var(--fm)}
 .count-pill{display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 8px;border-radius:99px;background:var(--bad);color:#fff;font-size:.85rem;vertical-align:middle}
+.trk-bar{position:relative}.trk.add{position:sticky;right:0;z-index:1;background:var(--card);box-shadow:-10px 0 12px var(--bg)}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -660,7 +661,7 @@ ${S.recover?'<p class="note" style="margin-top:12px">Bạn đang đặt lại m�
 ${vBadges()}<h2>Ảnh đại diện</h2><div class="card row" style="margin-top:8px;flex-wrap:nowrap;gap:14px"><div class="av-prev">${avatarHTML(p.avatar,USER.id,84)}</div><div class="stack" style="flex:1;gap:8px"><label class="btn ghost" for="avf" style="display:block">Tải ảnh lên</label><input type="file" id="avf" accept="image/*" hidden onchange="avUpload(this.files[0])"><button class="btn ghost" onclick="avShuffle()">Đổi nhân vật</button></div></div>
 <h2>Hồ sơ</h2><div class="stack" style="margin-top:8px"><label class="lbl" for="pn">Họ tên</label>${inp('pn',p.full_name,'Nguyễn Văn A')}<label class="lbl" for="pr">Vai trò</label>${roleSel('pr',p.role)}<label class="lbl" for="pd">Phòng ban / Nhà máy</label>${inp('pd',p.department,'VD: Product Management – Phú Mỹ')}<button class="btn" onclick="saveProfile()">Lưu hồ sơ</button></div>
 <h2>Đổi mật khẩu</h2><div class="stack" style="margin-top:8px">${inp('np1','','Mật khẩu mới (ít nhất 8 ký tự)','password')}${inp('np2','','Nhập lại mật khẩu mới','password')}<button class="btn" onclick="changePw()">Cập nhật mật khẩu</button></div>
-<div class="stack" style="margin-top:22px">${p.is_admin?`<button class="btn amber" onclick="go('admin')">Quản trị người dùng</button>`:''}<button class="btn ghost" onclick="go('spec')">Xem bản thiết kế ứng dụng</button><button class="btn ghost" onclick="logout()">Đăng xuất</button></div>`}
+<div class="stack" style="margin-top:22px"><button class="btn" onclick="go('tracks')">Thư viện khóa học</button>${p.is_admin?`<button class="btn amber" onclick="go('admin')">Quản trị người dùng</button>`:''}<button class="btn ghost" onclick="go('spec')">Xem bản thiết kế ứng dụng</button><button class="btn ghost" onclick="logout()">Đăng xuất</button></div>`}
 async function saveProfile(){const v={id:USER.id,email:USER.email,full_name:$('#pn').value.trim(),role:$('#pr').value,department:$('#pd').value.trim()};
 const {error}=await SB.from('profiles').upsert(v);if(error)return toast('Chưa lưu được: '+error.message);PROF={...PROF,...v};toast('Đã lưu hồ sơ');render()}
 async function changePw(){const a=$('#np1').value,b=$('#np2').value;if(a.length<8)return toast('Mật khẩu cần ít nhất 8 ký tự');if(a!==b)return toast('Hai mật khẩu chưa khớp');
