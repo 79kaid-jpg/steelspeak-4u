@@ -433,6 +433,12 @@ details.set{margin-top:12px;border:1px solid var(--line);border-radius:16px;back
 @media (prefers-reduced-motion:reduce){.done2-badge{animation:none}.qbar i{transition:none}}
 body.in-game #nav{display:none}
 .saga-me{z-index:20!important;transform:translate(-50%,-205%)}
+
+.racers{position:absolute;z-index:15;display:flex;transform:translate(26px,-50%);pointer-events:auto;padding:2px 6px 2px 2px;border-radius:99px;background:rgba(255,255,255,.85);box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.racers.near-me{transform:translate(-50%,40px)}
+.racer{width:var(--rs);height:var(--rs);border-radius:50%;overflow:hidden;border:2px solid #fff;margin-left:calc(var(--rs) * -.35);background:#dfe7ef;display:grid;place-items:center;flex:none}
+.racer:first-child{margin-left:0}.racer>*{width:100%!important;height:100%!important;border-radius:50%}
+.racer.more{font:700 calc(var(--rs) * .38) var(--fd);color:var(--steel);background:#fff}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -980,7 +986,7 @@ function vMap(){const N=SCTX().LEVELS,open=sagaMaxOpen(),GAP=96,CHH=140,PADT=40;
   ${fr.length?`<div class="saga-friends">${fr.slice(0,2).map(u=>`<span title="${esc(u.name)}">${avatarHTML(u.avatar,u.user_id||u.name,30)}</span>`).join('')}${fr.length>2?`<span>+${fr.length-2}</span>`:''}</div>`:''}</div>`)}
  setTimeout(()=>{const el=document.querySelector('.saga-node.cur');if(el&&!SG.scrolled){el.scrollIntoView({block:'center'});SG.scrolled=1}},60);
  return `<div class="saga-bar"><span>★ <b>${sagaStars()}</b>/${N*3}</span><span>Level <b>${open}</b></span><span class="od-count" title="Số level đạt Overdrive">⚡ <b>${Object.values(SG.best).filter(x=>x.od).length}</b></span>${USER?'':'<span class="mut" style="font-size:.75rem">Đăng nhập để lên bảng xếp hạng</span>'}</div>
- <div class="saga-map theme-${themeOf(curTrack())}" style="height:${H}px">${bands}<svg class="saga-path" viewBox="0 0 100 ${H}" preserveAspectRatio="none"><path d="${d}" class="p0"/><path d="${d}" class="p1"/><path d="${d}" class="p2"/></svg>${nodes.join('')}${meMarker(pos,open)}</div>`}
+ <div class="saga-map theme-${themeOf(curTrack())}" style="height:${H}px">${bands}<svg class="saga-path" viewBox="0 0 100 ${H}" preserveAspectRatio="none"><path d="${d}" class="p0"/><path d="${d}" class="p1"/><path d="${d}" class="p2"/></svg>${nodes.join('')}${racerMarkers(pos,open)}${meMarker(pos,open)}</div>`}
 function sagaIntro(lv){const L=SAGA.gen(lv,SCTX()),b=SG.best[lv]||{};const types={mean:'Chọn nghĩa',rev:'Chọn từ',listen:'Nghe & chọn',cloze:'Điền từ',order:'Xếp quy trình'};const cnt={};L.questions.forEach(q=>cnt[q.type]=(cnt[q.type]||0)+1);
  const m=document.createElement('div');m.className='saga-modal';m.innerHTML=`<div class="saga-sheet" role="dialog" aria-label="Level ${lv}"><div class="saga-sheet-top" style="background:linear-gradient(135deg,${CH_STYLE[L.chapter%8][0]},${CH_STYLE[L.chapter%8][1]})"><div class="lbl" style="color:#dfe9f3">Khu ${L.chapter+1} · ${esc(L.name)}</div><h1>Level ${lv}</h1><div class="saga-stars big">${[1,2,3].map(i=>`<i class="${i<=(b.stars||0)?'on':''}">★</i>`).join('')}</div></div>
  <div class="stack" style="padding:16px"><div class="chips">${Object.entries(cnt).map(([k,v])=>`<span class="chip">${types[k]} ×${v}</span>`).join('')}</div>
@@ -1052,6 +1058,14 @@ function avatarHTML(av,seed,size){const s=`width:${size}px;height:${size}px`;if(
 async function avSave(v){if(!USER)return toast('Đăng nhập để lưu ảnh đại diện');const {error}=await SB.from('profiles').upsert({id:USER.id,email:USER.email,avatar:v});if(error)return toast(/avatar/.test(error.message)?'Cần chạy file supabase/saga_v2.sql trên Supabase trước':'Chưa lưu được: '+error.message);PROF={...PROF,avatar:v};SG.board=null;toast('Đã cập nhật ảnh đại diện');render()}
 function avShuffle(){avSave('gen:'+Math.random().toString(36).slice(2,9))}
 function avUpload(f){if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');const m=Math.min(img.width,img.height);x.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,128,128);avSave(c.toDataURL('image/jpeg',0.82));URL.revokeObjectURL(img.src)};img.onerror=()=>toast('Không đọc được ảnh này');img.src=URL.createObjectURL(f)}
+
+// Người chơi khác đang đua trên bản đồ (vị trí = level cao nhất đã mở)
+async function loadRacers(){SG.racersFor=(TR.ready&&curTrack()?.id)||'x';if(!USER){SG.racers=[];return}const args={period:'all'};if(TR.ready&&curTrack())args.track=curTrack().id;const {data}=await SB.rpc('saga_board',args);SG.racers=(data||[]).filter(r=>!r.is_me);if(S.tab=='saga'&&!S.game)render()}
+function racerMarkers(pos,open){const tid=(TR.ready&&curTrack()?.id)||'x';if(SG.racersFor!==tid){SG.racers=null;loadRacers();return ''}const R=SG.racers||[];if(!R.length)return '';
+ const maxL=Object.keys(pos).map(Number).reduce((a,b)=>Math.max(a,b),1);const by={};R.forEach(r=>{const l=Math.min(maxL,Math.max(1,r.max_level||1));(by[l]=by[l]||[]).push(r)});
+ const N=R.length,sz=N<=6?34:N<=15?28:N<=40?22:18,show=N<=15?4:3;
+ return Object.entries(by).map(([l,list])=>{const p=pos[l];if(!p)return '';const left=+l===open;const vis=list.slice(0,show),more=list.length-vis.length;
+  return `<div class="racers ${left?'near-me':''}" style="left:${p.x}%;top:${p.y}px;--rs:${sz}px" title="${esc(list.map(r=>r.name).join(', '))}" aria-label="${list.length} người đang ở level ${l}">${vis.map(r=>`<span class="racer">${avatarHTML(r.avatar,r.user_id,sz)}</span>`).join('')}${more>0?`<span class="racer more">+${more}</span>`:''}</div>`}).join('')}
 function meMarker(pos,open){const p=pos[open];if(!p)return '';const from=SG.hopFrom&&SG.hopFrom!==open&&pos[SG.hopFrom]?pos[SG.hopFrom]:null;const av=avatarHTML(PROF?.avatar,USER?.id||'guest',46);
  const html=`<div class="saga-me ${from?'hop':''}" id="sgme" style="left:${(from||p).x}%;top:${(from||p).y}px" aria-label="Vị trí của bạn"><div class="saga-me-in">${av}</div><div class="saga-me-pin"></div><div class="saga-me-shadow"></div></div>`;
  if(from){SG.hopFrom=null;setTimeout(()=>{const e=document.getElementById('sgme');if(!e)return;e.style.left=p.x+'%';e.style.top=p.y+'px';setTimeout(()=>{e.classList.remove('hop');e.classList.add('land');const n=document.querySelector('.saga-node.cur');n&&n.scrollIntoView({block:'center',behavior:'smooth'})},1100)},500)}
