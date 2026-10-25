@@ -32,6 +32,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     let prompt = "";
+    let parts: unknown[] | null = null;
     if (body.task === "lesson") {
       const n = Math.min(Math.max(Number(body.n) || 12, 4), 20);
       const text = String(body.text ?? "").slice(0, 14000);
@@ -45,6 +46,15 @@ DOCUMENT:
       const words = (body.words ?? []).slice(0, 8).map(String).join(", ");
       const ctx = String(body.context ?? "").slice(0, 500);
       prompt = `You write short workplace English role-play dialogues for ${AUDIENCE} Context (Vietnamese): "${ctx}". Use these terms naturally: ${words}. Return JSON only: {"lines":[{"who":"Customer" or "TPL","en":"...","vi":"Vietnamese translation"}]} with 6 lines, B1-B2 level, American English.`;
+    } else if (body.task === "pron") {
+      const audio = String(body.audio ?? "");
+      if (audio.length < 1000 || audio.length > 4_000_000) return json({ error: "Bản ghi không hợp lệ" }, 400);
+      const target = String(body.target ?? "").slice(0, 300);
+      const mime = /^audio\/[a-z0-9.+-]+$/.test(String(body.mime)) ? String(body.mime) : "audio/mp4";
+      parts = [
+        { inlineData: { mimeType: mime, data: audio } },
+        { text: `A Vietnamese learner tried to say this English text: "${target}". Transcribe EXACTLY what they actually said in English (do not correct it toward the target; write mispronounced words as they sounded). Return JSON only: {"heard":"transcript","tip":"one short pronunciation tip in Vietnamese about their biggest error, or empty"}` },
+      ];
     } else return json({ error: "task không hợp lệ" }, 400);
 
     const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
@@ -54,7 +64,7 @@ DOCUMENT:
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          contents: [{ role: "user", parts: parts ?? [{ text: prompt }] }],
           generationConfig: { responseMimeType: "application/json", temperature: 0.4 },
         }),
       },

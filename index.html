@@ -740,25 +740,42 @@ return `<h1>Luyện phát âm AI</h1><p class="mut">Nghe mẫu giọng Mỹ, r�
 <div class="card flash" style="min-height:180px"><div class="lbl">${CATS[t.cat].n}</div><div class="big" style="font-size:${mode=='term'?'1.8rem':'1.25rem'}">${esc(target)}</div><div class="mut">${esc(mode=='term'?t.vi:t.exvi)}</div><div class="row">${spk(target)}${slow(target)}</div></div>
 <button class="mic" id="micb" aria-label="Bắt đầu ghi âm" onclick="listen()">${svg('mic')}</button><p class="mut" style="text-align:center;font-size:.84rem" id="mst">${SR?'Chạm để đọc':'Trình duyệt này không mở được micro. Đang dùng chế độ mô phỏng để xem kết quả mẫu.'}</p>
 ${S.res?vRes(S.res):''}`}
-function vRes(r){return `<div class="card stack"><div class="lbl">Kết quả</div><div class="score" style="color:${r.score>=80?'var(--good)':r.score>=60?'var(--warn)':'var(--bad)'}">${r.score}<span style="font-size:1.2rem">/100</span></div>
+function vRes(r){return `<div class="card stack"><div class="lbl">Kết quả</div>${r.tip?`<p class="note">💡 ${esc(r.tip)}</p>`:''}<div class="score" style="color:${r.score>=80?'var(--good)':r.score>=60?'var(--warn)':'var(--bad)'}">${r.score}<span style="font-size:1.2rem">/100</span></div>
 <div class="gauge"><div><b>${r.acc}</b><span class="mut" style="font-size:.75rem">Chính xác</span></div><div><b>${r.flu}</b><span class="mut" style="font-size:.75rem">Trôi chảy</span></div><div><b>${r.comp}</b><span class="mut" style="font-size:.75rem">Đầy đủ</span></div></div>
 <div>${r.words.map(w=>`<span class="w ${w.s}">${esc(w.w)}</span>`).join(' ')}</div><div class="mut" style="font-size:.84rem">Bạn nói: “${esc(r.heard)}”${r.sim?' · <b>kết quả mô phỏng</b>':''}</div>
 <div class="note">${r.tip}</div></div>`}
 const norm=s=>s.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(Boolean);
 function lev(a,b){const d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let p=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const t=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]==b[j-1]?0:1));p=t}}return d[b.length]}
-function grade(target,heard,conf,sim){const T=norm(target),H=norm(heard);const words=T.map(w=>{let best=Math.min(...H.map(h=>lev(w,h)/Math.max(w.length,h.length)),1);return{w,s:best==0?'g':best<.4?'m':'b',v:1-best}});
+function gradeSpeech(target,heard,conf,sim){const T=norm(target),H=norm(heard);const words=T.map(w=>{let best=Math.min(...H.map(h=>lev(w,h)/Math.max(w.length,h.length)),1);return{w,s:best==0?'g':best<.4?'m':'b',v:1-best}});
 const acc=Math.round(words.reduce((a,w)=>a+w.v,0)/words.length*100);const comp=Math.round(Math.min(H.length/T.length,1)*100);const flu=Math.round(Math.max(40,Math.min(100,(conf||.8)*100)));
 const score=Math.round(acc*.6+flu*.2+comp*.2);const bad=words.filter(w=>w.s!='g').map(w=>w.w);
 const tip=bad.length?`Luyện lại: <b>${bad.join(', ')}</b>. Nghe chế độ chậm, nhấn đúng trọng âm rồi đọc lại.`+(bad.some(w=>/th/.test(w))?' Âm /θ/ trong “th”: đặt đầu lưỡi giữa hai hàm răng.':'')+(bad.some(w=>/(s|t|d|k)$/.test(w))?' Đừng nuốt âm cuối (s, t, d, k), lỗi hay gặp của người Việt.':''):'Rất tốt! Phát âm rõ, đủ âm cuối. +10 XP';return{score,acc,flu,comp,words,heard,tip,sim}}
 function listen(){const t=S.spMode=='sent'?S.speakItem.ex:S.speakItem.en;const b=$('#micb'),st=$('#mst');
-const simulate=()=>{const T=norm(t);const heard=T.map((w,i)=>i%3==1&&w.length>3?w.slice(0,-1):w).join(' ');S.res=grade(t,heard,.78,true);render()};
-if(!SR){st.textContent='Trình duyệt này không hỗ trợ chấm phát âm. Hãy mở app bằng Chrome (Android/máy tính) hoặc Safari (iPhone).';return}
+const simulate=()=>{const T=norm(t);const heard=T.map((w,i)=>i%3==1&&w.length>3?w.slice(0,-1):w).join(' ');S.res=gradeSpeech(t,heard,.78,true);render()};
+const IOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform=='MacIntel'&&navigator.maxTouchPoints>1);if((!SR||IOS)&&navigator.mediaDevices&&window.MediaRecorder)return recListen(t,b,st);if(!SR){st.textContent='Trình duyệt này không hỗ trợ ghi âm. Hãy dùng Chrome hoặc Safari bản mới.';return}
 if(window._rec){try{window._rec.stop()}catch(e){}return}
 try{const r=new SR();window._rec=r;r.lang='en-US';r.interimResults=true;r.continuous=false;r.maxAlternatives=1;b.classList.add('rec');st.textContent='Đang nghe… đọc to rồi chạm mic lần nữa để chấm';
 let txt='',conf=0,done=false,err=null;const lim=setTimeout(()=>{try{r.stop()}catch(e){}},Math.min(15000,4000+t.length*120));
 r.onresult=e=>{txt='';for(let k=0;k<e.results.length;k++){txt+=e.results[k][0].transcript+' ';conf=e.results[k][0].confidence||conf}st.textContent='Nghe được: “'+txt.trim()+'”';const last=e.results[e.results.length-1];if(last.isFinal)try{r.stop()}catch(x){}};
-const finish=()=>{if(done)return;done=true;clearTimeout(lim);window._rec=null;b.classList.remove('rec');if(!txt.trim()){if(!err)st.textContent='Chưa nghe được giọng bạn. Chạm mic, đọc to và rõ hơn.';return}S.res=grade(t,txt.trim(),conf||.85,false);const it=S.speakItem;if(S.res.score>=70){S.xp+=10;hit(it)}else miss(it);tick();save();render()};
+const finish=()=>{if(done)return;done=true;clearTimeout(lim);window._rec=null;b.classList.remove('rec');if(!txt.trim()){if(!err)st.textContent='Chưa nghe được giọng bạn. Chạm mic, đọc to và rõ hơn.';return}S.res=gradeSpeech(t,txt.trim(),conf||.85,false);const it=S.speakItem;if(S.res.score>=70){S.xp+=10;hit(it)}else miss(it);tick();save();render()};
 r.onerror=e=>{err=e.error;const M={'not-allowed':'Trình duyệt chưa cho dùng micro. Bấm biểu tượng 🔒 cạnh địa chỉ web → Micro → Cho phép, rồi tải lại trang.','service-not-allowed':'Trình duyệt này không hỗ trợ nhận giọng nói. Hãy dùng Chrome (Android/máy tính) hoặc Safari (iPhone).','no-speech':'Không nghe thấy tiếng. Bấm mic và đọc to, gần máy hơn.','audio-capture':'Không tìm thấy micro. Kiểm tra micro/tai nghe đã cắm chưa.','network':'Mất kết nối tới dịch vụ nhận giọng nói. Kiểm tra mạng rồi thử lại.','aborted':'Đã dừng ghi âm. Bấm mic để thử lại.'};st.innerHTML=esc(M[e.error]||('Lỗi micro: '+e.error+'. Bấm mic để thử lại.'))};r.onend=finish;r.start()}catch(e){window._rec=null;st.textContent='Không khởi động được micro: '+e.message}}
+
+let REC=null;
+async function recListen(t,b,st){if(REC){REC.stop();return}
+ let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){st.textContent='Chưa được dùng micro. Vào Cài đặt → Safari → Micrô → Cho phép, rồi tải lại trang.';return}
+ const mt=['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(x=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(x))||'';
+ const mr=new MediaRecorder(stream,mt?{mimeType:mt}:{});const parts=[];REC=mr;b.classList.add('rec');st.textContent='Đang ghi âm… đọc xong chạm mic lần nữa';
+ const lim=setTimeout(()=>{if(mr.state!='inactive')mr.stop()},Math.min(15000,4000+t.length*120));
+ mr.ondataavailable=e=>e.data.size&&parts.push(e.data);
+ mr.onstop=async()=>{clearTimeout(lim);REC=null;b.classList.remove('rec');stream.getTracks().forEach(x=>x.stop());
+  const blob=new Blob(parts,{type:mr.mimeType||mt||'audio/mp4'});if(blob.size<1500){st.textContent='Bản ghi quá ngắn. Chạm mic, đọc rồi chạm lại.';return}
+  st.textContent='AI đang chấm…';
+  try{const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]);fr.onerror=no;fr.readAsDataURL(blob)});
+   const r=await ai('pron',{audio:b64,mime:(blob.type||'audio/mp4').split(';')[0],target:t});if(r.error)throw new Error(r.error);
+   const heard=String(r.heard||'').trim();if(!heard){st.textContent='AI chưa nghe rõ. Thử đọc to và gần máy hơn.';return}
+   S.res=gradeSpeech(t,heard,.9,false);if(r.tip)S.res.tip=r.tip;const it=S.speakItem;if(S.res.score>=70){S.xp+=10;hit(it)}else miss(it);tick();save();render()}
+  catch(e){st.textContent=e&&e.code=='login'?'Cần đăng nhập để AI chấm phát âm.':'Chưa chấm được: '+(e.message||e)}};
+ mr.start()}
 /* ---- custom lesson builder ---- */
 let D={name:'',cats:['qual'],mode:'quiz',n:8,theme:''};
 function vMake(){return `<h1>Tạo bài học riêng</h1><p class="mut">Chọn chủ đề, kiểu chơi và bối cảnh công việc thật của bạn.</p>
