@@ -387,6 +387,41 @@ button:focus-visible,label.btn:focus-within,.link:focus-visible{outline:3px soli
 .kaka:has(.kaka-pic:not(.male)){width:92px;height:100px;top:-44px}
 .kaka.right:has(.kaka-pic:not(.male)){left:52px}.kaka.left:has(.kaka-pic:not(.male)){right:52px}
 .kaka-portrait:has(.kaka-pic:not(.male)){width:80px;height:86px}
+
+/* ===== Review 2026-10: topbar, hero, tiles ===== */
+.topbar-stats{margin-left:auto}.login-nudge{display:flex;align-items:center;gap:12px;width:100%;margin-top:12px;cursor:pointer}.login-nudge small{display:block;color:var(--mut);font-size:.8rem}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.course-pill{display:inline-flex;align-items:center;gap:8px;min-height:44px;max-width:62%;padding:4px 12px 4px 4px;border-radius:99px;background:var(--card);border:1px solid var(--line);cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.course-pill b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.95rem}.chev{color:var(--mut);font-size:.8rem}
+.course-dot{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font:700 .78rem var(--fd);color:#fff;background:linear-gradient(135deg,#2f6ea8,#1f4e79)}
+.course-dot.k-cefr{background:linear-gradient(135deg,#ff8a5b,#e0483c)}
+.topbar-stats{display:flex;align-items:center;gap:6px}
+.tb-stat{display:inline-flex;align-items:center;gap:3px;min-height:36px;padding:0 10px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-size:.9rem}.tb-stat b{font-family:var(--fd);font-size:1rem}
+.tb-stat.xp b{color:var(--warn)}
+.tb-av{width:36px;height:36px;border-radius:50%;overflow:hidden;padding:0;border:2px solid var(--amber);cursor:pointer}.tb-av>*{width:100%!important;height:100%!important}
+.hero2{display:flex;align-items:center;gap:14px;padding:18px;border-radius:20px;color:#fff;background:linear-gradient(135deg,#1b3f61,#2f6ea8);position:relative;overflow:hidden;box-shadow:0 8px 20px rgba(31,78,121,.25)}
+.hero2::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(100deg,rgba(255,255,255,.05) 0 14px,transparent 14px 28px);pointer-events:none}
+.hero2-txt{flex:1;min-width:0;position:relative}.hero2 .lbl{color:#bcd3ea}.hero2 h1{color:#fff;font-size:1.55rem;margin-top:2px}.hero2 p{margin:6px 0 0;color:#dce9f6;font-size:.92rem}.hero2 p b{color:#ffd58a}
+.hero2-meta{display:flex;gap:8px;margin-top:10px}.hero2-meta span{font-size:.75rem;padding:3px 9px;border-radius:99px;background:rgba(255,255,255,.14)}
+.ring{flex:none;position:relative;width:92px;height:92px;cursor:pointer}.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:rgba(255,255,255,.18);stroke-width:8}.ring-fg{fill:none;stroke:#ffcf4a;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .6s ease-out}
+.ring span{position:absolute;inset:0;display:grid;place-content:center;text-align:center;line-height:1}.ring b{font:700 1.5rem var(--fd)}.ring small{font-size:.66rem;color:#dce9f6}
+.cta-big{width:100%;margin-top:14px;justify-content:flex-start;text-align:left;min-height:64px;padding:12px 16px;border-radius:18px}
+.cta-big small{display:block;font:600 .7rem/1 var(--fd);letter-spacing:.08em;text-transform:uppercase;opacity:.75;margin-bottom:3px}
+.cta-ic{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.35);font-size:.95rem}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;margin:24px 0 10px}.sec-h h2{margin:0;font-size:1.2rem}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile2{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:14px;border-radius:16px;background:var(--card);border:1px solid var(--line);text-align:left;cursor:pointer;min-height:112px;transition:transform .12s}
+.tile2:active{transform:scale(.98)}.tile2 b{font:700 1.8rem/1 var(--fd);margin-top:6px}.tile2 span:last-child{font-size:.82rem;color:var(--mut)}
+.tile2-ic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;font-weight:700;background:var(--soft);color:var(--mut)}
+.tile2.warn .tile2-ic{background:color-mix(in srgb,var(--bad) 15%,var(--card));color:var(--bad)}.tile2.go .tile2-ic{background:color-mix(in srgb,var(--good) 15%,var(--card));color:var(--good)}
+.phrase2{display:flex;flex-direction:column;gap:12px}.phrase2 b{font-size:1.05rem}
+.btn svg{width:18px;height:18px}
+.lesson2{text-align:left}
+.sheet2{padding:10px 16px 18px}.sheet-grab{width:40px;height:4px;border-radius:99px;background:var(--line);margin:4px auto 12px}
+.course-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:var(--card);cursor:pointer}
+.course-row small{display:block;color:var(--mut);font-size:.78rem}.course-row.on{border-color:var(--steel);box-shadow:inset 0 0 0 1px var(--steel)}.course-row .ok{color:var(--steel);font-weight:700}
+@media (prefers-reduced-motion:reduce){.ring-fg{transition:none}}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -611,10 +646,10 @@ const svg=(k)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 const $=s=>document.querySelector(s);const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let S={tab:'home',xp:0,streak:0,last:'',done:{},wrong:{},lessons:[],cat:'all',q:'',game:null,sync:'local'};
 const EXL={id:'ex1',name:'Khiếu nại gỉ trắng – họp với khách',cats:['coat','qual'],mode:'quiz',n:8,ex:true};
-function load(v){if(!v)return;['xp','streak','last','done','wrong','lessons','srs','fc'].forEach(k=>{if(v[k]!=null)S[k]=v[k]})}
+function load(v){if(!v)return;['xp','streak','last','done','wrong','lessons','srs','fc','tdate','txp','goal'].forEach(k=>{if(v[k]!=null)S[k]=v[k]})}
 try{load(JSON.parse(localStorage.getItem('ss2')||'null'))}catch(e){}
 const SB=supabase.createClient(window.SS_CONFIG.SUPABASE_URL,window.SS_CONFIG.SUPABASE_ANON_KEY);let USER=null,saveT=null;
-function save(){const v={xp:S.xp,streak:S.streak,last:S.last,done:S.done,wrong:S.wrong,lessons:S.lessons,srs:S.srs||{},fc:S.fc||{}};try{localStorage.setItem('ss2',JSON.stringify(v))}catch(e){}
+function save(){const today=new Date().toISOString().slice(0,10);if(S.tdate!==today){S.tdate=today;S.txp=0}if(S._lx!=null&&S.xp>S._lx)S.txp=(S.txp||0)+(S.xp-S._lx);S._lx=S.xp;const v={xp:S.xp,streak:S.streak,last:S.last,done:S.done,wrong:S.wrong,lessons:S.lessons,srs:S.srs||{},fc:S.fc||{},tdate:S.tdate,txp:S.txp||0,goal:S.goal||50};try{localStorage.setItem('ss2',JSON.stringify(v))}catch(e){}
 if(USER){clearTimeout(saveT);saveT=setTimeout(async()=>{const {error}=await SB.from('progress').upsert({user_id:USER.id,data:v,updated_at:new Date().toISOString()});S.sync=error?'err':'cloud'},600)}}
 let PROF=null;const ROLES=['TPL','QA','QC','Khác'];
 async function boot(){const {data:{session}}=await SB.auth.getSession();USER=session?.user||null;PROF=null;if(USER){const p=await SB.from('profiles').select('*').eq('id',USER.id).maybeSingle();PROF=p.data||{id:USER.id,email:USER.email,full_name:'',role:'TPL',department:'',is_admin:false};const {data}=await SB.from('progress').select('data').eq('user_id',USER.id).maybeSingle();if(data)load(data.data);else save();S.sync='cloud';SG.loaded=false;SG.board=null}render();loadPlatform()}
@@ -651,15 +686,31 @@ function pathList(){const tr=curTrack();if(!tr||tr.slug=='steel')return PATH_STE
 function pathState(){let now=false;return pathList().map(([c,n])=>{const key=doneKey(c);let s=S.done[key]?'done':(!now?(now=true,'now'):'next');return[c,n,s]})}
 function doneKey(c){const tr=curTrack();return !tr||tr.slug=='steel'?c:tr.slug+':'+c}
 function vHome(){if(!canLearn())return trackBar()+vGate()+(USER?'':`<div style="margin-top:12px">${loginBox()}</div>`);if(!TERMS.length)return trackBar()+vEmptyTrack();return trackBar()+vHomeMain()}
-function vHomeMain(){const PATH=pathState(),nowP=PATH.find(p=>p[2]=='now'),W=wrongTerms();const lv=Math.floor(S.xp/200)+1;return `<div class="coil"><div class="lbl">${esc(heroLabel())}</div><h1>Chào buổi tối! Hôm nay luyện 10 phút nhé.</h1>
-<div class="stats"><div class="stat"><b>${S.streak}🔥</b><span>ngày liên tiếp</span></div><div class="stat"><b>${S.xp}</b><span>XP · Cấp ${lv}</span></div><div class="stat"><b>${TERMS.length}</b><span>${curTrack()?.kind=='cefr'?'từ vựng':'thuật ngữ'}</span></div></div></div>
-<div class="stack" style="margin-top:14px">${nowP?`<button class="btn amber" onclick="start({path:'${nowP[0]}',cats:['${nowP[0]}'],mode:'quiz',n:8,name:'${nowP[1]}'})">Tiếp tục: ${nowP[1]} →</button>`:'<div class="card"><b>Bạn đã hoàn thành cả lộ trình!</b></div>'}
-<div class="card row" style="justify-content:space-between"><div><div class="lbl">Sổ từ sai</div><b style="font-family:var(--fd);font-size:1.4rem">${W.length}</b> <span class="mut">từ cần ôn</span></div>${W.length?`<button class="btn" onclick="reviewWrong()">Ôn ngay</button>`:'<span class="mut" style="font-size:.84rem">Chưa có từ sai</span>'}</div>
-${USER?`<div class="mut row" style="font-size:.78rem;justify-content:space-between"><span>✓ ${esc(PROF?.full_name||USER.email)} · tiến độ lưu online</span><button class="link" onclick="go('me')">Tài khoản</button></div>`:loginBox()}
-${((!TR.ready||TR.legacy)||(curTrack()&&enrOf(curTrack())?.status=='approved'))&&SCTX().LEVELS?sagaHome():''}${dueHome()}<div class="card"><div class="lbl">Câu nói của ngày</div><div class="row" style="margin-top:6px;flex-wrap:nowrap"><div style="flex:1;min-width:0"><b>${esc(daily().ex)}</b><div class="mut" style="font-size:.86rem">${esc(daily().exvi)}</div></div>${spk(daily().ex)}</div>
-<button class="btn ghost" style="width:100%;margin-top:10px" onclick="S.speakItem=daily();go('speak')">Đọc thử & chấm điểm AI</button></div></div>
-<h2>Lộ trình học</h2><div class="path">${PATH.map(([c,n,s],i)=>`<button class="node ${s}" onclick="start({path:'${c}',cats:['${c}'],mode:'flash',n:8,name:'${n}'})"><i>${s=='done'?'✓':i+1}</i><div><b>${n}</b><div class="mut" style="font-size:.82rem">${CATS[c].d}</div></div><span class="lbl">${s=='done'?'Xong':s=='now'?'Đang học':''}</span></button>`).join('')}</div>
-<h2>Bài học của bạn</h2><div class="stack" style="margin-top:8px">${[...S.lessons,EXL].map((l,i)=>`<button class="card" style="text-align:left" onclick="start(${i<S.lessons.length?`S.lessons[${i}]`:'EXL'})"><div class="row" style="justify-content:space-between"><b>${esc(l.name)}</b><span class="chip">${modeName(l.mode)}</span></div><div class="mut" style="font-size:.84rem">${l.terms?l.terms.length+' từ · từ tài liệu “'+esc(l.src||'')+'”':l.n+' câu · '+l.cats.map(c=>CATS[c].n).join(', ')}${l.ex?' · bài mẫu':''}</div></button>`).join('')}<button class="btn ghost" onclick="go('make')">+ Tạo bài học riêng</button><button class="btn ghost" onclick="go('make');setTimeout(()=>$('#up').scrollIntoView(),50)">⬆ Tạo bài từ tài liệu tiếng Anh</button></div>`}
+function vHomeMain(){const PATH=pathState(),nowP=PATH.find(p=>p[2]=='now'),W=wrongTerms();const lv=Math.floor(S.xp/200)+1;
+ const h=new Date().getHours(),greet=h<11?'Chào buổi sáng':h<14?'Chào buổi trưa':h<18?'Chào buổi chiều':'Chào buổi tối';
+ const goal=S.goal||50,today=new Date().toISOString().slice(0,10),txp=S.tdate===today?(S.txp||0):0,pct=Math.min(1,txp/goal),R=34,C=2*Math.PI*R;
+ const due=Object.values(S.srs||{}).filter(v=>v.due<=Date.now()).length,nCards=Object.keys(S.srs||{}).length;
+ const dp=daily();const unit=curTrack()?.kind=='cefr'?'từ vựng':'thuật ngữ';
+ return `<section class="hero2"><div class="hero2-txt"><div class="lbl">${esc(heroLabel())}</div><h1>${greet}${PROF?.full_name?', '+esc(PROF.full_name.split(' ').slice(-1)[0]):''}!</h1>
+  <p>${txp>=goal?'Đã đạt mục tiêu hôm nay. Tuyệt!':`Còn <b>${goal-txp} XP</b> để đạt mục tiêu ngày.`}</p>
+  <div class="hero2-meta"><span>Cấp ${lv}</span><span>${TERMS.length} ${unit}</span></div></div>
+  <button class="ring" onclick="setGoal()" aria-label="Mục tiêu ngày ${txp}/${goal} XP, chạm để đổi"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="${R}" class="ring-bg"/><circle cx="40" cy="40" r="${R}" class="ring-fg" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-pct)}"/></svg><span><b>${txp}</b><small>/${goal} XP</small></span></button></section>
+ ${nowP?`<button class="btn amber cta-big" onclick="start({path:'${nowP[0]}',cats:['${nowP[0]}'],mode:'quiz',n:8,name:'${esc(nowP[1])}'})"><span class="cta-ic">▶</span><span><small>Học tiếp</small>${esc(nowP[1])}</span></button>`:'<div class="card"><b>Bạn đã hoàn thành cả lộ trình!</b></div>'}
+ <div class="sec-h"><h2>Ôn tập</h2></div>
+ <div class="tiles">
+  <button class="tile2 ${W.length?'warn':''}" onclick="${W.length?'reviewWrong()':"toast('Chưa có từ sai')"}"><span class="tile2-ic">✕</span><b>${W.length}</b><span>Từ sai cần ôn</span></button>
+  <button class="tile2 ${due?'go':''}" onclick="${due?"startFlash({name:'Ôn thẻ đến hạn',mode:'flash',terms:dueTerms(),review:true})":"toast('Hôm nay đã ôn xong')"}"><span class="tile2-ic">↻</span><b>${due}</b><span>Thẻ đến hạn${nCards?` · ${nCards} đã học`:''}</span></button>
+ </div>
+ ${USER?'':`<button class="card login-nudge" onclick="go('me')"><span class="tile2-ic">☁</span><span style="flex:1;text-align:left"><b>Đăng nhập để lưu tiến độ</b><small>Đồng bộ mọi thiết bị & dùng AI chấm phát âm</small></span><span class="chev">›</span></button>`}
+ ${((!TR.ready||TR.legacy)||(curTrack()&&enrOf(curTrack())?.status=='approved'))&&SCTX().LEVELS?`<div class="sec-h"><h2>Thử thách</h2></div>${sagaHome()}`:''}
+ <div class="sec-h"><h2>Câu nói của ngày</h2></div>
+ <div class="card phrase2"><div class="row" style="flex-wrap:nowrap;align-items:flex-start"><div style="flex:1;min-width:0"><b>${esc(dp.ex)}</b><div class="mut">${esc(dp.exvi)}</div></div>${spk(dp.ex)}</div>
+  <button class="btn ghost" style="width:100%" onclick="S.speakItem=daily();go('speak')">${svg('mic')} Đọc thử & chấm điểm AI</button></div>
+ <div class="sec-h"><h2>Lộ trình học</h2><span class="mut">${PATH.filter(p=>p[2]=='done').length}/${PATH.length} chặng</span></div>
+ <div class="path card" style="padding:4px 14px">${PATH.map(([c,n,s],i)=>`<button class="node ${s}" onclick="start({path:'${c}',cats:['${c}'],mode:'flash',n:8,name:'${esc(n)}'})"><i>${s=='done'?'✓':i+1}</i><div><b>${esc(n)}</b>${CATS[c]&&CATS[c].d?`<div class="mut" style="font-size:.82rem">${esc(CATS[c].d)}</div>`:''}</div><span class="lbl">${s=='done'?'Xong':s=='now'?'Đang học':''}</span></button>`).join('')}</div>
+ <div class="sec-h"><h2>Bài học của bạn</h2></div><div class="stack">${[...S.lessons,EXL].map((l,i)=>`<button class="card lesson2" onclick="start(${i<S.lessons.length?`S.lessons[${i}]`:'EXL'})"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(l.name)}</b><span class="chip">${modeName(l.mode)}</span></div><div class="mut" style="font-size:.84rem">${l.terms?l.terms.length+' từ · từ tài liệu “'+esc(l.src||'')+'”':l.n+' câu · '+l.cats.map(c=>(CATS[c]||{n:c}).n).join(', ')}${l.ex?' · bài mẫu':''}</div></button>`).join('')}
+ <div class="row" style="flex-wrap:nowrap"><button class="btn ghost" style="flex:1" onclick="go('make')">＋ Tạo bài</button><button class="btn ghost" style="flex:1" onclick="go('make');setTimeout(()=>$('#up').scrollIntoView(),50)">⬆ Từ tài liệu</button></div></div>`}
+function setGoal(){const opts=[20,50,100,150];const cur=S.goal||50;S.goal=opts[(opts.indexOf(cur)+1)%opts.length];save();toast('Mục tiêu ngày: '+S.goal+' XP');render()}
 function reviewWrong(){const W=wrongTerms();start({name:'Ôn từ sai',mode:'quiz',n:Math.min(W.length,12),terms:W.slice(0,12),review:true})}
 function daily(){const d=new Date().getDate();const t=TERMS.filter(x=>x.cat=='talk');return t[d%t.length]||TERMS[d%Math.max(1,TERMS.length)]||{en:'Welcome',vi:'Chào mừng',ex:'Welcome to SteelSpeak.',exvi:'Chào mừng bạn đến SteelSpeak.',cat:'talk'}}
 const modeName=m=>({flash:'Thẻ ghi nhớ',quiz:'Trắc nghiệm',listen:'Nghe & chọn',speak:'Nói theo'}[m]);
@@ -861,7 +912,7 @@ function initials(n){return (n||'?').trim().split(/\s+/).map(w=>w[0]).slice(-2).
 let _sctx=null;
 function SCTX(){const tr=curTrack();const k=(tr?tr.slug:'steel')+':'+TERMS.length;if(_sctx&&_sctx.k===k)return _sctx.c;const c=(!TR.ready||TR.legacy||!tr)?SAGA.buildCtx(null,STEEL_TERMS):SAGA.buildCtx(tr,TERMS);_sctx={k,c};return c}
 function raceTracks(){return TR.tracks.filter(x=>{const e=enrOf(x);return e&&e.status=='approved'})}
-function raceBar(){if(!TR.ready||TR.legacy)return '';const L=raceTracks();if(!L.length)return '';return `<div class="race-bar"><span class="lbl">Đua level</span><div class="race-seg">${L.map(x=>`<button class="${x.slug==TR.active?'on':''}" onclick="switchTrack('${x.slug}')">${x.kind=='cefr'?'General English':esc(x.name.split('–')[0].trim())}</button>`).join('')}</div></div>`}
+function raceBar(){return ''}
 function vSaga(){const tr=curTrack();
  if(TR.ready&&!TR.legacy){
   if(!USER)return `<h1>Đua level</h1><div class="card stack" style="margin-top:12px"><b>Đăng nhập để đua level</b><p class="mut" style="margin:0">Mỗi khóa học có bản đồ và bảng xếp hạng riêng. Bạn chỉ đua được khóa mình đã tham gia.</p><button class="btn" onclick="go('me')">Đăng nhập</button></div>`;
@@ -1062,8 +1113,12 @@ async function loadWords(){const tr=curTrack();if(!tr||!canLearn()){TERMS=tr&&tr
  TERMS=(data||[]).map(w=>({cat:w.cat||w.cefr||'misc',en:w.term,vi:w.meaning_vi,ex:w.example||'',exvi:w.example_vi||''}));if(!CATS.misc)CATS.misc={n:'Khác',e:'',d:''};
  if(tr.slug=='steel'&&!TERMS.length)TERMS=STEEL_TERMS}
 async function switchTrack(slug){TR.active=slug;try{localStorage.setItem('track',slug)}catch(e){}S.cat='all';S.speakItem=null;SG.loaded=false;SG.board=null;SG.scrolled=0;_sctx=null;await loadWords();sgLoadLocal();render();scrollTo(0,0)}
-function trackBar(){if(!TR.ready||TR.legacy)return '';const mine=TR.tracks.filter(x=>x.join_policy=='open'||(enrOf(x)&&enrOf(x).status!='rejected'));
- return `<div class="trk-bar" role="tablist" aria-label="Khóa học">${mine.map(x=>{const e=enrOf(x),pend=x.join_policy=='approval'&&(!e||e.status!='approved');return `<button role="tab" aria-selected="${x.slug==TR.active}" class="trk ${x.slug==TR.active?'on':''}" title="${esc(x.name)}" onclick="switchTrack('${x.slug}')"><span class="trk-k">${x.kind=='cefr'?'CEFR':'Chuyên ngành'}</span>${esc(shortName(x))}${pend?' · <i>chờ duyệt</i>':''}</button>`}).join('')}<button class="trk add" onclick="go('tracks')" aria-label="Thư viện khóa học">＋ Khóa học</button></div>`}
+function trackBar(){const tr=curTrack();const lv=Math.floor(S.xp/200)+1;
+ const course=(!TR.ready||TR.legacy)?'':`<button class="course-pill" onclick="courseSheet()" aria-label="Đổi khóa học"><span class="course-dot k-${tr?.kind||'specialty'}">${tr?(tr.kind=='cefr'?'EN':esc(shortName(tr)).slice(0,2).toUpperCase()):'＋'}</span><b>${tr?esc(shortName(tr)):'Chọn khóa'}</b><span class="chev">▾</span></button>`;
+ return `<div class="topbar">${course}<div class="topbar-stats"><span class="tb-stat" title="Ngày liên tiếp">🔥 <b>${S.streak||0}</b></span><span class="tb-stat xp" title="Tổng XP · Cấp ${lv}">⚡ <b>${S.xp||0}</b></span>${USER?`<button class="tb-av" onclick="go('me')" aria-label="Tài khoản">${avatarHTML(PROF?.avatar,USER.id,30)}</button>`:''}</div></div>`}
+function courseSheet(){const L=TR.tracks.filter(x=>x.join_policy=='open'||(enrOf(x)&&enrOf(x).status!='rejected'));const m=document.createElement('div');m.className='saga-modal';
+ m.innerHTML=`<div class="saga-sheet sheet2" role="dialog" aria-label="Chọn khóa học"><div class="sheet-grab"></div><h3>Khóa học của bạn</h3><div class="stack" style="margin-top:10px">${L.map(x=>{const e=enrOf(x),pend=x.join_policy=='approval'&&(!e||e.status!='approved');return `<button class="course-row ${x.slug==TR.active?'on':''}" data-s="${x.slug}"><span class="course-dot k-${x.kind}">${x.kind=='cefr'?'EN':esc(shortName(x)).slice(0,2).toUpperCase()}</span><span style="flex:1;min-width:0;text-align:left"><b>${esc(x.name)}</b><small>${x.kind=='cefr'?'Chuẩn CEFR':'Chuyên ngành'}${pend?' · chờ duyệt':''}</small></span>${x.slug==TR.active?'<span class="ok">✓</span>':''}</button>`}).join('')}</div><button class="btn ghost" style="width:100%;margin-top:12px" id="cslib">＋ Thêm khóa học</button></div>`;
+ document.body.appendChild(m);m.onclick=e=>{if(e.target===m)m.remove()};m.querySelectorAll('.course-row').forEach(b=>b.onclick=()=>{m.remove();switchTrack(b.dataset.s)});m.querySelector('#cslib').onclick=()=>{m.remove();go('tracks')}}
 function vGate(){const tr=curTrack();if(!TR.ready)return '';if(!tr)return `<div class="card" style="margin-top:12px"><b>Chọn một khóa học</b><p class="mut">Mở Thư viện để tham gia khóa học.</p><button class="btn" onclick="go('tracks')">Mở thư viện khóa học</button></div>`;
  const e=enrOf(tr);if(!USER)return `<div class="card stack" style="margin-top:12px"><b>${esc(tr.name)}</b><p class="mut" style="margin:0">Khóa này cần đăng nhập và được admin duyệt trước khi học.</p></div>`;
  if(e&&e.status=='pending')return `<div class="card stack" style="margin-top:12px"><div class="lbl">Đang chờ duyệt</div><b>${esc(tr.name)}</b><p class="mut" style="margin:0">Đơn tham gia của bạn đã gửi lúc ${new Date(e.requested_at).toLocaleString('vi')}. Admin duyệt xong là bạn học được ngay. Trong lúc chờ, bạn có thể học General English.</p>${TR.tracks.some(x=>x.join_policy=='open')?`<button class="btn ghost" onclick="switchTrack('${TR.tracks.find(x=>x.join_policy=='open').slug}')">Học General English</button>`:''}</div>`;
