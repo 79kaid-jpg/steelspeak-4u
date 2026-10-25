@@ -422,6 +422,7 @@ button:focus-visible,label.btn:focus-within,.link:focus-visible{outline:3px soli
 .course-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:var(--card);cursor:pointer}
 .course-row small{display:block;color:var(--mut);font-size:.78rem}.course-row.on{border-color:var(--steel);box-shadow:inset 0 0 0 1px var(--steel)}.course-row .ok{color:var(--steel);font-weight:700}
 @media (prefers-reduced-motion:reduce){.ring-fg{transition:none}}
+.saga-modal{z-index:2147483647!important}.sheet2{padding-bottom:calc(18px + env(safe-area-inset-bottom))}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -1116,7 +1117,7 @@ async function switchTrack(slug){TR.active=slug;try{localStorage.setItem('track'
 function trackBar(){const tr=curTrack();const lv=Math.floor(S.xp/200)+1;
  const course=(!TR.ready||TR.legacy)?'':`<button class="course-pill" onclick="courseSheet()" aria-label="Đổi khóa học"><span class="course-dot k-${tr?.kind||'specialty'}">${tr?(tr.kind=='cefr'?'EN':esc(shortName(tr)).slice(0,2).toUpperCase()):'＋'}</span><b>${tr?esc(shortName(tr)):'Chọn khóa'}</b><span class="chev">▾</span></button>`;
  return `<div class="topbar">${course}<div class="topbar-stats"><span class="tb-stat" title="Ngày liên tiếp">🔥 <b>${S.streak||0}</b></span><span class="tb-stat xp" title="Tổng XP · Cấp ${lv}">⚡ <b>${S.xp||0}</b></span>${USER?`<button class="tb-av" onclick="go('me')" aria-label="Tài khoản">${avatarHTML(PROF?.avatar,USER.id,30)}</button>`:''}</div></div>`}
-function courseSheet(){const L=TR.tracks.filter(x=>x.join_policy=='open'||(enrOf(x)&&enrOf(x).status!='rejected'));const m=document.createElement('div');m.className='saga-modal';
+function courseSheet(){document.querySelectorAll('.saga-modal').forEach(x=>x.remove());const L=TR.tracks.filter(x=>x.join_policy=='open'||(enrOf(x)&&enrOf(x).status!='rejected'));const m=document.createElement('div');m.className='saga-modal';
  m.innerHTML=`<div class="saga-sheet sheet2" role="dialog" aria-label="Chọn khóa học"><div class="sheet-grab"></div><h3>Khóa học của bạn</h3><div class="stack" style="margin-top:10px">${L.map(x=>{const e=enrOf(x),pend=x.join_policy=='approval'&&(!e||e.status!='approved');return `<button class="course-row ${x.slug==TR.active?'on':''}" data-s="${x.slug}"><span class="course-dot k-${x.kind}">${x.kind=='cefr'?'EN':esc(shortName(x)).slice(0,2).toUpperCase()}</span><span style="flex:1;min-width:0;text-align:left"><b>${esc(x.name)}</b><small>${x.kind=='cefr'?'Chuẩn CEFR':'Chuyên ngành'}${pend?' · chờ duyệt':''}</small></span>${x.slug==TR.active?'<span class="ok">✓</span>':''}</button>`}).join('')}</div><button class="btn ghost" style="width:100%;margin-top:12px" id="cslib">＋ Thêm khóa học</button></div>`;
  document.body.appendChild(m);m.onclick=e=>{if(e.target===m)m.remove()};m.querySelectorAll('.course-row').forEach(b=>b.onclick=()=>{m.remove();switchTrack(b.dataset.s)});m.querySelector('#cslib').onclick=()=>{m.remove();go('tracks')}}
 function vGate(){const tr=curTrack();if(!TR.ready)return '';if(!tr)return `<div class="card" style="margin-top:12px"><b>Chọn một khóa học</b><p class="mut">Mở Thư viện để tham gia khóa học.</p><button class="btn" onclick="go('tracks')">Mở thư viện khóa học</button></div>`;
