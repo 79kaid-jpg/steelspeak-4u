@@ -772,7 +772,7 @@ async function recListen(t,b,st){if(REC){REC.stop();return}
   st.textContent='AI đang chấm…';
   try{const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]);fr.onerror=no;fr.readAsDataURL(blob)});
    const r=await ai('pron',{audio:b64,mime:(blob.type||'audio/mp4').split(';')[0],target:t});if(r.error)throw new Error(r.error);
-   const heard=String(r.heard||'').trim();if(!heard){st.textContent='AI chưa nghe rõ. Thử đọc to và gần máy hơn.';return}
+   const heard=String(r.heard||'').trim();if(!/[a-z]/i.test(heard)){st.textContent='AI chưa nghe rõ. Thử đọc to và gần máy hơn.';return}
    S.res=gradeSpeech(t,heard,.9,false);if(r.tip)S.res.aiTip=r.tip;const it=S.speakItem;if(S.res.score>=70){S.xp+=10;hit(it)}else miss(it);tick();save();render()}
   catch(e){st.textContent=e&&e.code=='login'?'Cần đăng nhập để AI chấm phát âm.':'Chưa chấm được: '+(e.message||e)}};
  mr.start()}
