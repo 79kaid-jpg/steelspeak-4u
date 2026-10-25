@@ -439,6 +439,7 @@ body.in-game #nav{display:none}
 .racer{width:var(--rs);height:var(--rs);border-radius:50%;overflow:hidden;border:2px solid #fff;margin-left:calc(var(--rs) * -.35);background:#dfe7ef;display:grid;place-items:center;flex:none}
 .racer:first-child{margin-left:0}.racer>*{width:100%!important;height:100%!important;border-radius:50%}
 .racer.more{font:700 calc(var(--rs) * .38) var(--fd);color:var(--steel);background:#fff}
+.dot-new{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--bad);vertical-align:middle}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -968,8 +969,8 @@ function vSaga(){const tr=curTrack();
   if(!tr||!mine.includes(tr)){return raceBar()+`<div class="card stack" style="margin-top:12px"><b>Chưa tham gia ${esc(tr?tr.name:'khóa này')}</b><p class="mut" style="margin:0">Bạn chỉ đua được khóa mình đã tham gia. Chọn một khóa ở trên, hoặc đăng ký khóa này trong thư viện.</p><button class="btn ghost" onclick="go('tracks')">Thư viện khóa học</button></div>`}
   if(!SCTX().LEVELS)return raceBar()+`<div class="card" style="margin-top:12px"><b>Khóa ${esc(tr.name)} chưa đủ từ để mở bản đồ</b><p class="mut">Cần ít nhất 4 từ mỗi chặng. Admin nạp thêm từ là bản đồ tự mở.</p></div>`}
  return raceBar()+vSagaMain()}
-function vSagaMain(){if(!SG.loaded){sagaLoad();}if(SG.view=='board'){if(!SG.board)sagaBoard();return sagaTabs()+vBoard()}return sagaTabs()+vMap()}
-function sagaTabs(){return `<div class="saga-tabs"><button class="${SG.view=='map'?'on':''}" onclick="SG.view='map';render()">Bản đồ</button><button class="${SG.view=='board'?'on':''}" onclick="SG.view='board';SG.board=null;render()">Xếp hạng</button></div>`}
+function vSagaMain(){if(!SG.loaded){sagaLoad();}if(SG.view=='board'){if(!SG.board)sagaBoard();return sagaTabs()+vBoard()}if(SG.view=='friends')return sagaTabs()+vFriends();return sagaTabs()+vMap()}
+function sagaTabs(){return `<div class="saga-tabs"><button class="${SG.view=='map'?'on':''}" onclick="SG.view='map';render()">Bản đồ</button><button class="${SG.view=='board'?'on':''}" onclick="SG.view='board';SG.board=null;render()">Xếp hạng</button><button class="${SG.view=='friends'?'on':''}" onclick="SG.view='friends';SG.racersFor=null;render()">Bạn bè${(SG.racersAll||[]).some(f=>f.status=='pending'&&f.incoming)?' <span class="dot-new"></span>':''}</button></div>`}
 function vMap(){const N=SCTX().LEVELS,open=sagaMaxOpen(),GAP=96,CHH=140,PADT=40;const friends={};(SG.board||[]).forEach(u=>{if(!u.is_me)(friends[Math.min(u.max_level,N)]=friends[Math.min(u.max_level,N)]||[]).push(u)});if(!SG.board&&USER)sagaBoard();
  const pos=[];let y=PADT;const totalH=N*GAP+SCTX().chapters.length*CHH+PADT*2;
  const items=[];
@@ -1060,7 +1061,18 @@ function avShuffle(){avSave('gen:'+Math.random().toString(36).slice(2,9))}
 function avUpload(f){if(!f)return;const img=new Image();img.onload=()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');const m=Math.min(img.width,img.height);x.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,128,128);avSave(c.toDataURL('image/jpeg',0.82));URL.revokeObjectURL(img.src)};img.onerror=()=>toast('Không đọc được ảnh này');img.src=URL.createObjectURL(f)}
 
 // Người chơi khác đang đua trên bản đồ (vị trí = level cao nhất đã mở)
-async function loadRacers(){SG.racersFor=(TR.ready&&curTrack()?.id)||'x';if(!USER){SG.racers=[];return}const args={period:'all'};if(TR.ready&&curTrack())args.track=curTrack().id;const {data}=await SB.rpc('saga_board',args);SG.racers=(data||[]).filter(r=>!r.is_me);if(S.tab=='saga'&&!S.game)render()}
+async function loadRacers(){SG.racersFor=(TR.ready&&curTrack()?.id)||'x';if(!USER){SG.racers=[];SG.racersAll=[];return}const args={};if(TR.ready&&curTrack())args.track=curTrack().id;const {data,error}=await SB.rpc('my_friends',args);SG.friendErr=error?(/my_friends|function/.test(error.message)?'Cần chạy supabase/friends.sql trên Supabase':error.message):'';SG.racersAll=data||[];SG.racers=SG.racersAll.filter(f=>f.status=='accepted');if(S.tab=='saga'&&!S.game)render()}
+
+function vFriends(){if(!USER)return `<div class="card" style="margin-top:12px">Đăng nhập để kết bạn và đua cùng nhau.</div>`;const tid=(TR.ready&&curTrack()?.id)||'x';if(SG.racersFor!==tid)loadRacers();const A=SG.racersAll||[];
+ const inc=A.filter(f=>f.status=='pending'&&f.incoming),out=A.filter(f=>f.status=='pending'&&!f.incoming),acc=A.filter(f=>f.status=='accepted');
+ const row=(f,act)=>`<div class="course-row"><span class="racer" style="--rs:40px;margin:0">${avatarHTML(f.avatar,f.user_id,40)}</span><span style="flex:1;min-width:0;text-align:left"><b>${esc(f.name||f.email)}</b><small>${act=='acc'?'Đang ở level '+f.max_level:esc(f.email||'')}</small></span>${act=='inc'?`<button class="chip" onclick="frResp(${f.fid},true)">Đồng ý</button><button class="chip danger" onclick="frResp(${f.fid},false)">✕</button>`:act=='out'?'<small class="mut">Chờ đồng ý</small>':`<button class="chip danger" aria-label="Hủy kết bạn" onclick="if(confirm('Hủy kết bạn với ${esc(f.name||'')}?'))frResp(${f.fid},false)">Hủy</button>`}</div>`;
+ return `<p class="mut" style="margin-top:12px">Chỉ bạn bè mới thấy nhau trên bản đồ đua.</p>${SG.friendErr?`<p class="note">${esc(SG.friendErr)}</p>`:''}
+ <div class="row" style="flex-wrap:nowrap;margin-top:8px"><input type="email" id="fremail" placeholder="Email của bạn bè" style="flex:1"><button class="btn" onclick="frAdd()">Kết bạn</button></div>
+ ${inc.length?`<div class="sec-h"><h2>Lời mời kết bạn</h2></div><div class="stack">${inc.map(f=>row(f,'inc')).join('')}</div>`:''}
+ <div class="sec-h"><h2>Bạn đua (${acc.length})</h2></div><div class="stack">${acc.length?acc.map(f=>row(f,'acc')).join(''):'<p class="mut">Chưa có bạn nào. Nhập email ở trên để mời.</p>'}</div>
+ ${out.length?`<div class="sec-h"><h2>Đã gửi lời mời</h2></div><div class="stack">${out.map(f=>row(f,'out')).join('')}</div>`:''}`}
+async function frAdd(){const e=$('#fremail').value.trim();if(!e)return toast('Nhập email trước');const {data,error}=await SB.rpc('friend_request',{email:e});if(error)return toast(error.message);toast({sent:'Đã gửi lời mời',accepted:'Đã kết bạn!',already:'Hai bạn đã là bạn bè',pending:'Lời mời đang chờ đồng ý'}[data]||'Xong');SG.racersFor=null;render()}
+async function frResp(id,ok){const {error}=await SB.rpc('friend_respond',{fid:id,accept:ok});if(error)return toast(error.message);SG.racersFor=null;render()}
 function racerMarkers(pos,open){const tid=(TR.ready&&curTrack()?.id)||'x';if(SG.racersFor!==tid){SG.racers=null;loadRacers();return ''}const R=SG.racers||[];if(!R.length)return '';
  const maxL=Object.keys(pos).map(Number).reduce((a,b)=>Math.max(a,b),1);const by={};R.forEach(r=>{const l=Math.min(maxL,Math.max(1,r.max_level||1));(by[l]=by[l]||[]).push(r)});
  const N=R.length,sz=N<=6?34:N<=15?28:N<=40?22:18,show=N<=15?4:3;
