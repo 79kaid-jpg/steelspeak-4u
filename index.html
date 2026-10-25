@@ -440,6 +440,12 @@ body.in-game #nav{display:none}
 .racer:first-child{margin-left:0}.racer>*{width:100%!important;height:100%!important;border-radius:50%}
 .racer.more{font:700 calc(var(--rs) * .38) var(--fd);color:var(--steel);background:#fff}
 .dot-new{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--bad);vertical-align:middle}
+
+.ghost-racer{position:absolute;z-index:14;width:34px;height:34px;padding:0;border-radius:50%;border:2px dashed #fff;background:rgba(255,255,255,.55);opacity:.8;transform:translate(calc(-100% - 26px - (var(--gk) - 1) * 26px),-50%);cursor:pointer;overflow:visible;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.ghost-racer>*:first-child{width:100%!important;height:100%!important;border-radius:50%;filter:grayscale(.6)}
+.ghost-racer .gplus{position:absolute;right:-4px;bottom:-4px;width:16px;height:16px;border-radius:50%;background:var(--amber);color:#1a1205;font:700 11px/16px var(--fd);text-align:center}
+.ghost-racer:hover,.ghost-racer:focus-visible{opacity:1}
+.sw{flex:none;width:42px;height:24px;border-radius:99px;background:var(--line);position:relative;transition:background .2s}.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}.sw.on{background:var(--good)}.sw.on::after{transform:translateX(18px)}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -987,7 +993,7 @@ function vMap(){const N=SCTX().LEVELS,open=sagaMaxOpen(),GAP=96,CHH=140,PADT=40;
   ${fr.length?`<div class="saga-friends">${fr.slice(0,2).map(u=>`<span title="${esc(u.name)}">${avatarHTML(u.avatar,u.user_id||u.name,30)}</span>`).join('')}${fr.length>2?`<span>+${fr.length-2}</span>`:''}</div>`:''}</div>`)}
  setTimeout(()=>{const el=document.querySelector('.saga-node.cur');if(el&&!SG.scrolled){el.scrollIntoView({block:'center'});SG.scrolled=1}},60);
  return `<div class="saga-bar"><span>★ <b>${sagaStars()}</b>/${N*3}</span><span>Level <b>${open}</b></span><span class="od-count" title="Số level đạt Overdrive">⚡ <b>${Object.values(SG.best).filter(x=>x.od).length}</b></span>${USER?'':'<span class="mut" style="font-size:.75rem">Đăng nhập để lên bảng xếp hạng</span>'}</div>
- <div class="saga-map theme-${themeOf(curTrack())}" style="height:${H}px">${bands}<svg class="saga-path" viewBox="0 0 100 ${H}" preserveAspectRatio="none"><path d="${d}" class="p0"/><path d="${d}" class="p1"/><path d="${d}" class="p2"/></svg>${nodes.join('')}${racerMarkers(pos,open)}${meMarker(pos,open)}</div>`}
+ <div class="saga-map theme-${themeOf(curTrack())}" style="height:${H}px">${bands}<svg class="saga-path" viewBox="0 0 100 ${H}" preserveAspectRatio="none"><path d="${d}" class="p0"/><path d="${d}" class="p1"/><path d="${d}" class="p2"/></svg>${nodes.join('')}${ghostMarkers(pos)}${racerMarkers(pos,open)}${meMarker(pos,open)}</div>`}
 function sagaIntro(lv){const L=SAGA.gen(lv,SCTX()),b=SG.best[lv]||{};const types={mean:'Chọn nghĩa',rev:'Chọn từ',listen:'Nghe & chọn',cloze:'Điền từ',order:'Xếp quy trình'};const cnt={};L.questions.forEach(q=>cnt[q.type]=(cnt[q.type]||0)+1);
  const m=document.createElement('div');m.className='saga-modal';m.innerHTML=`<div class="saga-sheet" role="dialog" aria-label="Level ${lv}"><div class="saga-sheet-top" style="background:linear-gradient(135deg,${CH_STYLE[L.chapter%8][0]},${CH_STYLE[L.chapter%8][1]})"><div class="lbl" style="color:#dfe9f3">Khu ${L.chapter+1} · ${esc(L.name)}</div><h1>Level ${lv}</h1><div class="saga-stars big">${[1,2,3].map(i=>`<i class="${i<=(b.stars||0)?'on':''}">★</i>`).join('')}</div></div>
  <div class="stack" style="padding:16px"><div class="chips">${Object.entries(cnt).map(([k,v])=>`<span class="chip">${types[k]} ×${v}</span>`).join('')}</div>
@@ -1070,9 +1076,28 @@ function vFriends(){if(!USER)return `<div class="card" style="margin-top:12px">�
  <div class="row" style="flex-wrap:nowrap;margin-top:8px"><input type="email" id="fremail" placeholder="Email của bạn bè" style="flex:1"><button class="btn" onclick="frAdd()">Kết bạn</button></div>
  ${inc.length?`<div class="sec-h"><h2>Lời mời kết bạn</h2></div><div class="stack">${inc.map(f=>row(f,'inc')).join('')}</div>`:''}
  <div class="sec-h"><h2>Bạn đua (${acc.length})</h2></div><div class="stack">${acc.length?acc.map(f=>row(f,'acc')).join(''):'<p class="mut">Chưa có bạn nào. Nhập email ở trên để mời.</p>'}</div>
- ${out.length?`<div class="sec-h"><h2>Đã gửi lời mời</h2></div><div class="stack">${out.map(f=>row(f,'out')).join('')}</div>`:''}`}
+ ${out.length?`<div class="sec-h"><h2>Đã gửi lời mời</h2></div><div class="stack">${out.map(f=>row(f,'out')).join('')}</div>`:''}${vSugg()}`}
 async function frAdd(){const e=$('#fremail').value.trim();if(!e)return toast('Nhập email trước');const {data,error}=await SB.rpc('friend_request',{email:e});if(error)return toast(error.message);toast({sent:'Đã gửi lời mời',accepted:'Đã kết bạn!',already:'Hai bạn đã là bạn bè',pending:'Lời mời đang chờ đồng ý'}[data]||'Xong');SG.racersFor=null;render()}
 async function frResp(id,ok){const {error}=await SB.rpc('friend_respond',{fid:id,accept:ok});if(error)return toast(error.message);SG.racersFor=null;render()}
+
+// ===== Gợi ý bạn bè =====
+function geoOn(){try{return localStorage.getItem('geoOn')=='1'}catch(e){return false}}
+async function loadSugg(){const tid=(TR.ready&&curTrack()?.id)||'x';SG.suggFor=tid;if(!USER){SG.sugg=[];return}const args={};if(TR.ready&&curTrack())args.track=curTrack().id;
+ if(geoOn()&&navigator.geolocation){try{const p=await new Promise((ok,no)=>navigator.geolocation.getCurrentPosition(ok,no,{timeout:8000,maximumAge:3600000,enableHighAccuracy:false}));args.lat=p.coords.latitude;args.lng=p.coords.longitude;SB.rpc('set_my_geo',{lat:args.lat,lng:args.lng})}catch(e){SG.geoErr='Không lấy được vị trí, đang gợi ý ngẫu nhiên'}}
+ const {data,error}=await SB.rpc('friend_suggestions',args);SG.sugg=error?[]:(data||[]);if(error)SG.friendErr=/friend_suggestions|function/.test(error.message)?'Cần chạy supabase/friends_suggest.sql':error.message;if(S.tab=='saga'&&!S.game)render()}
+async function toggleGeo(){const on=!geoOn();try{localStorage.setItem('geoOn',on?'1':'0')}catch(e){}SG.geoErr='';if(!on)await SB.rpc('set_my_geo',{lat:null,lng:null});SG.suggFor=null;render()}
+function vSugg(){const tid=(TR.ready&&curTrack()?.id)||'x';if(SG.suggFor!==tid)loadSugg();const L=SG.sugg||[];
+ return `<div class="sec-h"><h2>Gợi ý cho bạn</h2><button class="link" onclick="SG.suggFor=null;render()">↻ Đổi</button></div>
+ <button class="course-row" onclick="toggleGeo()" style="margin-bottom:8px"><span style="font-size:1.2rem">📍</span><span style="flex:1;text-align:left"><b>Gợi ý người ở gần</b><small>${geoOn()?'Đang bật · chỉ lưu vị trí gần đúng (~10 km)':'Đang tắt · gợi ý ngẫu nhiên'}</small></span><span class="sw ${geoOn()?'on':''}" aria-hidden="true"></span></button>
+ ${SG.geoErr?`<p class="mut">${esc(SG.geoErr)}</p>`:''}
+ <div class="stack">${SG.sugg==null?'<p class="mut">Đang tìm…</p>':L.length?L.map(u=>`<div class="course-row"><span class="racer" style="--rs:40px;margin:0">${avatarHTML(u.avatar,u.user_id,40)}</span><span style="flex:1;min-width:0;text-align:left"><b>${esc(u.name)}</b><small>Level ${u.max_level}${u.dist_km!=null?' · cách ~'+u.dist_km+' km':''}</small></span><button class="chip" onclick="frAddId('${u.user_id}')">＋ Kết bạn</button></div>`).join(''):'<p class="mut">Chưa có gợi ý nào trong khóa này.</p>'}</div>`}
+async function frAddId(id){const {data,error}=await SB.rpc('friend_request_id',{target:id});if(error)return toast(error.message);toast({sent:'Đã gửi lời mời',accepted:'Đã kết bạn!',already:'Hai bạn đã là bạn bè',pending:'Lời mời đang chờ đồng ý'}[data]||'Xong');document.querySelector('.saga-modal')?.remove();SG.sugg=(SG.sugg||[]).filter(u=>u.user_id!==id);SG.racersFor=null;render()}
+function ghostSheet(id){const u=(SG.sugg||[]).find(x=>x.user_id===id);if(!u)return;document.querySelectorAll('.saga-modal').forEach(x=>x.remove());const m=document.createElement('div');m.className='saga-modal';
+ m.innerHTML=`<div class="saga-sheet sheet2" role="dialog" aria-label="Kết bạn"><div class="sheet-grab"></div><div style="text-align:center"><span class="racer" style="--rs:72px;margin:0 auto;display:grid">${avatarHTML(u.avatar,u.user_id,72)}</span><h3 style="margin-top:10px">${esc(u.name)}</h3><p class="mut">Đang ở level ${u.max_level}${u.dist_km!=null?' · cách bạn ~'+u.dist_km+' km':''}</p></div><button class="btn amber" style="width:100%;margin-top:12px" onclick="frAddId('${u.user_id}')">＋ Kết bạn để đua cùng</button><button class="btn ghost" style="width:100%;margin-top:8px" onclick="this.closest('.saga-modal').remove()">Để sau</button></div>`;
+ document.body.appendChild(m);m.onclick=e=>{if(e.target===m)m.remove()}}
+function ghostMarkers(pos){if(!USER)return '';const tid=(TR.ready&&curTrack()?.id)||'x';if(SG.suggFor!==tid){loadSugg();return ''}const maxL=Object.keys(pos).map(Number).reduce((a,b)=>Math.max(a,b),1);const used={};
+ return (SG.sugg||[]).slice(0,4).map(u=>{const l=Math.min(maxL,Math.max(1,u.max_level||1));const p=pos[l];if(!p)return '';const k=used[l]=(used[l]||0)+1;
+  return `<button class="ghost-racer" style="left:${p.x}%;top:${p.y}px;--gk:${k}" onclick="ghostSheet('${u.user_id}')" aria-label="Gợi ý kết bạn: ${esc(u.name)}">${avatarHTML(u.avatar,u.user_id,30)}<span class="gplus">＋</span></button>`}).join('')}
 function racerMarkers(pos,open){const tid=(TR.ready&&curTrack()?.id)||'x';if(SG.racersFor!==tid){SG.racers=null;loadRacers();return ''}const R=SG.racers||[];if(!R.length)return '';
  const maxL=Object.keys(pos).map(Number).reduce((a,b)=>Math.max(a,b),1);const by={};R.forEach(r=>{const l=Math.min(maxL,Math.max(1,r.max_level||1));(by[l]=by[l]||[]).push(r)});
  const N=R.length,sz=N<=6?34:N<=15?28:N<=40?22:18,show=N<=15?4:3;
