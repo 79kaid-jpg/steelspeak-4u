@@ -752,10 +752,10 @@ const score=Math.round(acc*.6+flu*.2+comp*.2);const bad=words.filter(w=>w.s!='g'
 const tip=bad.length?`Luyện lại: <b>${bad.join(', ')}</b>. Nghe chế độ chậm, nhấn đúng trọng âm rồi đọc lại.`+(bad.some(w=>/th/.test(w))?' Âm /θ/ trong “th”: đặt đầu lưỡi giữa hai hàm răng.':'')+(bad.some(w=>/(s|t|d|k)$/.test(w))?' Đừng nuốt âm cuối (s, t, d, k), lỗi hay gặp của người Việt.':''):'Rất tốt! Phát âm rõ, đủ âm cuối. +10 XP';return{score,acc,flu,comp,words,heard,tip,sim}}
 function listen(){const t=S.spMode=='sent'?S.speakItem.ex:S.speakItem.en;const b=$('#micb'),st=$('#mst');
 const simulate=()=>{const T=norm(t);const heard=T.map((w,i)=>i%3==1&&w.length>3?w.slice(0,-1):w).join(' ');S.res=grade(t,heard,.78,true);render()};
-if(!SR){b.classList.add('rec');st.textContent='Đang mô phỏng…';return setTimeout(simulate,1200)}
+if(!SR){st.textContent='Trình duyệt này không hỗ trợ chấm phát âm. Hãy mở app bằng Chrome (Android/máy tính) hoặc Safari (iPhone).';return}
 try{const r=new SR();r.lang='en-US';r.interimResults=false;r.maxAlternatives=1;b.classList.add('rec');st.textContent='Đang nghe… hãy đọc to và rõ';
 r.onresult=e=>{const a=e.results[0][0];S.res=grade(t,a.transcript,a.confidence,false);const it=S.speakItem;if(S.res.score>=70){S.xp+=10;hit(it)}else miss(it);tick();save();render()};
-r.onerror=()=>{st.textContent='Micro bị chặn ở đây, hiển thị kết quả mô phỏng.';setTimeout(simulate,700)};r.onend=()=>b.classList.remove('rec');r.start()}catch(e){simulate()}}
+r.onerror=e=>{b.classList.remove('rec');const M={'not-allowed':'Trình duyệt chưa cho dùng micro. Bấm biểu tượng 🔒 cạnh địa chỉ web → Micro → Cho phép, rồi tải lại trang.','service-not-allowed':'Trình duyệt này không hỗ trợ nhận giọng nói. Hãy dùng Chrome (Android/máy tính) hoặc Safari (iPhone).','no-speech':'Không nghe thấy tiếng. Bấm mic và đọc to, gần máy hơn.','audio-capture':'Không tìm thấy micro. Kiểm tra micro/tai nghe đã cắm chưa.','network':'Mất kết nối tới dịch vụ nhận giọng nói. Kiểm tra mạng rồi thử lại.','aborted':'Đã dừng ghi âm. Bấm mic để thử lại.'};st.innerHTML=esc(M[e.error]||('Lỗi micro: '+e.error+'. Bấm mic để thử lại.'))};r.onend=()=>b.classList.remove('rec');r.start()}catch(e){simulate()}}
 /* ---- custom lesson builder ---- */
 let D={name:'',cats:['qual'],mode:'quiz',n:8,theme:''};
 function vMake(){return `<h1>Tạo bài học riêng</h1><p class="mut">Chọn chủ đề, kiểu chơi và bối cảnh công việc thật của bạn.</p>
