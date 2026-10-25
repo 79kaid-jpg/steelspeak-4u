@@ -234,7 +234,7 @@ function gen(level,ctx){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.ch
  var own=ch.pool||TERMS.filter(function(t){return t.cat===ch.cat});
  var prev=ci>0?[].concat.apply([],CHAPTERS.slice(0,ci).map(function(c){return c.pool||TERMS.filter(function(t){return t.cat===c.cat})})):[];
  var pool=k<3?own:own.concat(pick(prev,6,r,[]));
- var boss=(k===PER_CH-1);
+ var boss=(k===PER_CH-1)||level%10===0;
  var plan=boss?['cloze','listen','rev','cloze','listen','rev','cloze','listen','order','rev','cloze','listen']:[['mean','mean','rev','mean','listen','rev','mean','listen','cloze','mean'],
            ['mean','rev','listen','cloze','mean','rev','listen','cloze','mean','rev'],
            ['rev','listen','cloze','mean','listen','cloze','rev','mean','cloze','order'],

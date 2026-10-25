@@ -376,6 +376,8 @@ button:focus-visible,label.btn:focus-within,.link:focus-visible{outline:3px soli
 @keyframes kkglint{0%,70%,100%{opacity:0;transform:scale(.4) rotate(0)}80%{opacity:1;transform:scale(1) rotate(45deg)}90%{opacity:0;transform:scale(.6) rotate(90deg)}}
 .kaka-pic.is-down img{animation:none}
 .kaka-portrait{width:96px;height:104px}.kaka-res{width:150px;height:160px}
+
+.kaka .kq{width:100%;height:100%}.kaka:has(.kq){width:118px;height:150px;top:-74px}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -871,7 +873,7 @@ function vMap(){const N=SCTX().LEVELS,open=sagaMaxOpen(),GAP=96,CHH=140,PADT=40;
  const bands=SCTX().chapters.map((c,ci)=>{const top=items.find(i=>i.ch==ci).y,h=CHH+SAGA.PER_CH*GAP;const [a,b]=CH_STYLE[ci%CH_STYLE.length];const th=themeOf(curTrack()),L2=THEME_SCN[th],city=L2&&L2[ci%L2.length].city;return `<div class="saga-band" style="top:${top}px;height:${h}px">${sceneSVG(ci,h,th)}</div><div class="saga-sign" style="top:${top+14}px"><span>${th=='travel'?'Chặng '+(ci+1)+(city?' · '+city:''):th=='space'?'Hành tinh '+(ci+1):'Khu '+(ci+1)}</span>${esc(c.name)}</div>`}).join('');
  const nodes=[];for(let lv=1;lv<=N;lv++){const p=pos[lv],b=SG.best[lv]||{},locked=lv>open,cur=lv==open,st=b.stars||0;
   const fr=friends[lv]||[];
-  const isBoss=lv%SAGA.PER_CH===0;nodes.push(`<div class="saga-node-wrap ${isBoss?'boss':''}" style="left:${p.x}%;top:${p.y}px">${isBoss?`<div class="kaka ${st?'down':''} ${p.x>50?'left':'right'}" aria-hidden="true">${kakaSVG(st?'down':'idle')}${!st?`<div class="kaka-say">${lv==open?'Đấu đi!':'Kaka chặn đường'}</div>`:''}</div>`:''}${!locked?`<div class="saga-stars">${[1,2,3].map(i=>`<i class="${i<=st?'on':''}">★</i>`).join('')}</div>`:''}
+  const isBoss=lv%SAGA.PER_CH===0||lv%10===0;const kk=lv%10===0?kakaMaleSVG:kakaSVG;nodes.push(`<div class="saga-node-wrap ${isBoss?'boss':''}" style="left:${p.x}%;top:${p.y}px">${isBoss?`<div class="kaka ${st?'down':''} ${p.x>50?'left':'right'}" aria-hidden="true">${kk(st?'down':'idle')}${!st?`<div class="kaka-say">${lv==open?'Đấu đi!':'Kaka chặn đường'}</div>`:''}</div>`:''}${!locked?`<div class="saga-stars">${[1,2,3].map(i=>`<i class="${i<=st?'on':''}">★</i>`).join('')}</div>`:''}
   ${b.od?'<span class="saga-od-badge" title="Overdrive">⚡</span>':''}<button class="saga-node ${locked?'locked':''} ${cur?'cur':''} ${st?'done':''}" ${locked?'disabled aria-label="Level '+lv+' chưa mở khoá"':`onclick="sagaIntro(${lv})" aria-label="Level ${lv}"`}>${locked?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>':lv}</button>
   
   ${fr.length?`<div class="saga-friends">${fr.slice(0,2).map(u=>`<span title="${esc(u.name)}">${avatarHTML(u.avatar,u.user_id||u.name,30)}</span>`).join('')}${fr.length>2?`<span>+${fr.length-2}</span>`:''}</div>`:''}</div>`)}
@@ -881,7 +883,7 @@ function vMap(){const N=SCTX().LEVELS,open=sagaMaxOpen(),GAP=96,CHH=140,PADT=40;
 function sagaIntro(lv){const L=SAGA.gen(lv,SCTX()),b=SG.best[lv]||{};const types={mean:'Chọn nghĩa',rev:'Chọn từ',listen:'Nghe & chọn',cloze:'Điền từ',order:'Xếp quy trình'};const cnt={};L.questions.forEach(q=>cnt[q.type]=(cnt[q.type]||0)+1);
  const m=document.createElement('div');m.className='saga-modal';m.innerHTML=`<div class="saga-sheet" role="dialog" aria-label="Level ${lv}"><div class="saga-sheet-top" style="background:linear-gradient(135deg,${CH_STYLE[L.chapter%8][0]},${CH_STYLE[L.chapter%8][1]})"><div class="lbl" style="color:#dfe9f3">Khu ${L.chapter+1} · ${esc(L.name)}</div><h1>Level ${lv}</h1><div class="saga-stars big">${[1,2,3].map(i=>`<i class="${i<=(b.stars||0)?'on':''}">★</i>`).join('')}</div></div>
  <div class="stack" style="padding:16px"><div class="chips">${Object.entries(cnt).map(([k,v])=>`<span class="chip">${types[k]} ×${v}</span>`).join('')}</div>
- ${L.boss?`<div class="kaka-intro"><div class="kaka-portrait">${kakaSVG('idle')}</div><div><div class="lbl" style="color:var(--bad)">Trận trùm</div><b>Kaka chặn đường!</b><p class="mut" style="margin:2px 0 0;font-size:.84rem">“Muốn qua cầu này, đánh bại song kiếm của ta trước đã.” ${L.questions.length} câu, khó hơn, ít thời gian hơn. Thắng được +300 điểm.</p></div></div>`:''}<table class="saga-goal"><tr><td>★</td><td>Đúng ≥ ${Math.ceil(L.s1*L.questions.length)}/${L.questions.length}</td></tr><tr><td>★★</td><td>Đúng ≥ ${Math.ceil(L.s2*L.questions.length)} và xong trong ${Math.round(L.std/1000)} giây</td></tr><tr><td>★★★</td><td>Đúng ${L.questions.length}/${L.questions.length} trong ${Math.round(L.std*0.75/1000)} giây</td></tr><tr><td>⚡</td><td>Overdrive: ${L.questions.length}/${L.questions.length} trong ${Math.round(L.std*0.5/1000)} giây, +200 điểm</td></tr></table>
+ ${L.boss?`<div class="kaka-intro"><div class="kaka-portrait">${(lv%10===0?kakaMaleSVG:kakaSVG)('idle')}</div><div><div class="lbl" style="color:var(--bad)">Trận trùm</div><b>Kaka chặn đường!</b><p class="mut" style="margin:2px 0 0;font-size:.84rem">“Muốn qua cầu này, đánh bại song kiếm của ta trước đã.” ${L.questions.length} câu, khó hơn, ít thời gian hơn. Thắng được +300 điểm.</p></div></div>`:''}<table class="saga-goal"><tr><td>★</td><td>Đúng ≥ ${Math.ceil(L.s1*L.questions.length)}/${L.questions.length}</td></tr><tr><td>★★</td><td>Đúng ≥ ${Math.ceil(L.s2*L.questions.length)} và xong trong ${Math.round(L.std/1000)} giây</td></tr><tr><td>★★★</td><td>Đúng ${L.questions.length}/${L.questions.length} trong ${Math.round(L.std*0.75/1000)} giây</td></tr><tr><td>⚡</td><td>Overdrive: ${L.questions.length}/${L.questions.length} trong ${Math.round(L.std*0.5/1000)} giây, +200 điểm</td></tr></table>
  <p class="mut" style="font-size:.84rem;margin:0">Trả lời sai bị khoá 2 giây. Mọi người chơi cùng một đề.${b.score?' Điểm cao nhất của bạn: <b>'+b.score+'</b>.':''}</p>
  <button class="btn amber" id="sgplay">Chơi</button><button class="btn ghost" id="sgclose">Để sau</button></div></div>`;
  document.body.appendChild(m);m.querySelector('#sgclose').onclick=()=>m.remove();m.onclick=e=>{if(e.target===m)m.remove()};m.querySelector('#sgplay').onclick=()=>{m.remove();sagaStart(lv)}}
@@ -911,7 +913,7 @@ async function sagaFinish(){const g=S.game;clearInterval(SG.timer);const payload
  S.xp+=r.correct*10;tick();save();SG.board=null;SG.scrolled=0;
  if(S.game&&S.game.saga){S.game.res={...r,srv,err,unlocked:sagaMaxOpen()>prevOpen?sagaMaxOpen():0};render()}}
 function vSagaRes(){const g=S.game,r=g.res,L=g.L;const nxt=Math.min(sagaMaxOpen(),SCTX().LEVELS);
- return `<div class="saga-res"><div class="lbl" style="color:#dfe9f3">Level ${L.level} · ${esc(L.name)}</div>${r.boss?`<div class="kaka-res">${kakaSVG(r.stars?'down':'idle')}</div>`:''}<h1>${r.boss?(r.stars?'Đã hạ gục Kaka!':'Kaka vẫn chặn đường'):r.stars?['','Qua màn!','Tuyệt vời!','Hoàn hảo!'][r.stars]:'Chưa qua màn'}</h1>${r.boss&&r.stars?'<div class="saga-od" style="background:#ff6b6b;color:#fff">+300 điểm thưởng trùm</div>':''}
+ return `<div class="saga-res"><div class="lbl" style="color:#dfe9f3">Level ${L.level} · ${esc(L.name)}</div>${r.boss?`<div class="kaka-res">${(r.level%10===0?kakaMaleSVG:kakaSVG)(r.stars?'down':'idle')}</div>`:''}<h1>${r.boss?(r.stars?'Đã hạ gục Kaka!':'Kaka vẫn chặn đường'):r.stars?['','Qua màn!','Tuyệt vời!','Hoàn hảo!'][r.stars]:'Chưa qua màn'}</h1>${r.boss&&r.stars?'<div class="saga-od" style="background:#ff6b6b;color:#fff">+300 điểm thưởng trùm</div>':''}
  <div class="saga-stars huge">${[1,2,3].map(i=>`<i class="${i<=r.stars?'on':''}" style="animation-delay:${i*0.25}s">★</i>`).join('')}</div>
  ${r.overdrive?'<div class="saga-od">⚡ OVERDRIVE · +200 điểm thưởng</div>':''}
  <div class="saga-res-stats"><div><b>${r.score}</b>Điểm</div><div><b>${r.correct}/${r.total}</b>Đúng</div><div><b>${fmtS(r.ms)}</b>Thời gian</div></div></div>
@@ -1162,6 +1164,62 @@ function renameTrack(id){const tr=TR.tracks.find(x=>x.id==id);const m=document.c
  m.querySelector('#rnok').onclick=async()=>{const name=inpEl.value.trim();if(!name)return;const {error}=await SB.from('tracks').update({name}).eq('id',id);if(error){m.querySelector('#rnst').textContent='Chưa lưu được: '+error.message;return}tr.name=name;m.remove();toast('Đã đổi tên khóa học');render()}}
 
 /* ===================== TRÙM KAKA (nhân vật gốc, phong cách Yakuza Nhật Bản) ===================== */
+function kakaMaleSVG(state){const down=state=='down';const u='kq'+(down?'d':'i');
+ return `<svg viewBox="0 0 200 260" class="kaka-svg kq ${down?'is-down':''}" role="img" aria-label="Kaka, kiếm sĩ trùm${down?' đã bị hạ':''}">
+<defs>
+ <linearGradient id="${u}coat" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4b5563"/><stop offset="1" stop-color="#262c36"/></linearGradient>
+ <linearGradient id="${u}pant" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1e2229"/><stop offset="1" stop-color="#0f1216"/></linearGradient>
+ <linearGradient id="${u}skin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbe1cc"/><stop offset="1" stop-color="#eec3a2"/></linearGradient>
+ <linearGradient id="${u}hair" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2b3140"/><stop offset="1" stop-color="#0b0d12"/></linearGradient>
+ <linearGradient id="${u}blade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#cdd6df"/><stop offset="1" stop-color="#8a96a3"/></linearGradient>
+ <radialGradient id="${u}eye" cx=".4" cy=".35" r=".7"><stop offset="0" stop-color="#bff6ff"/><stop offset=".45" stop-color="#2bb7e0"/><stop offset="1" stop-color="#0b5c86"/></radialGradient>
+ <linearGradient id="${u}trail" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#bff6ff" stop-opacity="0"/><stop offset=".6" stop-color="#bff6ff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<ellipse cx="100" cy="252" rx="54" ry="6" fill="rgba(0,0,0,.28)"/>
+<g class="kq-all">
+ <!-- chân: thế thủ hơi dang -->
+ <path d="M84 160L74 236H88L98 172ZM116 160L126 236H112L102 172Z" fill="url(#${u}pant)"/>
+ <path d="M70 236h20l2 10H66zM110 236h20l4 10h-26z" fill="#121212"/>
+ <path d="M80 200l8 2M118 200l-8 2" stroke="#3a404a" stroke-width="1.4"/>
+ <!-- thân áo -->
+ <path d="M70 92Q100 82 130 92L136 166Q100 174 64 166Z" fill="url(#${u}coat)"/>
+ <path d="M100 90V168" stroke="#1a1f26" stroke-width="2"/>
+ ${[104,118,132,146].map(y=>`<circle cx="94" cy="${y}" r="2.2" fill="#c9d1d9"/><circle cx="106" cy="${y}" r="2.2" fill="#c9d1d9"/>`).join('')}
+ <path d="M70 92Q100 82 130 92" stroke="#c9d1d9" stroke-width="2" fill="none"/>
+ <path d="M64 166Q100 174 136 166" stroke="#c9d1d9" stroke-width="2" fill="none"/>
+ <!-- đai hổ phách + bao kiếm -->
+ <path d="M66 148Q100 156 134 148L135 158Q100 166 65 158Z" fill="#e39b1a"/><path d="M118 156l10 16M124 154l12 14" stroke="#e39b1a" stroke-width="3" stroke-linecap="round"/>
+ <g class="kq-saya"><path d="M60 162L150 138" stroke="#14171c" stroke-width="7" stroke-linecap="round"/><path d="M60 162L150 138" stroke="#3a414c" stroke-width="1.5" transform="translate(0 -2)"/><path d="M112 148l10-3" stroke="#e39b1a" stroke-width="7"/></g>
+ <!-- cổ áo đứng -->
+ <path d="M84 84L92 98L100 90L108 98L116 84L112 78H88Z" fill="#323946" stroke="#c9d1d9" stroke-width="1.6"/>
+ <!-- tay trái giữ bao kiếm -->
+ <g class="kq-armL"><path d="M72 96Q58 112 62 140" stroke="url(#${u}coat)" stroke-width="14" stroke-linecap="round" fill="none"/><path d="M62 138q-2 10 6 12q8 0 8-8z" fill="url(#${u}skin)"/><path d="M60 128h12" stroke="#c9d1d9" stroke-width="2"/></g>
+ <!-- đầu -->
+ <g class="kq-head">
+  <path d="M92 70h16v14q-8 5-16 0z" fill="url(#${u}skin)"/>
+  <path d="M76 52q0-26 24-26t24 26q0 18-12 26q-6 4-12 4t-12-4q-12-8-12-26z" fill="url(#${u}skin)"/>
+  ${down?`<path d="M84 54l8 4M92 54l-8 4M108 54l8 4M116 54l-8 4" stroke="#1b2a3a" stroke-width="2.4" stroke-linecap="round"/><path d="M94 70q6-3 12 0" stroke="#a5534a" stroke-width="1.8" fill="none"/>`
+   :`<g class="kq-eyes"><path d="M82 52q6-3 12 0" stroke="#1b1b1b" stroke-width="2.4" stroke-linecap="round" fill="none"/><path d="M106 52q6-3 12 0" stroke="#1b1b1b" stroke-width="2.4" stroke-linecap="round" fill="none"/><ellipse cx="88" cy="58" rx="4.2" ry="5.4" fill="url(#${u}eye)"/><ellipse cx="112" cy="58" rx="4.2" ry="5.4" fill="url(#${u}eye)"/><circle cx="86.8" cy="56.2" r="1.5" fill="#fff"/><circle cx="110.8" cy="56.2" r="1.5" fill="#fff"/></g>
+   <path d="M80 46l14 3M120 46l-14 3" stroke="#1b1b1b" stroke-width="2" stroke-linecap="round"/><path d="M96 71q4 1.5 8 0" stroke="#a5534a" stroke-width="1.6" fill="none" stroke-linecap="round"/>`}
+  <path d="M74 50q-2-30 26-30t26 30q-4-10-10-14l-2 12-6-14-4 12-6-14-6 14-4-10q-6 6-8 14l-4-8q-2 4-2 8z" fill="url(#${u}hair)"/>
+  <path class="kq-bang" d="M94 34l-8 22 10-14 2 16 6-18" fill="url(#${u}hair)"/>
+  <path d="M86 26q14-8 28 0" stroke="#4a5568" stroke-width="1.6" fill="none" opacity=".7"/>
+ </g>
+ <!-- tay phải + kiếm (vung) -->
+ <g class="kq-armR">
+  <path d="M128 96Q142 110 140 132" stroke="url(#${u}coat)" stroke-width="14" stroke-linecap="round" fill="none"/>
+  <path d="M138 130h12" stroke="#c9d1d9" stroke-width="2" transform="translate(-6 0)"/>
+  <g class="kq-sword">
+   <path class="kq-trail" d="M150 136C150 60 60 30 10 70" stroke="url(#${u}trail)" stroke-width="10" fill="none" stroke-linecap="round"/>
+   <path d="M141 138L148 120" stroke="#14171c" stroke-width="6" stroke-linecap="round"/>${[0,1].map(k=>`<path d="M${143+k*2.4} ${133-k*6}l2.2-1.4 1 2.4-2.2 1.4z" fill="#e39b1a"/>`).join('')}
+   <ellipse cx="149" cy="118" rx="7" ry="2.6" transform="rotate(-20 149 118)" fill="#c9a24a"/>
+   <path d="M150 116L176 34" stroke="url(#${u}blade)" stroke-width="4.2" stroke-linecap="round"/><path class="kq-glint" d="M166 66l5-14" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+   <path d="M136 132q4 10 12 8q6-4 2-12z" fill="url(#${u}skin)"/>
+  </g>
+ </g>
+</g>
+${down?'<text x="100" y="14" text-anchor="middle" font-size="20" font-weight="700" fill="#2fb36a">✓</text>':''}
+</svg>`}
 function kakaSVG(state){const down=state=='down';return `<span class="kaka-pic ${down?'is-down':''}" role="img" aria-label="Kaka, trùm kiếm sĩ${down?' đã bị hạ':''}"><img src="assets/kaka.png" alt="" draggable="false"><i class="kaka-glint"></i>${down?'<b class="kaka-ok">✓</b>':''}</span>`}
 
 render();boot();
