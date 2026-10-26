@@ -465,6 +465,7 @@ body.in-game #nav{display:none}
 .ie-crit{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.ie-crit div{padding:8px 4px;border-radius:12px;background:var(--soft);text-align:center}.ie-crit small{display:block;font-size:.7rem;color:var(--mut)}.ie-crit b{font:700 1.2rem var(--fd)}
 .band-big{font:700 2.6rem/1 var(--fd);color:var(--warn)}.ie-band ul{margin:4px 0 0;padding-left:20px}.corr{display:flex;flex-wrap:wrap;gap:4px;align-items:baseline}.corr small{flex-basis:100%}
 .spin{width:32px;height:32px;margin:6px auto;border-radius:50%;border:3px solid var(--line);border-top-color:var(--steel);animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.opt.picked{border-color:var(--steel);background:color-mix(in srgb,var(--steel) 12%,var(--card));box-shadow:inset 0 0 0 1px var(--steel)}.opt.no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--card))}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -988,7 +989,7 @@ function ieHomeCard(){return ieltsHomeCard()}
 function ieltsHomeCard(){const o=ieOverall();return `<div class="sec-h"><h2>Luyện 4 kỹ năng IELTS</h2>${o!=null?`<span class="band-pill">Band ~${o}</span>`:''}</div><div class="tiles ie-tiles">${SK.map(([k,n,ic])=>{const a=ieAvg(k);return `<button class="tile2" onclick="ieOpen('${k}')"><span class="tile2-ic">${ic}</span><b style="font-size:1.15rem">${n}</b><span>${a!=null?'Band gần đây ~'+a:'Chưa làm bài'}</span></button>`}).join('')}</div>`}
 function ieOpen(k){IE={...IE,skill:k,data:null,ans:{},done:false,res:null};S.tab='ielts';S.game=null;render();scrollTo(0,0);if(k=='reading'||k=='listening')ieGen()}
 async function ieGen(extra={}){IE.busy=true;IE.data=null;IE.ans={};IE.done=false;IE.res=null;render();
- try{const sk=IE.skill=='writing'?'wprompt':IE.skill=='speaking'?'sprompt':IE.skill;const r=await ai('ielts',{skill:sk,topic:ieTopic(),wtask:IE.wtask,part:IE.part,...extra});if(r.error)throw new Error(r.error);IE.data=r}
+ try{const sk=IE.skill=='writing'?'wprompt':IE.skill=='speaking'?'sprompt':IE.skill;const r=await ai('ielts',{skill:sk,topic:ieTopic(),wtask:IE.wtask,part:IE.part,...extra});if(r.error)throw new Error(r.error);(r.questions||[]).forEach(q=>{if(q.type=='mcq'||(!q.type&&q.options)){q.type='mcq';if(typeof q.answer!='number'){const n=parseInt(q.answer,10);const byText=(q.options||[]).findIndex(o=>normA(o)==normA(q.answer));const byLetter='ABCD'.indexOf(String(q.answer).trim().toUpperCase());q.answer=byText>=0?byText:byLetter>=0&&String(q.answer).trim().length==1?byLetter:!isNaN(n)&&n<(q.options||[]).length?n:0}}else if(q.type=='tfng')q.answer=String(q.answer).toUpperCase().replace('NOTGIVEN','NOT GIVEN')});IE.data=r}
  catch(e){IE.data={error:e.code=='login'?'Cần đăng nhập để dùng phần luyện IELTS':'AI chưa tạo được bài: '+(e.message||e)}}IE.busy=false;render()}
 function ieSave(band,extra){S.ielts=S.ielts||[];S.ielts.push({skill:IE.skill,band,at:Date.now(),...extra});S.xp+=Math.round(band*10);tick();save()}
 const rawBand=(c,n)=>{const p=c/n;return p>=.95?8.5:p>=.88?8:p>=.8?7.5:p>=.72?7:p>=.62?6.5:p>=.52?6:p>=.42?5.5:p>=.32?5:p>=.22?4.5:4};
