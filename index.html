@@ -457,6 +457,14 @@ body.in-game #nav{display:none}
 .up-tile{display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 6px;border-radius:16px;border:1.5px dashed var(--line);background:var(--card);cursor:pointer;text-align:center;min-height:96px;justify-content:center}
 .up-tile:active{transform:scale(.98)}.up-ic{font-size:1.5rem}.up-tile small{color:var(--mut);font-size:.72rem}
 .thumbs{display:flex;gap:8px;overflow-x:auto;margin-bottom:8px}.thumbs img{height:72px;border-radius:10px;border:1px solid var(--line)}
+
+.ie-tiles .tile2{min-height:118px}.band-pill{font:700 .8rem var(--fd);padding:4px 10px;border-radius:99px;background:color-mix(in srgb,var(--amber) 25%,var(--card));color:var(--warn)}
+.ie-passage h3{margin:0 0 8px}.ie-passage p{line-height:1.65;margin:0 0 10px}
+.ie-q.good{border-color:var(--good)}.ie-q.bad{border-color:var(--bad)}.chip.ok{background:var(--good);color:#fff;border-color:var(--good)}.ok-ans{color:var(--good)}
+.ie-res{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;margin:8px 0}.ie-res>div{padding:10px;border-radius:14px;background:var(--card);border:1px solid var(--line);text-align:center}.ie-res small{display:block;color:var(--mut);font-size:.72rem;text-transform:uppercase}.ie-res b{font:700 1.4rem var(--fd)}.ie-res .xp{color:var(--warn)}
+.ie-crit{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.ie-crit div{padding:8px 4px;border-radius:12px;background:var(--soft);text-align:center}.ie-crit small{display:block;font-size:.7rem;color:var(--mut)}.ie-crit b{font:700 1.2rem var(--fd)}
+.band-big{font:700 2.6rem/1 var(--fd);color:var(--warn)}.ie-band ul{margin:4px 0 0;padding-left:20px}.corr{display:flex;flex-wrap:wrap;gap:4px;align-items:baseline}.corr small{flex-basis:100%}
+.spin{width:32px;height:32px;margin:6px auto;border-radius:50%;border:3px solid var(--line);border-top-color:var(--steel);animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -681,7 +689,7 @@ const svg=(k)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 const $=s=>document.querySelector(s);const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let S={tab:'home',xp:0,streak:0,last:'',done:{},wrong:{},lessons:[],cat:'all',q:'',game:null,sync:'local'};
 const EXL={id:'ex1',name:'Khiếu nại gỉ trắng – họp với khách',cats:['coat','qual'],mode:'quiz',n:8,ex:true};
-const TK_KEYS=['done','wrong','lessons','srs','fc'];const tkEmpty=k=>k=='lessons'?[]:{};
+const TK_KEYS=['done','wrong','lessons','srs','fc','ielts'];const tkEmpty=k=>k=='lessons'||k=='ielts'?[]:{};
 function load(v){if(!v)return;['xp','streak','last','tdate','txp','goal'].forEach(k=>{if(v[k]!=null)S[k]=v[k]});
  S.tk=v.tk||{steel:Object.fromEntries(TK_KEYS.map(k=>[k,v[k]||tkEmpty(k)]))};S.tkCur=null;tkBind()}
 function tkSlug(){try{return (TR.ready&&curTrack()?.slug)||'steel'}catch(e){return 'steel'}}
@@ -735,7 +743,7 @@ const slow=(t)=>`<button class="ic" aria-label="Nghe chậm" onclick="event.stop
 const TABS=[['home','Học','home'],['vocab','Từ vựng','book'],['saga','Đua level','trophy'],['make','Tạo bài','plus'],['me','Tài khoản','user']];
 function go(t){S.tab=t;S.game=null;render();scrollTo(0,0)}
 function render(){document.body.classList.toggle('in-game',!!(S.game&&!S.game.saga));$('#nav').innerHTML=TABS.map(([k,n,i])=>`<button class="${S.tab==k?'on':''}" onclick="go('${k}')">${svg(i)}${n}</button>`).join('');
-const GATED=['vocab','speak','make','saga','contrib'];$('#app').innerHTML=S.game?vGame():(GATED.includes(S.tab)&&!canLearn()?trackBar()+vGate():({home:vHome,vocab:vVocab,speak:vSpeak,make:vMake,spec:vSpec,me:vMe,admin:vAdmin,saga:vSaga,tracks:vTracks,contrib:vContrib})[S.tab]())}
+const GATED=['vocab','speak','make','saga','contrib'];$('#app').innerHTML=S.game?vGame():(GATED.includes(S.tab)&&!canLearn()?trackBar()+vGate():({home:vHome,vocab:vVocab,speak:vSpeak,make:vMake,spec:vSpec,me:vMe,admin:vAdmin,saga:vSaga,tracks:vTracks,contrib:vContrib,ielts:vIelts})[S.tab]())}
 /* ---- home ---- */
 const PATH_STEEL=[['coat','Cấu trúc thép phủ màu'],['qual','Thử nghiệm & khiếu nại'],['nspe','Quy trình NSPE'],['colr','Pha màu & chạy thử'],['npd','Phát triển sản phẩm mới'],['talk','Họp & email với CFT']];
 function pathList(){const tr=curTrack();if(!tr||tr.slug=='steel')return PATH_STEEL;const used=new Set(TERMS.map(x=>x.cat));return Object.entries(tr.cats||{}).filter(([k])=>used.has(k)).map(([k,v])=>[k,v])}
@@ -752,6 +760,7 @@ function vHomeMain(){const PATH=pathState(),nowP=PATH.find(p=>p[2]=='now'),W=wro
   <div class="hero2-meta"><span>Cấp ${lv}</span><span>${TERMS.length} ${unit}</span></div></div>
   <button class="ring" onclick="setGoal()" aria-label="Mục tiêu ngày ${txp}/${goal} XP, chạm để đổi"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="${R}" class="ring-bg"/><circle cx="40" cy="40" r="${R}" class="ring-fg" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-pct)}"/></svg><span><b>${txp}</b><small>/${goal} XP</small></span></button></section>
  ${nowP?`<button class="btn amber cta-big" onclick="start({path:'${nowP[0]}',cats:['${nowP[0]}'],mode:'quiz',n:8,name:'${esc(nowP[1])}'})"><span class="cta-ic">▶</span><span><small>Học tiếp</small>${esc(nowP[1])}</span></button>`:'<div class="card"><b>Bạn đã hoàn thành cả lộ trình!</b></div>'}
+ ${isIelts()?ieltsHomeCard():''}
  <div class="sec-h"><h2>Ôn tập</h2></div>
  <div class="tiles">
   <button class="tile2 ${W.length?'warn':''}" onclick="${W.length?'reviewWrong()':"toast('Chưa có từ sai')"}"><span class="tile2-ic">✕</span><b>${W.length}</b><span>Từ sai cần ôn</span></button>
@@ -960,6 +969,81 @@ function qbFromReport(id){const r=QB.reports.find(x=>x.id===id);const q=r.questi
 async function qbAI(){const text=$('#qbtext').value.trim();if(text.length<80)return toast('Tài liệu quá ngắn');QB.busy=true;render();
  try{const tr=curTrack();const r=await ai('qbank',{text,n:+$('#qbn').value,course:tr.name});if(r.error)throw new Error(r.error);QB.drafts=QB.drafts.concat((r.questions||[]).filter(q=>q&&q.prompt&&Array.isArray(q.options)).map(q=>({type:q.type=='order'?'order':'mcq',prompt:q.prompt,options:q.options,answer:q.answer|0,explanation:q.explanation||'',status:'live',level_min:1,source:'ai'})))}
  catch(e){toast(e.code=='login'?'Cần đăng nhập':'AI lỗi: '+(e.message||e))}QB.busy=false;render()}
+
+// ===================== IELTS 4 kỹ năng =====================
+const isIelts=()=>/ielts/i.test(curTrack()?.slug||curTrack()?.name||'');
+const SK=[['listening','Listening','🎧','Nghe hội thoại, điền từ & trắc nghiệm'],['reading','Reading','📖','Bài đọc học thuật, T/F/NG & trắc nghiệm'],['writing','Writing','✍️','Task 1 & 2, AI chấm band theo 4 tiêu chí'],['speaking','Speaking','🎙️','Part 1–3, ghi âm, AI chấm band']];
+let IE={skill:null,data:null,busy:false,ans:{},done:false,res:null,wtask:2,part:1,topic:''};
+function ieTopic(){const c=Object.values(curTrack()?.cats||{});return IE.topic||c[Math.floor(Math.random()*Math.max(1,c.length))]||'Education'}
+function ieAvg(sk){const L=(S.ielts||[]).filter(x=>x.skill==sk).slice(-5);return L.length?Math.round(L.reduce((a,x)=>a+x.band,0)/L.length*2)/2:null}
+function ieOverall(){const b=SK.map(s=>ieAvg(s[0])).filter(x=>x!=null);return b.length==4?Math.round(b.reduce((a,x)=>a+x,0)/4*2)/2:null}
+function ieHomeCard(){return ieltsHomeCard()}
+function ieltsHomeCard(){const o=ieOverall();return `<div class="sec-h"><h2>Luyện 4 kỹ năng IELTS</h2>${o!=null?`<span class="band-pill">Band ~${o}</span>`:''}</div><div class="tiles ie-tiles">${SK.map(([k,n,ic])=>{const a=ieAvg(k);return `<button class="tile2" onclick="ieOpen('${k}')"><span class="tile2-ic">${ic}</span><b style="font-size:1.15rem">${n}</b><span>${a!=null?'Band gần đây ~'+a:'Chưa làm bài'}</span></button>`}).join('')}</div>`}
+function ieOpen(k){IE={...IE,skill:k,data:null,ans:{},done:false,res:null};S.tab='ielts';S.game=null;render();scrollTo(0,0);if(k=='reading'||k=='listening')ieGen()}
+async function ieGen(extra={}){IE.busy=true;IE.data=null;IE.ans={};IE.done=false;IE.res=null;render();
+ try{const sk=IE.skill=='writing'?'wprompt':IE.skill=='speaking'?'sprompt':IE.skill;const r=await ai('ielts',{skill:sk,topic:ieTopic(),wtask:IE.wtask,part:IE.part,...extra});if(r.error)throw new Error(r.error);IE.data=r}
+ catch(e){IE.data={error:e.code=='login'?'Cần đăng nhập để dùng phần luyện IELTS':'AI chưa tạo được bài: '+(e.message||e)}}IE.busy=false;render()}
+function ieSave(band,extra){S.ielts=S.ielts||[];S.ielts.push({skill:IE.skill,band,at:Date.now(),...extra});S.xp+=Math.round(band*10);tick();save()}
+const rawBand=(c,n)=>{const p=c/n;return p>=.95?8.5:p>=.88?8:p>=.8?7.5:p>=.72?7:p>=.62?6.5:p>=.52?6:p>=.42?5.5:p>=.32?5:p>=.22?4.5:4};
+function vIelts(){if(!isIelts())return trackBar()+`<div class="card" style="margin-top:12px">Phần này dành cho khóa IELTS. Đổi khóa ở nút phía trên.</div>`;
+ const sk=SK.find(s=>s[0]==IE.skill);const head=`<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><button class="back" onclick="go('home')">‹ Về trang chính</button><span class="lbl">${sk?sk[2]+' '+sk[1]:''}</span></div>
+ <div class="hscroll" style="margin:8px 0 4px">${SK.map(([k,n,ic])=>`<button class="chip ${IE.skill==k?'on':''}" onclick="ieOpen('${k}')">${ic} ${n}</button>`).join('')}</div>`;
+ if(!sk)return head+ieltsHomeCard();
+ if(IE.busy)return head+`<div class="card" style="margin-top:12px;text-align:center"><div class="spin"></div><p class="mut">AI đang soạn bài ${sk[1]}…</p></div><div class="skel-list"><i></i><i></i><i></i></div>`;
+ const D=IE.data;if(D&&D.error)return head+`<p class="note" style="margin-top:12px">${esc(D.error)}</p><button class="btn" onclick="ieGen()">Thử lại</button>`;
+ return head+({reading:ieReading,listening:ieListening,writing:ieWriting,speaking:ieSpeaking}[IE.skill])(D)}
+function ieTopicBar(){return `<div class="row" style="flex-wrap:nowrap;margin:8px 0"><input type="text" id="ietopic" placeholder="Chủ đề (để trống = ngẫu nhiên)" value="${esc(IE.topic)}" oninput="IE.topic=this.value" style="flex:1"><button class="btn ghost" onclick="ieGen()">↻ Bài mới</button></div>`}
+function ieQuestions(Q){return Q.map((q,i)=>{const a=IE.ans[i],done=IE.done;const ok=done&&ieCorrect(q,a);
+ let body='';if(q.type=='tfng')body=`<div class="row" style="gap:6px">${['TRUE','FALSE','NOT GIVEN'].map(v=>`<button class="chip ${a==v?'on':''} ${done&&q.answer==v?'ok':''}" ${done?'disabled':''} onclick="IE.ans[${i}]='${v}';render()">${v}</button>`).join('')}</div>`;
+ else if(q.type=='gap')body=`<input type="text" value="${esc(a||'')}" ${done?'disabled':''} oninput="IE.ans[${i}]=this.value" placeholder="Điền 1–3 từ">${done&&!ok?`<small class="ok-ans">Đáp án: <b>${esc(q.answer)}</b></small>`:''}`;
+ else body=`<div class="stack" style="gap:6px">${(q.options||[]).map((o,k)=>`<button class="opt ${a===k?'picked':''} ${done?(k===q.answer?'ok':a===k?'no':''):''}" ${done?'disabled':''} onclick="IE.ans[${i}]=${k};render()">${esc(o)}</button>`).join('')}</div>`;
+ return `<div class="card stack ie-q ${done?(ok?'good':'bad'):''}" style="gap:8px"><b>${i+1}. ${esc(q.q)}</b>${body}${done&&q.explain?`<small class="mut">💡 ${esc(q.explain)}</small>`:''}</div>`}).join('')}
+const normA=s=>String(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
+function ieCorrect(q,a){if(q.type=='gap')return normA(a)===normA(q.answer)||(normA(q.answer).split(' ').length>1&&normA(a)&&normA(q.answer).includes(normA(a))&&normA(a).length>=normA(q.answer).length*.7);return a===q.answer}
+function ieSubmit(){const Q=IE.data.questions||[];if(Object.keys(IE.ans).length<Q.length&&!confirm('Còn câu chưa làm. Nộp bài luôn?'))return;const c=Q.filter((q,i)=>ieCorrect(q,IE.ans[i])).length;const band=rawBand(c,Q.length);IE.done=true;IE.res={c,n:Q.length,band};ieSave(band,{c,n:Q.length});render();scrollTo({top:0,behavior:'smooth'})}
+function ieResult(){const r=IE.res;return r?`<div class="ie-res"><div><small>Đúng</small><b>${r.c}/${r.n}</b></div><div><small>Band ước tính</small><b class="xp">${r.band}</b></div><button class="btn amber" onclick="ieGen()">Bài mới</button></div>`:''}
+function ieReading(D){if(!D)return ieTopicBar();return ieTopicBar()+ieResult()+`<div class="card ie-passage"><h3>${esc(D.title||'')}</h3>${String(D.passage||'').split(/\n\n+/).map(p=>`<p>${esc(p)}</p>`).join('')}</div>
+ ${(D.vocab||[]).length?`<details class="set"><summary>Từ vựng trong bài (${D.vocab.length})<span class="chev">›</span></summary><div class="stack">${D.vocab.map(v=>`<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span><b>${esc(v.en)}</b> · <span class="mut">${esc(v.vi)}</span></span>${spk(v.en)}</div>`).join('')}</div></details>`:''}
+ <div class="sec-h"><h2>Câu hỏi</h2></div><div class="stack">${ieQuestions(D.questions||[])}</div>${IE.done?'':`<button class="btn amber" style="width:100%;margin-top:12px" onclick="ieSubmit()">Nộp bài</button>`}`}
+// Listening: đọc script bằng giọng Mỹ, 2 người nói khác cao độ
+let IEPLAY={on:false,i:0};
+function iePlay(){const D=IE.data;if(!D?.script)return;if(IEPLAY.on){IEPLAY.on=false;speechSynthesis.cancel();render();return}IEPLAY={on:true,i:0};render();const sp=D.speakers||[];
+ const next=()=>{if(!IEPLAY.on)return;const l=D.script[IEPLAY.i];if(!l){IEPLAY.on=false;IE.played=(IE.played||0)+1;render();return}const u=new SpeechSynthesisUtterance(l.text);u.lang='en-US';const vs=speechSynthesis.getVoices().filter(v=>/en[-_](US|GB)/i.test(v.lang));const idx=Math.max(0,sp.indexOf(l.who));if(vs.length)u.voice=vs[idx%vs.length===0?0:Math.min(vs.length-1,1+((idx-1)%Math.max(1,vs.length-1)))]||vs[0];u.pitch=idx%2?0.8:1.1;u.rate=.95;window._utt=u;u.onend=()=>{IEPLAY.i++;setTimeout(next,250)};u.onerror=u.onend;speechSynthesis.speak(u);const el=$('#ieline');if(el)el.textContent=(IEPLAY.i+1)+'/'+D.script.length};
+ speechSynthesis.cancel();next()}
+function ieListening(D){if(!D)return ieTopicBar();return ieTopicBar()+ieResult()+`<div class="card stack" style="align-items:center;text-align:center"><h3 style="margin:0">${esc(D.title||'Listening')}</h3><button class="mic" style="background:var(--steel)" onclick="iePlay()" aria-label="${IEPLAY.on?'Dừng':'Nghe'}">${IEPLAY.on?'■':svg('spk')}</button><small class="mut">${IEPLAY.on?'Đang phát <span id="ieline"></span>':IE.played?'Đã nghe '+IE.played+' lần · thi thật chỉ được nghe 1 lần':'Đọc trước câu hỏi rồi bấm nghe'}</small></div>
+ <div class="sec-h"><h2>Câu hỏi</h2></div><div class="stack">${ieQuestions(D.questions||[])}</div>${IE.done?`<details class="set" open><summary>Lời thoại (transcript)<span class="chev">›</span></summary><div class="stack">${(D.script||[]).map(l=>`<p style="margin:0"><b>${esc(l.who)}:</b> ${esc(l.text)}</p>`).join('')}</div></details>`:`<button class="btn amber" style="width:100%;margin-top:12px" onclick="IEPLAY.on=false;speechSynthesis.cancel();ieSubmit()">Nộp bài</button>`}`}
+function ieWriting(D){const tabs=`<div class="saga-tabs" style="margin:8px 0">${[1,2].map(n=>`<button class="${IE.wtask==n?'on':''}" onclick="IE.wtask=${n};IE.data=null;IE.res=null;render()">Task ${n}</button>`).join('')}</div>`;
+ if(!D)return tabs+ieTopicBar().replace('↻ Bài mới','✨ Tạo đề');
+ const essay=IE.essay||'';const wc=essay.trim()?essay.trim().split(/\s+/).length:0;const R=IE.res;
+ return tabs+ieTopicBar()+`<div class="card ie-passage"><div class="lbl">Đề bài · Task ${IE.wtask}</div><p style="white-space:pre-wrap">${esc(D.prompt||'')}</p>${(D.tips_vi||[]).length?`<small class="mut">💡 ${D.tips_vi.map(esc).join(' · ')}</small>`:''}</div>
+ ${R?ieWResult(R):`<textarea id="essay" rows="12" placeholder="Viết bài của bạn bằng tiếng Anh…" oninput="IE.essay=this.value;$('#wc').textContent=this.value.trim()?this.value.trim().split(/\\s+/).length:0" style="width:100%;margin-top:10px">${esc(essay)}</textarea>
+ <div class="row" style="justify-content:space-between"><small class="mut"><span id="wc">${wc}</span>/${D.min_words||(IE.wtask==1?150:250)} từ</small><button class="btn amber" ${IE.grading?'disabled':''} onclick="ieWGrade()">${IE.grading?'AI đang chấm…':'Nộp & chấm band'}</button></div>`}`}
+async function ieWGrade(){const e=(IE.essay||'').trim();if(e.split(/\s+/).length<40)return toast('Viết ít nhất 40 từ để AI chấm');IE.grading=true;render();
+ try{const r=await ai('ielts',{skill:'wgrade',wtask:IE.wtask,prompt:IE.data.prompt,essay:e});if(r.error)throw new Error(r.error);IE.res=r;ieSave(+r.overall||0,{task:IE.wtask})}catch(x){toast('Chưa chấm được: '+(x.message||x))}IE.grading=false;render()}
+function crit(c){return `<div class="ie-crit">${Object.entries(c||{}).map(([k,v])=>`<div><small>${k}</small><b>${v}</b></div>`).join('')}</div>`}
+function ieWResult(R){return `<div class="card stack ie-band"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div><div class="lbl">Band tổng</div><b class="band-big">${R.overall}</b></div><button class="btn ghost" onclick="IE.res=null;render()">Sửa & chấm lại</button></div>${crit(R.criteria)}
+ ${(R.strengths_vi||[]).length?`<div><b>Điểm mạnh</b><ul>${R.strengths_vi.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}${(R.improve_vi||[]).length?`<div><b>Cần cải thiện để lên band 7</b><ul>${R.improve_vi.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
+ ${(R.corrections||[]).length?`<div><b>Sửa lỗi</b><div class="stack" style="gap:6px;margin-top:6px">${R.corrections.map(c=>`<div class="corr"><s>${esc(c.orig)}</s> → <b>${esc(c.fix)}</b><small class="mut">${esc(c.why_vi||'')}</small></div>`).join('')}</div></div>`:''}
+ ${R.model?`<details class="set"><summary>Bài mẫu band 7.5<span class="chev">›</span></summary><div class="stack"><p style="white-space:pre-wrap;margin:0">${esc(R.model)}</p></div></details>`:''}<p class="mut" style="font-size:.78rem;margin:0">Điểm do AI ước tính để luyện tập, không thay thế giám khảo thật.</p></div>`}
+// Speaking
+let IEREC=null;
+function ieSpeaking(D){const tabs=`<div class="saga-tabs" style="margin:8px 0">${[1,2,3].map(n=>`<button class="${IE.part==n?'on':''}" onclick="IE.part=${n};IE.data=null;IE.res=null;render()">Part ${n}</button>`).join('')}</div>`;
+ if(!D)return tabs+ieTopicBar().replace('↻ Bài mới','✨ Tạo câu hỏi');
+ const qi=IE.qi||0,qs=D.questions||[],q=D.cue?`${D.cue.title}\nYou should say:\n${(D.cue.bullets||[]).map(b=>'• '+b).join('\n')}`:qs[qi]||'';const R=IE.res;IE.curQ=q;
+ return tabs+ieTopicBar()+`<div class="card ie-passage"><div class="lbl">Part ${IE.part}${D.cue?' · Cue card · chuẩn bị 1 phút, nói 1–2 phút':' · Câu '+(qi+1)+'/'+qs.length}</div><p style="white-space:pre-wrap;font-size:1.08rem;font-weight:600">${esc(q)}</p><div class="row">${spk(D.cue?D.cue.title:q)}${!D.cue&&qs.length>1?`<button class="chip" onclick="IE.qi=((IE.qi||0)+1)%${qs.length};IE.res=null;render()">Câu tiếp ›</button>`:''}</div>${(D.tips_vi||[]).length?`<small class="mut">💡 ${D.tips_vi.map(esc).join(' · ')}</small>`:''}</div>
+ ${R?ieSResult(R):`<button class="mic ${IEREC?'rec':''}" id="iemic" onclick="ieRec()">${IEREC?'■':svg('mic')}</button><p class="mut" id="iest" style="text-align:center">${IEREC?'Đang ghi âm… chạm lần nữa để dừng & chấm':IE.grading?'AI đang nghe & chấm…':'Chạm để bắt đầu trả lời'}</p>`}`}
+async function ieRec(){const q=IE.curQ||'';if(IEREC){IEREC.stop();return}if(!USER)return toast('Cần đăng nhập để AI chấm');let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){return toast('Chưa được dùng micro. Vào Cài đặt → Safari → Micrô → Cho phép')}
+ const mt=['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(x=>window.MediaRecorder&&MediaRecorder.isTypeSupported(x))||'';const mr=new MediaRecorder(stream,mt?{mimeType:mt}:{});const parts=[];IEREC=mr;const t0=Date.now();render();
+ const lim=setTimeout(()=>mr.state!='inactive'&&mr.stop(),IE.part==2?135000:75000);mr.ondataavailable=e=>e.data.size&&parts.push(e.data);
+ mr.onstop=async()=>{clearTimeout(lim);IEREC=null;stream.getTracks().forEach(x=>x.stop());const secs=Math.round((Date.now()-t0)/1000);const blob=new Blob(parts,{type:mr.mimeType||mt||'audio/mp4'});if(secs<4){toast('Nói dài hơn chút nhé');render();return}
+  IE.grading=true;render();try{const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]);fr.onerror=no;fr.readAsDataURL(blob)});
+   const r=await ai('ielts_speak',{audio:b64,mime:(blob.type||'audio/mp4').split(';')[0],question:q,part:IE.part});if(r.error)throw new Error(r.error);r.secs=secs;IE.res=r;ieSave(+r.overall||0,{part:IE.part})}
+  catch(e){toast('Chưa chấm được: '+(e.message||e))}IE.grading=false;render()};mr.start()}
+function ieSResult(R){return `<div class="card stack ie-band"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div><div class="lbl">Band ước tính</div><b class="band-big">${R.overall}</b></div><button class="btn ghost" onclick="IE.res=null;render()">Nói lại</button></div>${crit(R.criteria)}
+ <div><b>Bạn đã nói</b> <small class="mut">(${R.secs||'?'} giây)</small><p class="mut" style="margin:4px 0 0">“${esc(R.transcript||'')}”</p></div>
+ ${(R.strengths_vi||[]).length?`<div><b>Điểm mạnh</b><ul>${R.strengths_vi.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}${(R.improve_vi||[]).length?`<div><b>Cần cải thiện</b><ul>${R.improve_vi.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
+ ${(R.upgrade||[]).length?`<div><b>Từ vựng nâng band</b><div class="stack" style="gap:4px;margin-top:4px">${R.upgrade.map(u=>`<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span><b>${esc(u.en)}</b> · <span class="mut">${esc(u.vi)}</span></span>${spk(u.en)}</div>`).join('')}</div></div>`:''}
+ ${R.sample?`<details class="set"><summary>Câu trả lời mẫu band 7.5<span class="chev">›</span></summary><div class="stack"><p style="margin:0">${esc(R.sample)}</p>${spk(R.sample)}</div></details>`:''}<p class="mut" style="font-size:.78rem;margin:0">Phát âm (P) chỉ là ước tính từ máy nhận giọng nói.</p></div>`}
 function vAdmin(){if(!PROF?.is_admin)return `<h1>Quản trị</h1><p class="mut">Chỉ admin mới vào được trang này.</p>`;return vAIAdmin()+vBankAdmin()+vEnrAdmin()+vSugAdmin()+vTrackAdmin()+vAdminUsers()}
 function vAdminUsers(){if(!ADM.list){admLoad();return `<h1>Quản trị người dùng</h1><p class="mut">Đang tải danh sách…</p>`}
 const L=ADM.list.filter(u=>!ADM.q||(u.email+' '+(u.full_name||'')+' '+(u.department||'')).toLowerCase().includes(ADM.q.toLowerCase()));const e=ADM.edit;

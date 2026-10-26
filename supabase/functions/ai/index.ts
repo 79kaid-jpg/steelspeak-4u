@@ -223,6 +223,56 @@ DOCUMENT:
       const imgs = (Array.isArray(body.images) ? body.images : []).slice(0, 5).map((i: any) => ({ data: String(i.data ?? ""), mime: /^image\/(jpeg|png|webp)$/.test(String(i.mime)) ? String(i.mime) : "image/jpeg" })).filter((i: any) => i.data.length > 500 && i.data.length < 6_000_000);
       if (!imgs.length) return json({ error: "Không có ảnh hợp lệ" }, 400);
       try { return json(await ocrImages(admin, imgs)); } catch (e) { return json({ error: String((e as Error).message ?? e) }, 502); }
+    } else if (body.task === "ielts") {
+      const topic = String(body.topic ?? "").slice(0, 120) || "a common IELTS topic";
+      const sk = String(body.skill ?? "");
+      if (sk === "reading") {
+        prompt = `Create an IELTS Academic Reading practice set (target band 6.5-7.0) on the topic "${topic}".
+Write an original passage of 330-420 words with a title, academic style, 4-6 paragraphs labelled A, B, C...
+Then 8 questions: 4 of type "tfng" (statement; answer one of "TRUE","FALSE","NOT GIVEN") and 4 of type "mcq" (question with 4 options; answer = 0-based index).
+For each question add "explain": one short Vietnamese sentence citing the paragraph.
+Also list 6 useful vocabulary items from the passage with Vietnamese meaning.
+JSON: {"title":"","passage":"paragraphs separated by \\n\\n","questions":[{"type":"tfng","q":"","answer":"TRUE","explain":""},{"type":"mcq","q":"","options":["","","",""],"answer":0,"explain":""}],"vocab":[{"en":"","vi":""}]}`;
+      } else if (sk === "listening") {
+        prompt = `Create an IELTS Listening practice (Section 2 or 3 style, target band 6.5-7.0) on the topic "${topic}".
+Write a natural script of 14-20 short turns between 2 speakers (or a monologue split into turns), about 300-380 words total, with specific details (names, numbers, dates, places) that questions can test.
+Then 8 questions in script order: type "gap" (sentence with ____, answer = 1-3 words exactly as in the script) or "mcq" (4 options, answer = 0-based index). At least 4 gap questions.
+Add "explain" in Vietnamese for each. JSON: {"title":"","speakers":["",""],"script":[{"who":"","text":""}],"questions":[{"type":"gap","q":"","answer":"","explain":""},{"type":"mcq","q":"","options":["","","",""],"answer":0,"explain":""}]}`;
+      } else if (sk === "wprompt") {
+        const task = body.wtask === 1 ? "Task 1 (Academic: describe a chart/table/process given as a clear text description of the data, 150 words)" : "Task 2 (opinion/discussion/problem-solution essay, 250 words)";
+        prompt = `Write one realistic IELTS Writing ${task} prompt related to "${topic}". For Task 1 include the full data in text (e.g. a small table) so the learner can describe it without an image.
+JSON: {"prompt":"full task instructions in English","tips_vi":["3 short tips in Vietnamese"],"min_words":${body.wtask === 1 ? 150 : 250}}`;
+      } else if (sk === "wgrade") {
+        const essay = String(body.essay ?? "").slice(0, 6000);
+        if (essay.split(/\s+/).length < 40) return json({ error: "Bài viết quá ngắn" }, 400);
+        prompt = `You are a strict, experienced IELTS examiner. Grade this IELTS Writing ${body.wtask === 1 ? "Task 1" : "Task 2"} response using the official public band descriptors.
+TASK: """${String(body.prompt ?? "").slice(0, 2000)}"""
+RESPONSE: """${essay}"""
+Give band scores (0-9 in 0.5 steps) for each criterion: ${body.wtask === 1 ? "TA (Task Achievement)" : "TR (Task Response)"}, CC (Coherence and Cohesion), LR (Lexical Resource), GRA (Grammatical Range and Accuracy), and overall (average rounded to nearest 0.5). Penalise under-length.
+Feedback in Vietnamese: 2-3 strengths, 3-4 most important improvements to reach band 7. List up to 8 concrete corrections from the text.
+Then write a short band-7.5 model rewrite of the first 2 paragraphs (English).
+JSON: {"overall":6.5,"criteria":{"${body.wtask === 1 ? "TA" : "TR"}":6.5,"CC":6.5,"LR":6.5,"GRA":6.5},"strengths_vi":[""],"improve_vi":[""],"corrections":[{"orig":"","fix":"","why_vi":""}],"model":""}`;
+      } else if (sk === "sprompt") {
+        const part = [1, 2, 3].includes(Number(body.part)) ? Number(body.part) : 1;
+        prompt = `Write IELTS Speaking Part ${part} material related to "${topic}". ${part === 2 ? "A cue card: topic line 'Describe ...' plus 3-4 'You should say' bullet points and the final 'and explain ...' line." : "3 questions an examiner would ask in this part."}
+JSON: {"part":${part},"questions":["..."],"cue":${part === 2 ? '{"title":"","bullets":["",""]}' : "null"},"tips_vi":["2 short tips in Vietnamese"]}`;
+      } else return json({ error: "skill không hợp lệ" }, 400);
+    } else if (body.task === "ielts_speak") {
+      const audio = String(body.audio ?? "");
+      if (audio.length < 1000 || audio.length > 6_000_000) return json({ error: "Bản ghi không hợp lệ" }, 400);
+      const mime = /^audio\/[a-z0-9.+-]+$/.test(String(body.mime)) ? String(body.mime) : "audio/mp4";
+      const q = String(body.question ?? "").slice(0, 800);
+      try {
+        const t = await transcribe(admin, audio, mime, q);
+        const heard = String(t.heard ?? "").trim();
+        if (!/[a-z]/i.test(heard)) return json({ error: "AI chưa nghe rõ, hãy nói to và gần máy hơn" }, 422);
+        const g = await llmJSON(admin, `You are an experienced IELTS Speaking examiner. Part ${Number(body.part) || 1}. Question/cue: """${q}"""
+Transcript of the candidate's answer (from speech recognition, punctuation may be missing): """${heard}"""
+Estimate band scores (0-9, 0.5 steps) for FC (Fluency and Coherence), LR (Lexical Resource), GRA (Grammatical Range and Accuracy) from the transcript; for P (Pronunciation) give a cautious estimate based on recognition quality and note it is approximate. overall = average rounded to 0.5. Consider length: Part 1 ~20-40s, Part 2 ~1.5-2min, Part 3 ~40-60s.
+Feedback in Vietnamese: strengths, 3 key improvements. Suggest 5 better words/phrases (English with Vietnamese meaning). Give a band-7.5 sample answer (English, natural spoken style).
+JSON: {"overall":6.0,"criteria":{"FC":6,"LR":6,"GRA":6,"P":6},"strengths_vi":[""],"improve_vi":[""],"upgrade":[{"en":"","vi":""}],"sample":""}`, 0.3);
+        return json({ ...g, transcript: heard });
+      } catch (e) { return json({ error: String((e as Error).message ?? e) }, 502); }
     } else if (body.task === "pron") {
       const audio = String(body.audio ?? "");
       if (audio.length < 1000 || audio.length > 4_000_000) return json({ error: "Bản ghi không hợp lệ" }, 400);
