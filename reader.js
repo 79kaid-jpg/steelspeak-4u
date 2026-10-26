@@ -77,7 +77,7 @@ async function rdOpen(id){const b=RD.lib.find(x=>x.id==id);if(!b)return;RD.book=
  let ov=document.getElementById('rd-ov');if(!ov){ov=document.createElement('div');ov.id='rd-ov';document.body.appendChild(ov)}
  ov.innerHTML=`<div class="rd-top"><button class="chip" onclick="rdClose()">← Thư viện</button><b class="rd-ttl">${esc(b.title)}</b><span id="rd-pos" class="mono"></span></div>
   <div id="rd-stage"><div class="mut" style="color:#cfc6b5">Đang mở sách…</div></div>
-  <div class="rd-bot"><button class="chip" onclick="RD.flip&&RD.flip.flipPrev()" aria-label="Trang trước">←</button><button class="chip" id="rd-say" onclick="rdSpeak()">${svg('spk')} Nghe trang này</button><button class="chip" onclick="RD.flip&&RD.flip.flipNext()" aria-label="Trang sau">→</button></div>`;
+  <div class="rd-bot"><button class="chip" onclick="RD.flip&&RD.flip.flipPrev()" aria-label="Trang trước">←</button><button class="chip" id="rd-say" onclick="rdSpeak()">${svg('spk')} Nghe</button><button class="chip rd-auto ${rdState().auto?'on':''}" id="rd-auto" role="switch" aria-checked="${rdState().auto?'true':'false'}" onclick="rdAutoToggle()"><i class="rd-sw" aria-hidden="true"></i>Tự đọc</button><button class="chip" onclick="RD.flip&&RD.flip.flipNext()" aria-label="Trang sau">→</button></div>`;
  document.body.classList.add('rd-open');try{await rdLib()}catch(e){document.getElementById('rd-stage').innerHTML='<div style="color:#f3b0a8">Không tải được bộ lật trang. Kiểm tra mạng rồi mở lại.</div>';return}rdBuild()}
 function rdBuild(){const b=RD.book;if(!b)return;const{pw,ph,single}=rdSize();const fs=b.kids?Math.max(15,Math.min(22,pw/20)):Math.max(13,Math.min(17,pw/26));
  if(RD.flip){try{RD.flip.destroy()}catch(e){}RD.flip=null}
@@ -93,11 +93,16 @@ function rdBuild(){const b=RD.book;if(!b)return;const{pw,ph,single}=rdSize();con
  const f=new St.PageFlip(el,{width:pw,height:ph,size:'fixed',showCover:true,usePortrait:single,maxShadowOpacity:.4,mobileScrollSupport:false,flippingTime:700});
  f.loadFromHTML(el.querySelectorAll('.rd-page'));RD.flip=f;const tot=f.getPageCount();
  const pos=(rdState().pos||{})[b.id]||0;if(pos>0&&pos<tot)f.turnToPage(pos);
- const upd=()=>{const i=f.getCurrentPageIndex();const pe=document.getElementById('rd-pos');if(pe)pe.textContent=`${i+1}/${tot}`;const st=rdState();st.pos=st.pos||{};st.pos[b.id]=i;if(i>=tot-3){st.done=st.done||{};if(!st.done[b.id]){st.done[b.id]=1;S.xp+=20;try{save()}catch(e){}toast('Đọc xong truyện! +20 XP')}}try{localStorage.setItem('ssread',JSON.stringify(st))}catch(e){}speechSynthesis&&speechSynthesis.cancel()};
+ const upd=()=>{const i=f.getCurrentPageIndex();const pe=document.getElementById('rd-pos');if(pe)pe.textContent=`${i+1}/${tot}`;const st=rdState();st.pos=st.pos||{};st.pos[b.id]=i;if(i>=tot-3){st.done=st.done||{};if(!st.done[b.id]){st.done[b.id]=1;S.xp+=20;try{save()}catch(e){}toast('Đọc xong truyện! +20 XP')}}try{localStorage.setItem('ssread',JSON.stringify(st))}catch(e){}rdAfterFlip()};
  f.on('flip',upd);upd()}
-function rdSpeak(){const f=RD.flip;if(!f)return;if(speechSynthesis.speaking){speechSynthesis.cancel();return}const i=f.getCurrentPageIndex(),els=[...document.querySelectorAll('#rd-book .rd-page')];
+/* Tự đọc: bật một lần, mỗi lần lật trang app tự đọc trang mới (chờ hiệu ứng lật xong). */
+let rdAT=null;
+function rdAfterFlip(){try{speechSynthesis.cancel()}catch(e){}clearTimeout(rdAT);if(rdState().auto)rdAT=setTimeout(()=>rdSpeak(true),750)}
+function rdAutoToggle(){const on=!rdState().auto;rdSet('auto',on);const b=document.getElementById('rd-auto');if(b){b.classList.toggle('on',on);b.setAttribute('aria-checked',on?'true':'false')}
+ if(on){toast('Đã bật tự đọc khi lật trang');rdSpeak(true)}else{try{speechSynthesis.cancel()}catch(e){}clearTimeout(rdAT);toast('Đã tắt tự đọc')}}
+function rdSpeak(force){const f=RD.flip;if(!f)return;if(!force&&speechSynthesis.speaking){speechSynthesis.cancel();return}const i=f.getCurrentPageIndex(),els=[...document.querySelectorAll('#rd-book .rd-page')];
  const vis=rdSize().single?[i]:[i,i+1];const txt=vis.map(k=>els[k]).filter(Boolean).map(e=>[...e.querySelectorAll('.rd-in p, h2')].map(p=>p.textContent).join(' ')).join(' ').trim();if(txt)say(txt,RD.book.kids?0.85:0.95);else toast('Trang này không có chữ')}
-function rdClose(){try{speechSynthesis.cancel()}catch(e){}if(RD.flip){try{RD.flip.destroy()}catch(e){}RD.flip=null}document.getElementById('rd-ov')?.remove();if(RDP.pdf){try{RDP.pdf.destroy()}catch(e){}RDP.pdf=null}document.body.classList.remove('rd-open');RD.book=null;render()}
+function rdClose(){clearTimeout(rdAT);try{speechSynthesis.cancel()}catch(e){}if(RD.flip){try{RD.flip.destroy()}catch(e){}RD.flip=null}document.getElementById('rd-ov')?.remove();if(RDP.pdf){try{RDP.pdf.destroy()}catch(e){}RDP.pdf=null}document.body.classList.remove('rd-open');RD.book=null;render()}
 let rdRT;addEventListener('resize',()=>{if(!RD.book)return;clearTimeout(rdRT);rdRT=setTimeout(RD.book.pdf?rdpBuild:rdBuild,300)});
 addEventListener('keydown',e=>{if(!RD.flip)return;if(e.key=='ArrowLeft')RD.flip.flipPrev();if(e.key=='ArrowRight')RD.flip.flipNext();if(e.key=='Escape')rdClose()});
 
