@@ -77,7 +77,7 @@ async function rdOpen(id){const b=RD.lib.find(x=>x.id==id);if(!b)return;RD.book=
  let ov=document.getElementById('rd-ov');if(!ov){ov=document.createElement('div');ov.id='rd-ov';document.body.appendChild(ov)}
  ov.innerHTML=`<div class="rd-top"><button class="chip" onclick="rdClose()">← Thư viện</button><b class="rd-ttl">${esc(b.title)}</b><span id="rd-pos" class="mono"></span></div>
   <div id="rd-stage"><div class="mut" style="color:#cfc6b5">Đang mở sách…</div></div>
-  <div class="rd-bot"><button class="chip" onclick="RD.flip&&RD.flip.flipPrev()" aria-label="Trang trước">←</button><button class="chip" id="rd-say" onclick="rdSpeak()">${svg('spk')} Nghe</button><button class="chip rd-auto ${rdState().auto?'on':''}" id="rd-auto" role="switch" aria-checked="${rdState().auto?'true':'false'}" onclick="rdAutoToggle()"><i class="rd-sw" aria-hidden="true"></i>Tự đọc</button><button class="chip" onclick="RD.flip&&RD.flip.flipNext()" aria-label="Trang sau">→</button></div>`;
+  <div class="rd-bot"><button class="chip" onclick="RD.flip&&RD.flip.flipPrev()" aria-label="Trang trước">←</button><button class="chip" id="rd-say" onclick="rdSpeak()">${svg('spk')} Nghe</button><button class="chip rd-auto ${RD_MODES[rdMode()][1]}" id="rd-auto" aria-label="${RD_MODES[rdMode()][0]}. Bấm để đổi chế độ" onclick="rdAutoToggle()"><i class="rd-sw" aria-hidden="true"></i><span class="rd-al">${['Tự đọc','Từng trang','Liền mạch'][rdMode()]}</span></button><button class="chip" onclick="RD.flip&&RD.flip.flipNext()" aria-label="Trang sau">→</button></div>`;
  document.body.classList.add('rd-open');try{await rdLib()}catch(e){document.getElementById('rd-stage').innerHTML='<div style="color:#f3b0a8">Không tải được bộ lật trang. Kiểm tra mạng rồi mở lại.</div>';return}rdBuild()}
 function rdBuild(){const b=RD.book;if(!b)return;const{pw,ph,single}=rdSize();const fs=b.kids?Math.max(15,Math.min(22,pw/20)):Math.max(13,Math.min(17,pw/26));
  if(RD.flip){try{RD.flip.destroy()}catch(e){}RD.flip=null}
@@ -97,12 +97,26 @@ function rdBuild(){const b=RD.book;if(!b)return;const{pw,ph,single}=rdSize();con
  f.on('flip',upd);upd()}
 /* Tự đọc: bật một lần, mỗi lần lật trang app tự đọc trang mới (chờ hiệu ứng lật xong). */
 let rdAT=null;
-function rdAfterFlip(){try{speechSynthesis.cancel()}catch(e){}clearTimeout(rdAT);if(rdState().auto)rdAT=setTimeout(()=>rdSpeak(true),750)}
-function rdAutoToggle(){const on=!rdState().auto;rdSet('auto',on);const b=document.getElementById('rd-auto');if(b){b.classList.toggle('on',on);b.setAttribute('aria-checked',on?'true':'false')}
- if(on){toast('Đã bật tự đọc khi lật trang');rdSpeak(true)}else{try{speechSynthesis.cancel()}catch(e){}clearTimeout(rdAT);toast('Đã tắt tự đọc')}}
-function rdSpeak(force){const f=RD.flip;if(!f)return;if(!force&&speechSynthesis.speaking){speechSynthesis.cancel();return}const i=f.getCurrentPageIndex(),els=[...document.querySelectorAll('#rd-book .rd-page')];
- const vis=rdSize().single?[i]:[i,i+1];const txt=vis.map(k=>els[k]).filter(Boolean).map(e=>[...e.querySelectorAll('.rd-in p, h2')].map(p=>p.textContent).join(' ')).join(' ').trim();if(txt)say(txt,RD.book.kids?0.85:0.95);else toast('Trang này không có chữ')}
-function rdClose(){clearTimeout(rdAT);try{speechSynthesis.cancel()}catch(e){}if(RD.flip){try{RD.flip.destroy()}catch(e){}RD.flip=null}document.getElementById('rd-ov')?.remove();if(RDP.pdf){try{RDP.pdf.destroy()}catch(e){}RDP.pdf=null}document.body.classList.remove('rd-open');RD.book=null;render()}
+/* Tự đọc có 3 chế độ: 0 tắt · 1 từng trang (lật là tự đọc) · 2 liền mạch (đọc xong tự lật trang sau). */
+const RD_MODES=[['Tự đọc: tắt',''],['Tự đọc: từng trang','on'],['Đọc liền mạch','on cont']];
+let rdTok=0;
+const rdMode=()=>{const a=rdState().auto;return a===true?1:(+a||0)};
+function rdAutoPaint(){const m=rdMode(),b=document.getElementById('rd-auto');if(!b)return;b.className='chip rd-auto '+RD_MODES[m][1];b.setAttribute('aria-label',RD_MODES[m][0]+'. Bấm để đổi chế độ');b.querySelector('.rd-al').textContent=['Tự đọc','Từng trang','Liền mạch'][m]}
+function rdStop(){rdTok++;try{speechSynthesis.cancel()}catch(e){}clearTimeout(rdAT)}
+function rdAfterFlip(){rdStop();if(rdMode())rdAT=setTimeout(()=>rdSpeak(true),750)}
+function rdAutoToggle(){const m=(rdMode()+1)%3;rdSet('auto',m);rdAutoPaint();toast(['Đã tắt tự đọc','Tự đọc khi lật trang','Đọc liền mạch: đọc hết trang sẽ tự lật'][m]);if(m)rdSpeak(true);else rdStop()}
+function rdPageText(){const f=RD.flip,i=f.getCurrentPageIndex(),els=[...document.querySelectorAll('#rd-book .rd-page')];const vis=rdSize().single?[i]:[i,i+1];
+ return vis.map(k=>els[k]).filter(Boolean).map(e=>[...e.querySelectorAll('.rd-in p, h2')].map(p=>p.textContent).join(' ')).join(' ').replace(/\s+/g,' ').trim()}
+function rdNext(tok){if(tok!==rdTok||rdMode()!==2||!RD.flip)return;const f=RD.flip;if(f.getCurrentPageIndex()>=f.getPageCount()-1){toast('Hết truyện rồi!');return}f.flipNext()}
+/* Đọc theo từng câu (trình duyệt hay cắt ngang câu dài), xong hết thì báo để lật trang. */
+function rdSpeak(force){const f=RD.flip;if(!f)return;if(!force&&speechSynthesis.speaking){rdStop();return}
+ rdStop();const tok=rdTok,txt=rdPageText();
+ if(!txt){if(force&&rdMode()===2)rdAT=setTimeout(()=>rdNext(tok),3500);else if(!force)toast('Trang này không có chữ');return}
+ const parts=txt.match(/[^.!?;:]+[.!?;:"'”’)]*\s*/g)||[txt],chunks=[];let cur='';parts.forEach(s=>{if((cur+s).length>220&&cur){chunks.push(cur);cur=''}cur+=s});if(cur.trim())chunks.push(cur);
+ const rate=RD.book.kids?0.85:0.95;let k=0;
+ const step=()=>{if(tok!==rdTok)return;if(k>=chunks.length){rdAT=setTimeout(()=>rdNext(tok),600);return}say(chunks[k++].trim(),rate);const u=window._utt;if(!u)return;const pe=u.onend;u.onend=ev=>{pe&&pe(ev);step()};const pr=u.onerror;u.onerror=ev=>{pr&&pr(ev);if(ev.error!='interrupted'&&ev.error!='canceled')step()}};
+ step()}
+function rdClose(){rdStop();document.getElementById('rd-zoom')?.remove();if(RD.flip){try{RD.flip.destroy()}catch(e){}RD.flip=null}document.getElementById('rd-ov')?.remove();if(RDP.pdf){try{RDP.pdf.destroy()}catch(e){}RDP.pdf=null}document.body.classList.remove('rd-open');RD.book=null;render()}
 let rdRT;addEventListener('resize',()=>{if(!RD.book)return;clearTimeout(rdRT);rdRT=setTimeout(RD.book.pdf?rdpBuild:rdBuild,300)});
 addEventListener('keydown',e=>{if(!RD.flip)return;if(e.key=='ArrowLeft')RD.flip.flipPrev();if(e.key=='ArrowRight')RD.flip.flipNext();if(e.key=='Escape')rdClose()});
 
@@ -130,7 +144,7 @@ function rdpLib(){return new Promise((ok,no)=>{if(window.pdfjsLib)return ok();co
 async function rdpOpen(n){RD.book={id:'pdf:'+n,title:rdpName(n),pdf:n,kids:true};
  let ov=document.getElementById('rd-ov');if(!ov){ov=document.createElement('div');ov.id='rd-ov';document.body.appendChild(ov)}
  ov.innerHTML=`<div class="rd-top"><button class="chip" onclick="rdClose()">← Thư viện</button><b class="rd-ttl">${esc(RD.book.title)}</b><span id="rd-pos" class="mono"></span></div><div id="rd-stage"><div style="color:#cfc6b5">Đang mở sách…</div></div>
-  <div class="rd-bot"><button class="chip" onclick="RD.flip&&RD.flip.flipPrev()" aria-label="Trang trước">←</button><button class="chip" onclick="RD.flip&&RD.flip.flipNext()" aria-label="Trang sau">→</button></div>`;
+  <div class="rd-bot"><button class="chip" onclick="RD.flip&&RD.flip.flipPrev()" aria-label="Trang trước">←</button><button class="chip" onclick="rdpZoom()">${RDP_ZI} Phóng to</button><button class="chip" onclick="RD.flip&&RD.flip.flipNext()" aria-label="Trang sau">→</button></div>`;
  document.body.classList.add('rd-open');
  try{await Promise.all([rdLib(),rdpLib()]);const {data,error}=await SB.storage.from('private-books').createSignedUrl(`${USER.id}/${n}`,3600);if(error)throw error;
   RDP.pdf=await pdfjsLib.getDocument(data.signedUrl).promise;RDP.done=new Set();rdpBuild()}
@@ -147,3 +161,17 @@ async function rdpBuild(){const b=RD.book,pdf=RDP.pdf;if(!b||!pdf)return;const p
  const pos=(rdState().ppos||{})[b.pdf]||0;if(pos>0&&pos<tot)f.turnToPage(pos);
  const upd=()=>{const i=f.getCurrentPageIndex();near(i);const pe=document.getElementById('rd-pos');if(pe)pe.textContent=`${i+1}/${tot}`;const s=rdState();s.ppos=s.ppos||{};s.ppos[b.pdf]=i;try{localStorage.setItem('ssread',JSON.stringify(s))}catch(e){}};
  f.on('flip',upd);upd()}
+
+/* Phóng to trang PDF: trang lấp đầy chiều cao màn hình, kéo ngang để xem; bấm 2× để xem chữ nhỏ. Chạm đúp vào trang cũng mở. */
+const RDP_ZI='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg>';
+const RDZ={k:1,i:0};
+async function rdpZoom(k){const f=RD.flip,pdf=RDP.pdf;if(!f||!pdf)return;RDZ.i=f.getCurrentPageIndex();RDZ.k=k||1;
+ let z=document.getElementById('rd-zoom');if(!z){z=document.createElement('div');z.id='rd-zoom';document.body.appendChild(z)}
+ z.innerHTML=`<div class="rdz-bar"><button class="chip" onclick="rdpZoomClose()">✕ Đóng</button><span class="mono">Trang ${RDZ.i+1}</span><span class="row" style="gap:6px"><button class="chip" aria-label="Trang trước" onclick="rdpZoomGo(-1)">←</button><button class="chip ${RDZ.k>1?'on':''}" onclick="rdpZoom(${RDZ.k>1?1:2.2})">${RDZ.k>1?'Vừa màn hình':'2×'}</button><button class="chip" aria-label="Trang sau" onclick="rdpZoomGo(1)">→</button></span></div><div class="rdz-sc"><canvas></canvas></div>`;
+ const sc=z.querySelector('.rdz-sc'),c=z.querySelector('canvas'),pg=await pdf.getPage(RDZ.i+1),v1=pg.getViewport({scale:1});
+ const fitH=sc.clientHeight-8,fitW=sc.clientWidth-8,base=Math.min(fitH/v1.height,(fitW*1.6)/v1.width),css=base*RDZ.k,dpr=Math.min(2,devicePixelRatio||1),v=pg.getViewport({scale:css*dpr});
+ c.width=v.width;c.height=v.height;c.style.width=v1.width*css+'px';c.style.height=v1.height*css+'px';await pg.render({canvasContext:c.getContext('2d'),viewport:v}).promise;
+ sc.scrollLeft=(sc.scrollWidth-sc.clientWidth)/2;let lt=0;c.onclick=()=>{const n=Date.now();if(n-lt<320)rdpZoom(RDZ.k>1?1:2.2);lt=n}}
+function rdpZoomGo(d){const f=RD.flip;if(!f)return;const n=RDZ.i+d;if(n<0||n>=f.getPageCount())return;f.turnToPage(n);RDZ.i=n;rdpZoom(RDZ.k)}
+function rdpZoomClose(){document.getElementById('rd-zoom')?.remove();const f=RD.flip;if(f&&f.getCurrentPageIndex()!==RDZ.i)f.turnToPage(RDZ.i)}
+document.addEventListener('dblclick',e=>{if(RD.book?.pdf&&e.target.closest('#rd-book'))rdpZoom()});
