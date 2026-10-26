@@ -521,6 +521,10 @@ body.in-game #nav{display:none}
 .sp-slots{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin:12px 0}.sp-slot{width:34px;height:42px;border-bottom:3px solid var(--line);display:grid;place-items:center;font:700 1.4rem var(--fd);text-transform:lowercase}.sp-slot.on{border-color:var(--steel)}
 .sp-tiles{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.sp-tile{width:44px;height:48px;border-radius:12px;border:2px solid var(--line);background:var(--card);font:700 1.4rem var(--fd);cursor:pointer;box-shadow:0 3px 0 var(--line)}.sp-tile:active{transform:translateY(2px);box-shadow:none}.sp-tile:disabled{opacity:.25}
 @media (prefers-reduced-motion:reduce){.mem-in{transition:none}}
+
+.mt-cell{touch-action:none;user-select:none;-webkit-user-select:none}.mt-cell.dragging{opacity:.35}.mt-cell.over{border-color:var(--amber)!important;transform:scale(1.03);box-shadow:0 0 0 3px color-mix(in srgb,var(--amber) 35%,transparent)}
+.mt-ghost{position:fixed;left:0;top:0;z-index:2147483647;pointer-events:none;padding:8px 10px;border-radius:14px;border:2px solid var(--amber);background:var(--card);font-size:.92rem;box-shadow:0 10px 24px rgba(0,0,0,.25);opacity:.95}
+.mt-line{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:2147483646}.mt-line line{stroke:var(--amber);stroke-width:4;stroke-dasharray:2 8}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -1305,11 +1309,26 @@ function reportQ(){if(!USER)return toast('Đăng nhập để báo lỗi');const
 
 // ===== Câu hỏi thử thách của trùm Kaka: nối cặp, lật thẻ, xếp chữ =====
 function vMatch(g,q){const M=g.mt=g.mt||{l:null,pairs:{}};const usedR=Object.values(M.pairs);const rev=g.stun;
- return `<div class="card saga-q"><div class="lbl">Nối từ với nghĩa</div><b>Chạm 1 từ bên trái rồi chạm nghĩa bên phải</b></div>
- <div class="mt-grid">${q.left.map((w,i)=>{const p=M.pairs[i];return `<button class="mt-cell L ${M.l===i?'sel':''} ${p!=null?'done c'+(Object.keys(M.pairs).indexOf(String(i))%4):''} ${rev?(q.ans[i]===p?'ok':'no'):''}" onclick="mtL(${i})" ${rev?'disabled':''}>${esc(w)}</button>`}).join('')}
- ${q.right.map((m,j)=>{const li=Object.keys(M.pairs).find(k=>M.pairs[k]===j);return `<button class="mt-cell R ${li!=null?'done c'+(Object.keys(M.pairs).indexOf(li)%4):''}" style="grid-column:2;grid-row:${j+1}" onclick="mtR(${j})" ${rev?'disabled':''}>${esc(m)}</button>`}).join('')}</div>
+ return `<div class="card saga-q"><div class="lbl">Nối từ với nghĩa</div><b>Kéo từ bên trái thả vào nghĩa đúng</b><div class="mut small">hoặc chạm từ rồi chạm nghĩa</div></div>
+ <div class="mt-grid">${q.left.map((w,i)=>{const p=M.pairs[i];return `<button data-mi="${i}" class="mt-cell L ${M.l===i?'sel':''} ${p!=null?'done c'+(Object.keys(M.pairs).indexOf(String(i))%4):''} ${rev?(q.ans[i]===p?'ok':'no'):''}" onclick="mtL(${i})" ${rev?'disabled':''}>${esc(w)}</button>`}).join('')}
+ ${q.right.map((m,j)=>{const li=Object.keys(M.pairs).find(k=>M.pairs[k]===j);return `<button data-mj="${j}" class="mt-cell R ${li!=null?'done c'+(Object.keys(M.pairs).indexOf(li)%4):''}" style="grid-column:2;grid-row:${j+1}" onclick="mtR(${j})" ${rev?'disabled':''}>${esc(m)}</button>`}).join('')}</div>
  <div class="row" style="margin-top:10px;flex-wrap:nowrap"><button class="btn ghost" style="flex:1" onclick="S.game.mt=null;render()" ${rev?'disabled':''}>Làm lại</button><button class="btn" style="flex:1" ${Object.keys(M.pairs).length==q.left.length&&!rev?'':'disabled'} onclick="sagaAnswer(q2arr(S.game.mt.pairs,${q.left.length}))">Xác nhận</button></div>`}
 const q2arr=(p,n)=>Array.from({length:n},(_,i)=>p[i]);
+
+// Kéo thả bằng ngón tay cho câu nối cặp (vẫn hỗ trợ chạm)
+const DRG={on:false};
+document.addEventListener('pointerdown',e=>{const c=e.target.closest('.mt-cell');if(!c||c.disabled||!S.game?.mt)return;DRG.on=true;DRG.moved=false;DRG.src=c;DRG.x=e.clientX;DRG.y=e.clientY;DRG.side=c.dataset.mi!=null?'L':'R';DRG.idx=+(c.dataset.mi??c.dataset.mj)},{passive:true});
+document.addEventListener('pointermove',e=>{if(!DRG.on)return;const dx=e.clientX-DRG.x,dy=e.clientY-DRG.y;
+ if(!DRG.moved){if(Math.hypot(dx,dy)<8)return;DRG.moved=true;const r=DRG.src.getBoundingClientRect();const g=DRG.g=DRG.src.cloneNode(true);g.className='mt-ghost';g.style.width=r.width+'px';document.body.appendChild(g);DRG.src.classList.add('dragging');
+  const s=DRG.svg=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('class','mt-line');s.innerHTML='<line stroke-linecap="round"/>';document.body.appendChild(s);DRG.ox=r.left+r.width/2;DRG.oy=r.top+r.height/2;SFX.tap&&SFX.tap()}
+ e.preventDefault();DRG.g.style.transform=`translate(${e.clientX-DRG.g.offsetWidth/2}px,${e.clientY-DRG.g.offsetHeight-28}px)`;const l=DRG.svg.firstChild;l.setAttribute('x1',DRG.ox);l.setAttribute('y1',DRG.oy);l.setAttribute('x2',e.clientX);l.setAttribute('y2',e.clientY);
+ document.querySelectorAll('.mt-cell.over').forEach(x=>x.classList.remove('over'));const tg=document.elementFromPoint(e.clientX,e.clientY)?.closest('.mt-cell');if(tg&&tg!==DRG.src&&((DRG.side=='L')!==(tg.dataset.mi!=null)))tg.classList.add('over')},{passive:false});
+function drgEnd(e){if(!DRG.on)return;DRG.on=false;if(!DRG.moved)return;DRG.g?.remove();DRG.svg?.remove();DRG.src.classList.remove('dragging');DRG.suppress=Date.now();
+ const tg=document.elementFromPoint(e.clientX,e.clientY)?.closest('.mt-cell');document.querySelectorAll('.mt-cell.over').forEach(x=>x.classList.remove('over'));if(!tg)return;const M=S.game.mt;
+ let i,j;if(DRG.side=='L'&&tg.dataset.mj!=null){i=DRG.idx;j=+tg.dataset.mj}else if(DRG.side=='R'&&tg.dataset.mi!=null){i=+tg.dataset.mi;j=DRG.idx}else return;
+ Object.keys(M.pairs).forEach(k=>{if(M.pairs[k]===j||+k===i)delete M.pairs[k]});M.pairs[i]=j;M.l=null;SFX.tap&&SFX.tap();if(navigator.vibrate)navigator.vibrate(15);render()}
+document.addEventListener('pointerup',drgEnd);document.addEventListener('pointercancel',e=>{if(DRG.on){DRG.on=false;DRG.g?.remove();DRG.svg?.remove();DRG.src?.classList.remove('dragging')}});
+document.addEventListener('click',e=>{if(DRG.suppress&&Date.now()-DRG.suppress<350&&e.target.closest('.mt-cell')){e.stopPropagation();e.preventDefault()}},true);
 function mtL(i){const M=S.game.mt;if(M.pairs[i]!=null){delete M.pairs[i];M.l=null}else M.l=M.l===i?null:i;SFX.tap&&SFX.tap();render()}
 function mtR(j){const M=S.game.mt;const has=Object.keys(M.pairs).find(k=>M.pairs[k]===j);if(has!=null){delete M.pairs[has];render();return}if(M.l==null)return toast('Chọn 1 từ bên trái trước');M.pairs[M.l]=j;M.l=null;SFX.tap&&SFX.tap();render()}
 function vMemory(g,q){const st=g.mem=g.mem||{open:[],found:[],miss:0,lock:false};
