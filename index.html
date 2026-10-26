@@ -535,12 +535,46 @@ body.in-game #nav{display:none}
 .saga-fab{position:fixed;right:max(16px,calc(50vw - 224px));bottom:calc(86px + env(safe-area-inset-bottom));z-index:45;min-height:44px;padding:0 16px;border-radius:99px;border:0;background:var(--amber);color:#1a1205;font:700 .95rem var(--fd);box-shadow:0 6px 16px rgba(0,0,0,.25);cursor:pointer}
 body.in-game .saga-fab{display:none}
 .saga-bar>span{white-space:nowrap}.saga-bar>span.mut{display:none}
+/* ---- Đọc truyện ---- */
+.rd-lvcard{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;border-radius:16px;padding:16px;color:#fff;background:linear-gradient(120deg,#5a3b22,#7a5230)}
+.rd-lvcard .chip{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.35);color:#fff}
+.rd-big{font-family:var(--fd);font-size:2rem;font-weight:700;line-height:1.1}.rd-big small{font-size:1rem;font-weight:500;opacity:.85}
+.rd-book{display:grid;grid-template-columns:78px 1fr;gap:12px;text-align:left;width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+.rd-cov{width:78px;height:104px;border-radius:4px 8px 8px 4px;background:repeating-linear-gradient(100deg,#3d4a5c 0 10px,#43526a 10px 20px);color:#f3ecdd;display:grid;place-items:center;padding:6px;font:600 .72rem/1.2 var(--fd);text-align:center;overflow:hidden;box-shadow:inset 4px 0 0 rgba(0,0,0,.25)}
+.rd-cov.pic{background:#f6f1e4;padding:4px}.rd-cov img{width:100%;height:100%;object-fit:contain}
+.rd-info{display:flex;flex-direction:column;gap:3px;min-width:0}.rd-info b{font-family:var(--fd);font-size:1.12rem}
+.rd-lv{font:700 .72rem var(--fm);padding:2px 7px;border-radius:6px;background:var(--steel);color:var(--onsteel)}
+.rd-tag{font-size:.7rem;padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--mut);font-weight:600}.rd-tag.kid{background:color-mix(in srgb,var(--amber) 25%,transparent);color:var(--warn)}
+.rd-prog{font-size:.78rem;color:var(--steel);font-weight:600}.rd-prog.ok{color:var(--good)}
+body.rd-open{overflow:hidden}body.rd-open nav{display:none}
+#rd-ov{position:fixed;inset:0;z-index:2147483646;background:#23201c;display:flex;flex-direction:column;align-items:center;padding:calc(8px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));gap:8px}
+#rd-ov .chip{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:#f3ecdd;display:inline-flex;align-items:center;gap:6px;min-height:40px}#rd-ov .chip svg{width:18px;height:18px}
+.rd-top,.rd-bot{width:100%;max-width:1100px;display:flex;align-items:center;gap:10px;justify-content:space-between;color:#f3ecdd}
+.rd-ttl{font-family:var(--fd);font-size:1.05rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1;text-align:center}
+.rd-bot{justify-content:center}
+#rd-stage{flex:1;display:flex;align-items:center;justify-content:center;width:100%;min-height:0}
+#rd-book{box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.rd-page{background:#fbf8f1;color:#2b2622;overflow:hidden}
+.rd-in{position:absolute;inset:0;overflow:hidden;padding:8% 9% 11%;font-family:Georgia,"Times New Roman",serif;line-height:1.6}
+.rd-in p{margin:0 0 .7em;text-indent:1.4em;text-align:justify;hyphens:auto}.rd-in p.cont{text-indent:0}
+.rd-in p.first{text-indent:0}.rd-in p.first::first-letter{font-family:var(--fd);float:left;font-size:3em;line-height:.85;padding:.05em .08em 0 0;color:#8a3b2e}
+.rd-in.kid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6em;padding:7% 8% 10%;line-height:1.45}
+.rd-in.kid img{max-height:58%;max-width:100%;object-fit:contain}.rd-in.kid p{text-indent:0;text-align:center;margin:0}
+.rd-in.end{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}.rd-in.end p{text-indent:0;text-align:center}.rd-in .te{font-family:var(--fd);font-size:1.7em;color:#8a3b2e}
+.rd-in a{color:#8a3b2e}
+.rd-folio{position:absolute;bottom:4.5%;left:0;right:0;text-align:center;font:.7rem var(--fm);color:#8b8073}
+.rd-cover{background:#3d4a5c;color:#f3ecdd}
+.rd-cvin{position:absolute;inset:5%;border:1px solid rgba(243,236,221,.35);padding:9%;display:flex;flex-direction:column;justify-content:flex-end;gap:.4em}
+.rd-cvin img{max-height:45%;object-fit:contain;align-self:center;margin-bottom:auto;background:#fbf8f1;padding:6px;border-radius:4px}
+.rd-cvin .k{font:600 .68rem var(--fm);letter-spacing:.14em;text-transform:uppercase;opacity:.8}.rd-cvin h2{font-family:var(--fd);font-size:2em;line-height:1.05;margin:0;color:#f3ecdd}
+.rd-cvin .a{font-style:italic}.rd-cvin .src{font:.66rem var(--fm);opacity:.7}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
 <div class="toast" id="toast" hidden></div>
 <script src="config.js"></script>
 <script src="saga-core.js"></script>
+<script src="reader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const CATS = {
@@ -754,7 +788,7 @@ function vSpec(){return `<h1>Bản thiết kế ứng dụng</h1><p class="mut">
 let TERMS=RAW.map(r=>({cat:r[0],en:r[1],vi:r[2],ex:r[3],exvi:r[4]}));const STEEL_TERMS=TERMS;
 CATS.doc={n:'Từ tài liệu',d:'Tạo từ tài liệu bạn tải lên'};
 let VL=[];
-const IC={undo:'<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',trophy:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',book:'<path d="M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4zM20 4h-5a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h6z"/>',mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',plus:'<path d="M12 5v14M5 12h14"/><rect x="3" y="3" width="18" height="18" rx="4"/>',spec:'<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',spk:'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>',slow:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M10 2h4"/>'};
+const IC={story:'<path d="M2 5c3-1 6-1 10 1v14c-4-2-7-2-10-1z"/><path d="M22 5c-3-1-6-1-10 1v14c4-2 7-2 10-1z"/>',undo:'<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',trophy:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',book:'<path d="M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4zM20 4h-5a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h6z"/>',mic:'<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',plus:'<path d="M12 5v14M5 12h14"/><rect x="3" y="3" width="18" height="18" rx="4"/>',spec:'<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',spk:'<path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>',slow:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M10 2h4"/>'};
 const svg=(k)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</svg>`;
 const $=s=>document.querySelector(s);const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let S={tab:'home',xp:0,streak:0,last:'',done:{},wrong:{},lessons:[],cat:'all',q:'',game:null,sync:'local'};
@@ -815,10 +849,10 @@ let ACX=null,ALAST=0;function audioWake(){try{ACX=ACX||new (window.AudioContext|
 const spk=(t)=>`<button class="ic" aria-label="Nghe giọng Mỹ" onclick="event.stopPropagation();say(${esc(JSON.stringify(t))})">${svg('spk')}</button>`;
 const slow=(t)=>`<button class="ic" aria-label="Nghe chậm" onclick="event.stopPropagation();say(${esc(JSON.stringify(t))},0.6)">${svg('slow')}</button>`;
 /* ---- nav ---- */
-const TABS=[['home','Học','home'],['vocab','Từ vựng','book'],['saga','Đua level','trophy'],['make','Tạo bài','plus'],['me','Tài khoản','user']];
+const TABS=[['home','Học','home'],['vocab','Từ vựng','book'],['saga','Đua level','trophy'],['read','Đọc truyện','story'],['make','Tạo bài','plus'],['me','Tài khoản','user']];
 function go(t){S.tab=t;S.game=null;render();scrollTo(0,0)}
 function render(){document.body.classList.toggle('in-game',!!(S.game&&!S.game.saga));const onMap=S.tab=='saga'&&!S.game&&SG.view!='board'&&SG.view!='friends';document.documentElement.style.background=onMap?mapBottomColor():'';try{musicSync()}catch(e){}$('#nav').innerHTML=TABS.map(([k,n,i])=>`<button class="${S.tab==k?'on':''}" onclick="go('${k}')" style="position:relative">${svg(i)}${n}${k=='me'&&ADMN.total?`<span class="nav-dot" aria-label="${ADMN.total} việc quản trị chờ xử lý"></span>`:''}</button>`).join('');
-const GATED=['vocab','speak','make','saga','contrib'];$('#app').innerHTML=S.game?vGame():(GATED.includes(S.tab)&&!canLearn()?trackBar()+vGate():({home:vHome,vocab:vVocab,speak:vSpeak,make:vMake,spec:vSpec,me:vMe,admin:vAdmin,saga:vSaga,tracks:vTracks,contrib:vContrib,ielts:vIelts})[S.tab]())}
+const GATED=['vocab','speak','make','saga','contrib'];$('#app').innerHTML=S.game?vGame():(GATED.includes(S.tab)&&!canLearn()?trackBar()+vGate():({home:vHome,vocab:vVocab,speak:vSpeak,make:vMake,spec:vSpec,me:vMe,admin:vAdmin,saga:vSaga,tracks:vTracks,contrib:vContrib,ielts:vIelts,read:vRead})[S.tab]())}
 /* ---- home ---- */
 const PATH_STEEL=[['coat','Cấu trúc thép phủ màu'],['qual','Thử nghiệm & khiếu nại'],['nspe','Quy trình NSPE'],['colr','Pha màu & chạy thử'],['npd','Phát triển sản phẩm mới'],['talk','Họp & email với CFT']];
 function pathList(){const tr=curTrack();if(!tr||tr.slug=='steel')return PATH_STEEL;const used=new Set(TERMS.map(x=>x.cat));return Object.entries(tr.cats||{}).filter(([k])=>used.has(k)).map(([k,v])=>[k,v])}
