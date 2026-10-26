@@ -452,6 +452,11 @@ body.in-game #nav{display:none}
 
 .skel-list{display:flex;flex-direction:column;gap:10px;margin-top:10px}.skel-list i{display:block;height:56px;border-radius:14px;background:linear-gradient(90deg,var(--soft) 25%,color-mix(in srgb,var(--soft) 50%,var(--card)) 50%,var(--soft) 75%);background-size:200% 100%;animation:skel 1.2s linear infinite}
 @keyframes skel{to{background-position:-200% 0}}@media (prefers-reduced-motion:reduce){.skel-list i{animation:none}}
+
+.up-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}
+.up-tile{display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 6px;border-radius:16px;border:1.5px dashed var(--line);background:var(--card);cursor:pointer;text-align:center;min-height:96px;justify-content:center}
+.up-tile:active{transform:scale(.98)}.up-ic{font-size:1.5rem}.up-tile small{color:var(--mut);font-size:.72rem}
+.thumbs{display:flex;gap:8px;overflow-x:auto;margin-bottom:8px}.thumbs img{height:72px;border-radius:10px;border:1px solid var(--line)}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -826,23 +831,35 @@ function vMake(){if(!D.cats.length||!D.cats.some(c=>TERMS.some(t=>t.cat==c))){co
 <div class="lbl">Số câu: <span class="mono">${D.n}</span></div><input type="range" id="n" min="4" max="20" value="${D.n}" oninput="D.n=+this.value;this.previousElementSibling.lastChild.textContent=this.value" style="width:100%">
 <label class="lbl" for="th">Bối cảnh tình huống (AI dựng hội thoại)</label><textarea id="th" rows="2" placeholder="${st?'VD: Khách hàng nhà xưởng ở Bình Dương báo màu tấm lợp lệch so với mẫu duyệt':'VD: Thảo luận với bạn về ô nhiễm không khí ở thành phố'}" oninput="D.theme=this.value">${esc(D.theme)}</textarea>
 <button class="btn" onclick="saveLesson()">Lưu & bắt đầu</button><button class="btn ghost" onclick="aiScene()">✨ AI viết hội thoại mẫu từ bối cảnh</button><div id="scene"></div></div>
-<h2 id="up">Tạo bài từ tài liệu</h2><p class="mut">Tải lên tài liệu tiếng Anh (spec, tiêu chuẩn, email, báo cáo test…). AI đọc, chọn thuật ngữ quan trọng, dịch và tạo bài học.</p>
-<div class="stack"><label class="btn ghost" for="file" style="display:block">Chọn file .pdf, .docx, .txt</label><input type="file" id="file" accept=".pdf,.docx,.txt,.md" hidden onchange="readDoc(this.files[0])">
+<h2 id="up">Tạo bài từ tài liệu & hình ảnh</h2><p class="mut">Chụp trang sách, bảng thông số, slide… hoặc tải file lên. AI đọc chữ, chọn từ quan trọng, dịch và tạo bài học cho khóa ${esc(shortName(curTrack())||'này')}.</p>
+<div class="up-grid"><label class="up-tile" for="cam"><span class="up-ic">📷</span><b>Chụp ảnh</b><small>Camera</small></label><input type="file" id="cam" accept="image/*" capture="environment" hidden onchange="readImgs(this.files)">
+<label class="up-tile" for="gal"><span class="up-ic">🖼️</span><b>Chọn ảnh</b><small>Tối đa 5 ảnh</small></label><input type="file" id="gal" accept="image/*" multiple hidden onchange="readImgs(this.files)">
+<label class="up-tile" for="file"><span class="up-ic">📄</span><b>Tải file</b><small>PDF · Word · TXT</small></label><input type="file" id="file" accept=".pdf,.docx,.txt,.md" hidden onchange="readDoc(this.files[0])"></div>
+<div id="thumbs" class="thumbs"></div><div class="stack">
 <textarea id="paste" rows="4" placeholder="…hoặc dán đoạn văn bản tiếng Anh vào đây"></textarea>
 <div class="row"><label class="lbl" for="cnt">Số thuật ngữ</label><select id="cnt" style="width:auto"><option>8</option><option selected>12</option><option>20</option></select></div>
 <button class="btn" id="bld" onclick="buildFromDoc()">✨ AI tạo bài học</button><div id="dst" class="mut" style="font-size:.86rem"></div></div>`}
 let DOC={name:'',text:''};
 function lib(src,g){return new Promise((ok,no)=>{if(window[g])return ok(window[g]);const s=document.createElement('script');s.src=src;s.onload=()=>ok(window[g]);s.onerror=()=>no(new Error('load'));document.head.appendChild(s)})}
+
+// Ảnh → chữ (thu nhỏ ảnh trên máy trước khi gửi để nhanh & tiết kiệm)
+function shrink(file,max=1600){return new Promise((ok,no)=>{const img=new Image();img.onload=()=>{const s=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(img.src);ok(c.toDataURL('image/jpeg',.82))};img.onerror=()=>no(new Error('Không mở được ảnh'));img.src=URL.createObjectURL(file)})}
+async function ocrData(urls,st){if(!USER)throw new Error('Cần đăng nhập để AI đọc ảnh');const r=await ai('ocr',{images:urls.map(u=>({data:u.split(',')[1],mime:'image/jpeg'}))});if(r.error)throw new Error(r.error);return String(r.text||'').replace(/\s+/g,' ').trim()}
+async function readImgs(files){const st=$('#dst');const L=[...(files||[])].slice(0,5);if(!L.length)return;st.textContent=`Đang xử lý ${L.length} ảnh…`;
+ try{const urls=await Promise.all(L.map(f=>shrink(f)));$('#thumbs').innerHTML=urls.map(u=>`<img src="${u}" alt="Ảnh đã chọn">`).join('');st.textContent='AI đang đọc chữ trong ảnh…';
+  const text=await ocrData(urls,st);if(text.length<40){st.textContent='Ảnh chưa có đủ chữ để tạo bài. Hãy chụp gần và rõ hơn.';return}
+  DOC={name:L.length>1?L.length+' ảnh':(L[0].name||'Ảnh chụp'),text};$('#paste').value=text.slice(0,4000)+(text.length>4000?' …':'');st.textContent=`Đã đọc ${text.split(' ').length.toLocaleString('vi')} từ từ ảnh. Kiểm tra lại rồi bấm “AI tạo bài học”.`}
+ catch(e){st.textContent=e.code=='login'?'Cần đăng nhập để AI đọc ảnh':'Chưa đọc được ảnh: '+(e.message||e)}}
 async function readDoc(f){if(!f)return;const st=$('#dst');st.textContent='Đang đọc “'+f.name+'”…';try{let text='';const ext=f.name.split('.').pop().toLowerCase();
 if(ext=='pdf'){await lib('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js','pdfjsWorker');const P=await lib('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js','pdfjsLib');
 const pdf=await P.getDocument({data:await f.arrayBuffer()}).promise;for(let i=1;i<=Math.min(pdf.numPages,30);i++){const c=await (await pdf.getPage(i)).getTextContent();text+=c.items.map(x=>x.str).join(' ')+'\n'}}
 else if(ext=='docx'){const M=await lib('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js','mammoth');text=(await M.extractRawText({arrayBuffer:await f.arrayBuffer()})).value}
 else text=await f.text();
-text=text.replace(/\s+/g,' ').trim();if(text.length<80){st.textContent='Không đọc được chữ trong file này (có thể là bản scan). Hãy dán văn bản vào ô bên dưới.';return}
+text=text.replace(/\s+/g,' ').trim();if(text.length<80&&ext=='pdf'){st.textContent='File là bản scan, AI đang đọc chữ trong ảnh…';const P=window.pdfjsLib;const pdf=await P.getDocument({data:await f.arrayBuffer()}).promise;const imgs=[];for(let i=1;i<=Math.min(pdf.numPages,5);i++){const pg=await pdf.getPage(i);const vp=pg.getViewport({scale:1.6});const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;imgs.push(c.toDataURL('image/jpeg',.8))}text=await ocrData(imgs,st)}if(!text||text.length<80){st.textContent='Không đọc được chữ trong file này. Hãy chụp ảnh rõ hơn hoặc dán văn bản vào ô bên dưới.';return}
 DOC={name:f.name,text};$('#paste').value=text.slice(0,4000)+(text.length>4000?' …':'');st.textContent=`Đã đọc ${text.split(' ').length.toLocaleString('vi')} từ. Bấm “AI tạo bài học”.`}catch(e){st.textContent='Không mở được file. Thử lưu sang .txt hoặc dán nội dung vào ô bên dưới.'}}
 async function buildFromDoc(){const st=$('#dst'),b=$('#bld');const pasted=$('#paste').value.trim();const text=(DOC.text&&pasted.endsWith('…')?DOC.text:pasted).slice(0,14000);const name=DOC.text?DOC.name:'Văn bản dán';
 if(text.length<80)return st.textContent='Cần ít nhất vài câu tiếng Anh để AI tạo bài.';b.disabled=true;st.textContent='AI đang đọc tài liệu và soạn bài…';
-try{const n=+$('#cnt').value;const r=await ai('lesson',{text,n});
+try{const n=+$('#cnt').value;const r=await ai('lesson',{text,n,course:curTrack()?.name||''});
 const terms=(r.terms||[]).filter(x=>x&&x.en&&x.vi).slice(0,n).map(x=>({en:String(x.en),vi:String(x.vi),ex:String(x.ex||''),exvi:String(x.exvi||''),cat:'doc'}));if(terms.length<4)throw 0;
 const l={id:'d'+Date.now(),name:r.title||('Bài từ '+name),src:name,mode:'quiz',n:terms.length,cats:['doc'],terms};S.lessons.unshift(l);save();st.textContent='';toast('Đã tạo bài “'+l.name+'”');start(l)}
 catch(e){st.textContent=e&&e.code=='rate_limited'?'AI đang bận, thử lại sau ít phút.':e&&e.code=='login'?'Hãy đăng nhập ở trang Học trước khi dùng AI.':'AI chưa tạo được bài. Thử đoạn văn ngắn hơn hoặc rõ hơn.'}finally{b.disabled=false}}

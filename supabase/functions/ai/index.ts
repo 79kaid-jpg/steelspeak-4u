@@ -135,6 +135,42 @@ async function transcribe(admin: any, b64: string, mime: string, target: string)
   throw new Error("Chấm phát âm lỗi: " + errs.join(" | ").slice(0, 300));
 }
 
+// Đọc chữ trong ảnh (OCR) bằng AI có thị giác: Groq (Llama 4) hoặc Gemini
+async function ocrImages(admin: any, imgs: { data: string; mime: string }[]): Promise<{ text: string; _provider: string }> {
+  const order = (await preferredOrder(admin)).filter((p) => p === "groq" || p === "gemini");
+  if (!order.length) throw new Error("Đọc ảnh cần GROQ_API_KEY hoặc GEMINI_API_KEY");
+  const ask = "Transcribe ALL readable text in these images exactly, in reading order. Keep English as-is. Output plain text only, no commentary.";
+  const errs: string[] = [];
+  for (const p of order) {
+    try {
+      if (p === "groq") {
+        const k = env("GROQ_API_KEY");
+        let model = env("GROQ_VISION_MODEL") || MODEL_CACHE["groqvision"];
+        if (!model) {
+          const all: string[] = ((await (await fetch("https://api.groq.com/openai/v1/models", { headers: { Authorization: "Bearer " + k } })).json()).data ?? []).map((m: any) => String(m.id));
+          model = all.find((n) => /llama-4-scout/.test(n)) || all.find((n) => /llama-4|vision|maverick/.test(n)) || "";
+          if (!model) throw new Error("groq: không có model đọc ảnh");
+          MODEL_CACHE["groqvision"] = model;
+        }
+        const r = await fetch(OAI_URL.groq, { method: "POST", headers: { Authorization: "Bearer " + k, "Content-Type": "application/json" },
+          body: JSON.stringify({ model, temperature: 0, max_tokens: 4000, messages: [{ role: "user", content: [{ type: "text", text: ask }, ...imgs.slice(0, 5).map((i) => ({ type: "image_url", image_url: { url: `data:${i.mime};base64,${i.data}` } }))] }] }) });
+        if (!r.ok) throw new Error(`groq ${r.status}: ${(await r.text()).slice(0, 160)}`);
+        const text = String((await r.json()).choices?.[0]?.message?.content ?? "").trim();
+        if (text) return { text, _provider: "groq" };
+        throw new Error("groq: rỗng");
+      }
+      const model = env("GEMINI_MODEL") || await autoModel("gemini");
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env("GEMINI_API_KEY")}`, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ role: "user", parts: [...imgs.map((i) => ({ inlineData: { mimeType: i.mime, data: i.data } })), { text: ask }] }], generationConfig: { temperature: 0 } }) });
+      if (!r.ok) throw new Error(`gemini ${r.status}: ${(await r.text()).slice(0, 160)}`);
+      const g = await r.json(); const text = (g.candidates?.[0]?.content?.parts ?? []).map((x: any) => x.text ?? "").join("").trim();
+      if (text) return { text, _provider: "gemini" };
+      throw new Error("gemini: rỗng");
+    } catch (e) { errs.push(String((e as Error).message ?? e)); }
+  }
+  throw new Error("Đọc ảnh lỗi: " + errs.join(" | ").slice(0, 300));
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   try {
@@ -161,8 +197,9 @@ Deno.serve(async (req) => {
       const n = Math.min(Math.max(Number(body.n) || 12, 4), 20);
       const text = String(body.text ?? "").slice(0, 14000);
       if (text.length < 80) return json({ error: "Văn bản quá ngắn" }, 400);
-      prompt = `You build vocabulary lessons for ${AUDIENCE}
-From the DOCUMENT below, pick the ${n} most useful technical or professional English terms/phrases for this audience (prefer product, quality, testing, material, process terms; skip trivial words). For each give: "en" (term as in document), "vi" (accurate Vietnamese technical translation), "ex" (a short sentence from or closely based on the document using the term), "exvi" (Vietnamese translation of ex). Also give "title": a short Vietnamese lesson title.
+      const aud = body.course ? `Vietnamese learners in the English course "${String(body.course).slice(0, 120)}".` : AUDIENCE;
+      prompt = `You build vocabulary lessons for ${aud}
+From the DOCUMENT below, pick the ${n} most useful English terms/phrases for this audience (prefer domain-specific and academic vocabulary; skip trivial words). For each give: "en" (term as in document), "vi" (accurate Vietnamese technical translation), "ex" (a short sentence from or closely based on the document using the term), "exvi" (Vietnamese translation of ex). Also give "title": a short Vietnamese lesson title.
 Return JSON only: {"title":"...","terms":[{"en":"","vi":"","ex":"","exvi":""}]}
 DOCUMENT:
 """${text}"""`;
@@ -182,6 +219,10 @@ Every fact must be supported by the document. Add "explanation": one short Vietn
 Return JSON only: {"questions":[{"type":"mcq","prompt":"","options":["","","",""],"answer":0,"explanation":""}]}
 DOCUMENT:
 """${text}"""`;
+    } else if (body.task === "ocr") {
+      const imgs = (Array.isArray(body.images) ? body.images : []).slice(0, 5).map((i: any) => ({ data: String(i.data ?? ""), mime: /^image\/(jpeg|png|webp)$/.test(String(i.mime)) ? String(i.mime) : "image/jpeg" })).filter((i: any) => i.data.length > 500 && i.data.length < 6_000_000);
+      if (!imgs.length) return json({ error: "Không có ảnh hợp lệ" }, 400);
+      try { return json(await ocrImages(admin, imgs)); } catch (e) { return json({ error: String((e as Error).message ?? e) }, 502); }
     } else if (body.task === "pron") {
       const audio = String(body.audio ?? "");
       if (audio.length < 1000 || audio.length > 4_000_000) return json({ error: "Bản ghi không hợp lệ" }, 400);
