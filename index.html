@@ -96,7 +96,7 @@ nav button.on::before{content:"";position:absolute;top:0;left:28%;right:28%;heig
 .fc-stage{position:relative;margin-top:14px;perspective:1400px;height:min(62vh,440px)}
 .fc-peek{position:absolute;inset:10px 10px -8px;border-radius:22px;background:var(--card);border:1px solid var(--line);transform:translateY(8px) scale(.97);opacity:.8}
 .fc-peek2{transform:translateY(16px) scale(.94);opacity:.5}
-.fc-card{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.2,.8,.2,1);cursor:pointer;touch-action:pan-y;user-select:none}
+.fc-card{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .45s cubic-bezier(.2,.8,.2,1);cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
 .fc-card.is-flipped{transform:rotateY(180deg)}
 .fc-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:22px;padding:22px 20px 76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;
  background:linear-gradient(180deg,var(--card),var(--card)) padding-box,linear-gradient(160deg,var(--zinc),var(--line) 45%,var(--zinc)) border-box;border:1.5px solid transparent;box-shadow:0 10px 30px rgba(20,33,46,.10)}
@@ -1209,7 +1209,7 @@ function vFlash(){const g=S.game,t=g.q[0];if(!t)return vFlashDone();const s=card
   <div class="fc-face fc-back">${back}<div class="fc-speak">${spk(t.en)}${t.ex?spk(t.ex):''}</div></div>
   <div class="fc-stamp fc-stamp-l">HỌC LẠI</div><div class="fc-stamp fc-stamp-r">ĐÃ NHỚ</div>
  </div></div>
- ${g.flip?`<div class="fc-grades">${btn(0,'Học lại','g0')}${btn(1,'Khó','g1')}${btn(2,'Tốt','g2')}${btn(3,'Dễ','g3')}</div><p class="mut" style="text-align:center;font-size:.78rem;margin:6px 0 0">Vuốt trái: Học lại · Vuốt phải: Tốt · Phím 1–4</p>`
+ ${g.flip?`<div class="fc-grades">${btn(0,'Học lại','g0')}${btn(1,'Khó','g1')}${btn(2,'Tốt','g2')}${btn(3,'Dễ','g3')}</div><p class="mut" style="text-align:center;font-size:.78rem;margin:6px 0 0">← Vuốt trái: Học lại · Vuốt phải: Đã nhớ → · Phím 1–4</p>`
  :`<button class="btn" style="width:100%;margin-top:14px" onclick="flipFc()">Hiện đáp án</button><p class="mut" style="text-align:center;font-size:.78rem;margin:6px 0 0">Nhớ lại trong đầu trước khi lật, hiệu quả gấp đôi</p>`}`}
 function flipFc(){const g=S.game;g.flip=!g.flip;render();if(g.flip&&S.fc.auto&&S.fc.front=='vi')say(g.q[0].en)}
 function grade(gr){const g=S.game,t=g.q.shift();g.hist.push({t,prev:S.srs[t.en]?{...S.srs[t.en]}:null,q:[t,...g.q],seen:{...g.seen},grades:{...g.grades}});
@@ -1224,11 +1224,19 @@ function vFlashDone(){const g=S.game,G=g.grades,tot=G[1]+G[2]+G[3];const nxt=Obj
  <p class="mut" style="text-align:center">${nxt?'Lượt ôn tiếp theo: '+new Date(nxt.due).toLocaleString('vi',{weekday:'long',hour:'2-digit',minute:'2-digit'}):''}</p>
  <div class="stack"><button class="btn" onclick="startFlash(S.game.l)">Học thêm thẻ mới</button>${Object.keys(S.wrong).length?'<button class="btn ghost" onclick="reviewWrong()">Ôn sổ từ sai</button>':''}<button class="btn ghost" onclick="S.game=null;render()">Về trang chính</button></div>`}
 /* gestures + keys */
-(function(){let x0=null,y0=0,dx=0,el=null;
-document.addEventListener('pointerdown',e=>{el=e.target.closest('#fcc');if(!el||e.target.closest('button'))return el=null;x0=e.clientX;y0=e.clientY;dx=0;el.setPointerCapture(e.pointerId);el.style.transition='none'});
-document.addEventListener('pointermove',e=>{if(!el||x0==null)return;dx=e.clientX-x0;if(Math.abs(dx)<6)return;el.style.transform=`translateX(${dx}px) rotate(${dx/18}deg)`+(S.game.flip?' rotateY(180deg)':'');el.classList.toggle('swipe-l',dx<-40);el.classList.toggle('swipe-r',dx>40)});
-document.addEventListener('pointerup',e=>{if(!el)return;const d=dx;el.style.transition='';el.style.transform='';el.classList.remove('swipe-l','swipe-r');const c=el;el=null;x0=null;
- if(Math.abs(d)<8){flipFc();return}if(d>90){c.style.transform='translateX(120%) rotate(18deg)';setTimeout(()=>grade(2),160)}else if(d<-90){c.style.transform='translateX(-120%) rotate(-18deg)';setTimeout(()=>grade(0),160)}});
+(function(){let x0=null,y0=0,dx=0,dy=0,t0=0,el=null,axis=null;
+function reset(c){if(!c)return;c.style.transition='';c.style.transform='';c.classList.remove('swipe-l','swipe-r')}
+document.addEventListener('pointerdown',e=>{el=e.target.closest('#fcc');if(!el||e.target.closest('button'))return el=null;x0=e.clientX;y0=e.clientY;dx=dy=0;axis=null;t0=performance.now();try{el.setPointerCapture(e.pointerId)}catch(_){}el.style.transition='none'});
+document.addEventListener('pointermove',e=>{if(!el||x0==null)return;dx=e.clientX-x0;dy=e.clientY-y0;if(!axis){if(Math.hypot(dx,dy)<8)return;axis=Math.abs(dx)>Math.abs(dy)?'x':'y'}if(axis!='x')return;e.preventDefault();
+ const fl=S.game.flip;el.style.transform=`translateX(${dx}px) rotate(${dx/16}deg)`+(fl?' rotateY(180deg)':'');const th=el.offsetWidth*.22;el.classList.toggle('swipe-l',fl&&dx<-th);el.classList.toggle('swipe-r',fl&&dx>th);
+ if(fl&&Math.abs(dx)>th&&!el._buzz){el._buzz=1;navigator.vibrate&&navigator.vibrate(10)}else if(Math.abs(dx)<th)el._buzz=0},{passive:false});
+document.addEventListener('pointercancel',()=>{reset(el);el=null;x0=null});
+document.addEventListener('pointerup',e=>{if(!el)return;const d=dx,c=el,v=Math.abs(d)/Math.max(1,performance.now()-t0),th=c.offsetWidth*.22;el=null;x0=null;
+ if(!axis||(axis=='x'&&Math.abs(d)<8)){reset(c);flipFc();return}
+ if(axis!='x'){reset(c);return}
+ if(!S.game.flip){reset(c);flipFc();return}           // chưa lật: vuốt = lật thẻ để xem đáp án trước
+ const go=Math.abs(d)>th||(v>.45&&Math.abs(d)>30);if(!go){reset(c);return}
+ c.style.transition='transform .2s ease-in';c.style.transform=`translateX(${d>0?130:-130}%) rotate(${d>0?20:-20}deg) rotateY(180deg)`;setTimeout(()=>{reset(c);grade(d>0?2:0)},180)});
 document.addEventListener('keydown',e=>{if(!S.game||!S.game.fc||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.code=='Space'||e.key=='Enter'){e.preventDefault();flipFc()}else if(S.game.flip&&'1234'.includes(e.key)){grade(+e.key-1)}else if(e.key=='z'&&(e.ctrlKey||e.metaKey))undoFc()})})();
 
 /* ===================== SPEED SAGA ===================== */
