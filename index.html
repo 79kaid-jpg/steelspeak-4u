@@ -853,7 +853,14 @@ function lib(src,g){return new Promise((ok,no)=>{if(window[g])return ok(window[g
 
 // Ảnh → chữ (thu nhỏ ảnh trên máy trước khi gửi để nhanh & tiết kiệm)
 function shrink(file,max=1600){return new Promise((ok,no)=>{const img=new Image();img.onload=()=>{const s=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(img.src);ok(c.toDataURL('image/jpeg',.82))};img.onerror=()=>no(new Error('Không mở được ảnh'));img.src=URL.createObjectURL(file)})}
-async function ocrData(urls,st){if(!USER)throw new Error('Cần đăng nhập để AI đọc ảnh');const r=await ai('ocr',{images:urls.map(u=>({data:u.split(',')[1],mime:'image/jpeg'}))});if(r.error)throw new Error(r.error);return String(r.text||'').replace(/\s+/g,' ').trim()}
+async function ocrData(urls,st){let srvErr='';
+ if(USER){try{const r=await ai('ocr',{images:urls.map(u=>({data:u.split(',')[1],mime:'image/jpeg'}))});if(!r.error&&r.text)return String(r.text).replace(/\s+/g,' ').trim();srvErr=r.error||''}catch(e){srvErr=e.message||''}}
+ // Dự phòng miễn phí: đọc chữ ngay trên máy bằng Tesseract (lần đầu tải ~10MB)
+ if(st)st.textContent='Đang đọc chữ ngay trên máy (lần đầu hơi lâu)…';
+ const T=await lib('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js','Tesseract');
+ const w=await T.createWorker('eng',1,{logger:m=>{if(st&&m.status=='recognizing text')st.textContent='Đang đọc chữ… '+Math.round(m.progress*100)+'%'}});
+ let out='';for(const u of urls){const {data}=await w.recognize(u);out+=data.text+'\n'}await w.terminate();
+ out=out.replace(/\s+/g,' ').trim();if(!out&&srvErr)throw new Error(srvErr);return out}
 async function readImgs(files){const st=$('#dst');const L=[...(files||[])].slice(0,5);if(!L.length)return;st.textContent=`Đang xử lý ${L.length} ảnh…`;
  try{const urls=await Promise.all(L.map(f=>shrink(f)));$('#thumbs').innerHTML=urls.map(u=>`<img src="${u}" alt="Ảnh đã chọn">`).join('');st.textContent='AI đang đọc chữ trong ảnh…';
   const text=await ocrData(urls,st);if(text.length<40){st.textContent='Ảnh chưa có đủ chữ để tạo bài. Hãy chụp gần và rõ hơn.';return}
