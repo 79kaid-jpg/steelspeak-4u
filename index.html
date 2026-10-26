@@ -1449,7 +1449,7 @@ const THEME_SCN={
  space:[
   {sky:['#140f3a','#3a2a7a'],hill:['#2a2160','#1c1648'],props:['planet','rocket','moon','comet'],night:true,bush:false,stars:60},
   {sky:['#0f2a3a','#1f5a6e'],hill:['#164a5a','#0f3644'],props:['ringed','sat','planet','comet'],night:true,bush:false,stars:60}]};
-function themeOf(tr){return (tr&&tr.theme)||(tr&&/ielts/i.test(tr.slug||'')?'race':tr&&tr.kind=='cefr'?'travel':'factory')}
+function themeOf(tr){if(tr&&/ielts/i.test(tr.slug||'')&&(!tr.theme||tr.theme=='space'))return 'race';return (tr&&tr.theme)||(tr&&tr.kind=='cefr'?'travel':'factory')}
 function prop(t,x,y,s,i){const g=(c)=>`<g transform="translate(${x} ${y}) scale(${s})" class="pp pp-${t}" style="--d:${(i%5)*0.6}s">${c}</g>`;
  switch(t){
  case 'grandstand':return g(`<rect x="-40" y="-26" width="80" height="44" rx="3" fill="#3b4656"/>${[0,1,2,3].map(k=>`<rect x="-36" y="${-22+k*10}" width="72" height="6" fill="${['#e94b3c','#f2c14e','#3fa7d6','#7bc96f'][k]}"/>`).join('')}<path d="M-44 -26h88l-6 -10h-76z" fill="#d9dee5"/><rect x="-40" y="18" width="80" height="4" fill="#20262f"/>`);
@@ -1560,7 +1560,7 @@ async function eaSet(u,tid,s){const {error}=await SB.rpc('admin_set_enrollment',
 
 /* admin: quản lý khóa học */
 const TA={edit:null};
-const THEMES=[['factory','Nhà máy (công nghiệp)'],['travel','Vòng quanh thế giới'],['space','Vũ trụ']];
+const THEMES=[['factory','Nhà máy (công nghiệp)'],['travel','Vòng quanh thế giới'],['space','Vũ trụ'],['race','🏁 Đường đua xe']];
 function catsText(c){return Object.entries(c||{}).map(([k,v])=>k+': '+v).join('\n')}
 function vTrackAdmin(){if(TR.legacy||!TR.ready)return '';const e=TA.edit;
  const form=e?`<div class="card stack" style="margin-top:10px"><div class="lbl">${e.id?'Sửa khóa học':'Tạo khóa học mới'}</div>

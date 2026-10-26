@@ -153,3 +153,5 @@ insert into public.words(track_id,term,meaning_vi,example,example_vi,cat,status,
 ((select id from public.tracks where slug='ielts65'),'To be honest','Thành thật mà nói','To be honest, I rarely take the bus.','Thành thật mà nói, tôi hiếm khi đi xe buýt.','phr','approved','SteelSpeak',142),
 ((select id from public.tracks where slug='ielts65'),'That''s a tough question','Đó là câu hỏi khó','That''s a tough question, but I think cities are better.','Câu hỏi khó đấy, nhưng tôi nghĩ thành phố tốt hơn.','phr','approved','SteelSpeak',143)
 on conflict do nothing;
+-- Giao diện đường đua xe cho IELTS
+do $$ begin update public.tracks set theme='race' where slug='ielts65'; exception when undefined_column then null; end $$;
