@@ -87,6 +87,13 @@ async function callOneM(p: string, prompt: string, temperature: number, model: s
     method: "POST", headers: { Authorization: "Bearer " + k, "Content-Type": "application/json" },
     body: JSON.stringify({ model, temperature, messages: [{ role: "system", content: sys }, { role: "user", content: prompt }],
       ...(p === "openrouter" ? {} : { response_format: { type: "json_object" } }) }) });
+  if (r.status === 400 && p !== "openrouter") {
+    const t = await r.text();
+    if (/json/i.test(t)) { // model không xuất được JSON mode: thử lại không ép JSON, tự tách JSON
+      r = await fetch(OAI_URL[p], { method: "POST", headers: { Authorization: "Bearer " + k, "Content-Type": "application/json" },
+        body: JSON.stringify({ model, temperature, max_tokens: 6000, messages: [{ role: "system", content: sys }, { role: "user", content: prompt }] }) });
+    } else throw new Error(`${p} 400: ${t.slice(0, 160)}`);
+  }
   if (!r.ok) throw new Error(`${p} ${r.status}: ${(await r.text()).slice(0, 160)}`);
   const g = await r.json(); return g.choices?.[0]?.message?.content ?? "";
 }

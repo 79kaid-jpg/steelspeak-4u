@@ -92,6 +92,13 @@ async function callOneM(p: string, prompt: string, temperature: number, model: s
     method: "POST", headers: { Authorization: "Bearer " + k, "Content-Type": "application/json" },
     body: JSON.stringify({ model, temperature, messages: [{ role: "system", content: sys }, { role: "user", content: prompt }],
       ...(p === "openrouter" ? {} : { response_format: { type: "json_object" } }) }) });
+  if (r.status === 400 && p !== "openrouter") {
+    const t = await r.text();
+    if (/json/i.test(t)) { // model không xuất được JSON mode: thử lại không ép JSON, tự tách JSON
+      r = await fetch(OAI_URL[p], { method: "POST", headers: { Authorization: "Bearer " + k, "Content-Type": "application/json" },
+        body: JSON.stringify({ model, temperature, max_tokens: 6000, messages: [{ role: "system", content: sys }, { role: "user", content: prompt }] }) });
+    } else throw new Error(`${p} 400: ${t.slice(0, 160)}`);
+  }
   if (!r.ok) throw new Error(`${p} ${r.status}: ${(await r.text()).slice(0, 160)}`);
   const g = await r.json(); return g.choices?.[0]?.message?.content ?? "";
 }
@@ -148,8 +155,8 @@ async function ocrImages(admin: any, imgs: { data: string; mime: string }[]): Pr
         let model = env("GROQ_VISION_MODEL") || MODEL_CACHE["groqvision"];
         if (!model) {
           const all: string[] = ((await (await fetch("https://api.groq.com/openai/v1/models", { headers: { Authorization: "Bearer " + k } })).json()).data ?? []).map((m: any) => String(m.id));
-          model = all.find((n) => /llama-4-scout/.test(n)) || all.find((n) => /llama-4|vision|maverick/.test(n)) || "";
-          if (!model) throw new Error("groq: không có model đọc ảnh");
+          model = all.find((n) => /llama-4-scout/.test(n)) || all.find((n) => /llama-4|maverick|vision|-vl|vl-|pixtral|gemma-3|scout/i.test(n)) || "";
+          if (!model) throw new Error("groq: không có model đọc ảnh (" + all.slice(0, 40).join(",") + ")");
           MODEL_CACHE["groqvision"] = model;
         }
         const r = await fetch(OAI_URL.groq, { method: "POST", headers: { Authorization: "Bearer " + k, "Content-Type": "application/json" },
@@ -191,7 +198,9 @@ Deno.serve(async (req) => {
     const body = await req.json();
     let prompt = "";
     if (body.task === "providers") {
-      return json({ available: Object.keys(PROVIDERS).filter((p) => env(PROVIDERS[p].key)), order: await preferredOrder(admin) });
+      let groq: string[] = [];
+      if (env("GROQ_API_KEY")) { try { groq = ((await (await fetch("https://api.groq.com/openai/v1/models", { headers: { Authorization: "Bearer " + env("GROQ_API_KEY") } })).json()).data ?? []).map((m: any) => String(m.id)); } catch (_) { /* bỏ qua */ } }
+      return json({ available: Object.keys(PROVIDERS).filter((p) => env(PROVIDERS[p].key)), order: await preferredOrder(admin), groq });
     }
     if (body.task === "lesson") {
       const n = Math.min(Math.max(Number(body.n) || 12, 4), 20);
