@@ -242,13 +242,17 @@ function gen(level,ctx){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.ch
            ['mean','rev','listen','cloze','mean','rev','listen','cloze','mean','rev'],
            ['rev','listen','cloze','mean','listen','cloze','rev','mean','cloze','order'],
            ['cloze','listen','rev','cloze','listen','mean','cloze','rev','listen','order']][k];
- if(boss&&!(ch.seq))plan=plan.map(function(x){return x==='order'?'cloze':x});
- var seq=ch.seq?SEQS.filter(function(s){return s.id===ch.seq})[0]:null;
+ // Câu xếp thứ tự: ưu tiên quy trình trong ngân hàng (admin sửa được) theo đúng chương, nếu không có thì dùng quy trình mặc định
+ var bOrd=(ctx.bank||[]).filter(function(q){return q.type==='order'&&q.cat&&q.cat===ch.cat&&(q.level_min||1)<=level});
+ var seq=null;
+ if(bOrd.length){var bo=bOrd[Math.floor(rng(hash('ord-'+ctx.slug+'-L'+level))()*bOrd.length)];seq={id:'bank'+bo.id,bank:bo.id,title:bo.prompt,steps:bo.options.map(String)}}
+ else if(ch.seq)seq=SEQS.filter(function(s){return s.id===ch.seq})[0]||null;
+ if(boss&&!seq)plan=plan.map(function(x){return x==='order'?'cloze':x});
  var used=[],qs=[];
  plan.forEach(function(type){
   if(type==='order'){
    if(seq){var all=seq.steps.length<=7,start=all?0:Math.floor(r()*Math.max(1,seq.steps.length-4)),steps=all?seq.steps.slice():seq.steps.slice(start,start+5);
-    qs.push({type:'order',prompt:all?seq.title:seq.title+' (bước '+(start+1)+'–'+(start+steps.length)+')',items:shuffle(steps.map(function(s,i){return {i:i,t:s}}),r),n:steps.length});return}
+    qs.push({type:'order',bank:seq.bank,prompt:all?seq.title:seq.title+' (bước '+(start+1)+'–'+(start+steps.length)+')',items:shuffle(steps.map(function(s,i){return {i:i,t:s}}),r),n:steps.length});return}
    type='cloze'}
   var t=pick(pool,1,r,used)[0]||pick(own,1,r,[])[0];used.push(t);
   if(type==='cloze'&&!blank(t))type='rev';
@@ -260,7 +264,7 @@ function gen(level,ctx){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.ch
   else{q.prompt=blank(t);q.hint=t.exvi;q.opts=opts.map(function(o){return o.en})}
   qs.push(q)});
  // Trộn câu hỏi từ ngân hàng (thay câu mean/rev/cloze, tối đa 2; trùm 3)
- var bk=(ctx.bank||[]).filter(function(q){return (q.level_min||1)<=level&&(!q.cat||q.cat===ch.cat)});
+ var bk=(ctx.bank||[]).filter(function(q){return (q.level_min||1)<=level&&(!q.cat||q.cat===ch.cat)&&!(q.type==='order'&&q.cat)});
  if(bk.length){var rb=rng(hash('bank-'+ctx.slug+'-L'+level+'-'+bk.length)),take=pick(bk,boss?3:2,rb,[]);
   var slots=[];qs.forEach(function(q,i){if(q.type==='mean'||q.type==='rev'||q.type==='cloze')slots.push(i)});slots=shuffle(slots,rb);
   take.forEach(function(b,j){if(j>=slots.length)return;var nq;
