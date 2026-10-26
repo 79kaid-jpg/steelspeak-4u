@@ -749,7 +749,10 @@ function toast(t){const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeou
 /* ---- US voice ---- */
 let VOICE=null;function pickVoice(){const vs=speechSynthesis.getVoices().filter(v=>/en[-_]US/i.test(v.lang));VOICE=vs.find(v=>/Samantha|Google US|Aria|Jenny|Natural/i.test(v.name))||vs[0]||null}
 if('speechSynthesis' in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
-function say(t,rate=0.95){if(!('speechSynthesis' in window))return toast('Thiết bị chưa hỗ trợ đọc');const ss=speechSynthesis;if(!VOICE)pickVoice();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(VOICE)u.voice=VOICE;u.rate=rate;u.volume=1;window._utt=u;u.onerror=e=>{if(e.error!='interrupted'&&e.error!='canceled')toast('Không phát được âm thanh. iPhone: gạt nút im lặng bên hông máy & tăng âm lượng.')};if(ss.speaking||ss.pending)ss.cancel();ss.resume();ss.speak(u)}
+function say(t,rate=0.95){if(!('speechSynthesis' in window))return toast('Thiết bị chưa hỗ trợ đọc');const ss=speechSynthesis;if(!VOICE)pickVoice();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(VOICE)u.voice=VOICE;u.rate=rate;u.volume=1;window._utt=u;u.onerror=e=>{if(e.error!='interrupted'&&e.error!='canceled')toast('Không phát được âm thanh. iPhone: gạt nút im lặng bên hông máy & tăng âm lượng.')};const go=()=>{ss.resume();ss.speak(u)};if(ss.speaking||ss.pending){ss.cancel();setTimeout(go,120)}else if(!TTS_WARM){TTS_WARM=1;setTimeout(go,160)}else go()}
+// Làm nóng bộ đọc ngay lần chạm đầu tiên (tránh mất chữ đầu, mở khóa âm thanh trên iPhone)
+let TTS_WARM=0;function ttsWarm(){if(TTS_WARM||!('speechSynthesis' in window))return;try{const w=new SpeechSynthesisUtterance(' ');w.volume=0;w.rate=2;w.lang='en-US';w.onend=()=>{TTS_WARM=1};speechSynthesis.speak(w)}catch(e){}}
+['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,ttsWarm,{once:true,capture:true}));
 const spk=(t)=>`<button class="ic" aria-label="Nghe giọng Mỹ" onclick="event.stopPropagation();say(${esc(JSON.stringify(t))})">${svg('spk')}</button>`;
 const slow=(t)=>`<button class="ic" aria-label="Nghe chậm" onclick="event.stopPropagation();say(${esc(JSON.stringify(t))},0.6)">${svg('slow')}</button>`;
 /* ---- nav ---- */
