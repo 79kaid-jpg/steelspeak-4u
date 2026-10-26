@@ -30,6 +30,18 @@ function parseJSON(out: string) { const a = out.indexOf("{"), b = out.lastIndexO
 
 // Tự tìm model còn hoạt động nếu model mặc định bị gỡ
 const MODEL_CACHE: Record<string, string> = {};
+let GEM_ALL: string[] = [];
+// Gemini: thử lần lượt các model flash khi model đang dùng hết hạn mức (429) hoặc bị gỡ (404)
+async function geminiTry<T>(fn: (model: string) => Promise<T>): Promise<T> {
+  const first = env("GEMINI_MODEL") || MODEL_CACHE["geminichat"] || PROVIDERS.gemini.model;
+  try { return await fn(first); } catch (e) { if (!/ (429|404|400)/.test(String(e))) throw e;
+    if (!GEM_ALL.length) { try { await autoModel("gemini"); } catch (_) { /* */ } }
+    let last: unknown = e;
+    for (const m of GEM_ALL.filter((x) => x !== first).sort((a, b) => (/lite/.test(b) ? 1 : 0) - (/lite/.test(a) ? 1 : 0)).slice(0, 5)) {
+      try { const r = await fn(m); MODEL_CACHE["geminichat"] = m; return r; } catch (e2) { last = e2; }
+    }
+    throw last; }
+}
 async function autoModel(p: string, kind: "chat" | "stt" = "chat"): Promise<string> {
   const ck = p + kind; if (MODEL_CACHE[ck]) return MODEL_CACHE[ck];
   const k = env(PROVIDERS[p].key); let ids: string[] = [];
@@ -38,6 +50,7 @@ async function autoModel(p: string, kind: "chat" | "stt" = "chat"): Promise<stri
     const g = await r.json();
     ids = (g.models ?? []).filter((m: any) => (m.supportedGenerationMethods ?? []).includes("generateContent")).map((m: any) => String(m.name).replace("models/", ""))
       .filter((n: string) => /flash/.test(n) && !/image|tts|live|thinking|exp|preview/.test(n)).sort().reverse();
+    GEM_ALL = ids.slice();
   } else if (p === "anthropic") {
     const r = await fetch("https://api.anthropic.com/v1/models", { headers: { "x-api-key": k, "anthropic-version": "2023-06-01" } });
     ids = ((await r.json()).data ?? []).map((m: any) => m.id).filter((n: string) => /haiku/.test(n));
@@ -62,6 +75,7 @@ async function preferredOrder(admin: any): Promise<string[]> {
   return pref && all.includes(pref) ? [pref, ...free.filter((p) => p !== pref)] : free;
 }
 async function callOne(p: string, prompt: string, temperature: number): Promise<string> {
+  if (p === "gemini") return await geminiTry((m) => callOneM(p, prompt, temperature, m));
   try { return await callOneM(p, prompt, temperature, MODEL_CACHE[p + "chat"] ?? modelOf(p)); }
   catch (e) { if (!/ 40[04]/.test(String(e))) throw e; return await callOneM(p, prompt, temperature, await autoModel(p)); }
 }

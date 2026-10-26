@@ -35,6 +35,18 @@ function parseJSON(out: string) { const a = out.indexOf("{"), b = out.lastIndexO
 
 // Tự tìm model còn hoạt động nếu model mặc định bị gỡ
 const MODEL_CACHE: Record<string, string> = {};
+let GEM_ALL: string[] = [];
+// Gemini: thử lần lượt các model flash khi model đang dùng hết hạn mức (429) hoặc bị gỡ (404)
+async function geminiTry<T>(fn: (model: string) => Promise<T>): Promise<T> {
+  const first = env("GEMINI_MODEL") || MODEL_CACHE["geminichat"] || PROVIDERS.gemini.model;
+  try { return await fn(first); } catch (e) { if (!/ (429|404|400)/.test(String(e))) throw e;
+    if (!GEM_ALL.length) { try { await autoModel("gemini"); } catch (_) { /* */ } }
+    let last: unknown = e;
+    for (const m of GEM_ALL.filter((x) => x !== first).sort((a, b) => (/lite/.test(b) ? 1 : 0) - (/lite/.test(a) ? 1 : 0)).slice(0, 5)) {
+      try { const r = await fn(m); MODEL_CACHE["geminichat"] = m; return r; } catch (e2) { last = e2; }
+    }
+    throw last; }
+}
 async function autoModel(p: string, kind: "chat" | "stt" = "chat"): Promise<string> {
   const ck = p + kind; if (MODEL_CACHE[ck]) return MODEL_CACHE[ck];
   const k = env(PROVIDERS[p].key); let ids: string[] = [];
@@ -43,6 +55,7 @@ async function autoModel(p: string, kind: "chat" | "stt" = "chat"): Promise<stri
     const g = await r.json();
     ids = (g.models ?? []).filter((m: any) => (m.supportedGenerationMethods ?? []).includes("generateContent")).map((m: any) => String(m.name).replace("models/", ""))
       .filter((n: string) => /flash/.test(n) && !/image|tts|live|thinking|exp|preview/.test(n)).sort().reverse();
+    GEM_ALL = ids.slice();
   } else if (p === "anthropic") {
     const r = await fetch("https://api.anthropic.com/v1/models", { headers: { "x-api-key": k, "anthropic-version": "2023-06-01" } });
     ids = ((await r.json()).data ?? []).map((m: any) => m.id).filter((n: string) => /haiku/.test(n));
@@ -67,6 +80,7 @@ async function preferredOrder(admin: any): Promise<string[]> {
   return pref && all.includes(pref) ? [pref, ...free.filter((p) => p !== pref)] : free;
 }
 async function callOne(p: string, prompt: string, temperature: number): Promise<string> {
+  if (p === "gemini") return await geminiTry((m) => callOneM(p, prompt, temperature, m));
   try { return await callOneM(p, prompt, temperature, MODEL_CACHE[p + "chat"] ?? modelOf(p)); }
   catch (e) { if (!/ 40[04]/.test(String(e))) throw e; return await callOneM(p, prompt, temperature, await autoModel(p)); }
 }
@@ -166,11 +180,9 @@ async function ocrImages(admin: any, imgs: { data: string; mime: string }[]): Pr
         if (text) return { text, _provider: "groq" };
         throw new Error("groq: rỗng");
       }
-      const model = env("GEMINI_MODEL") || await autoModel("gemini");
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env("GEMINI_API_KEY")}`, { method: "POST", headers: { "Content-Type": "application/json" },
+      const g = await geminiTry(async (model) => { const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env("GEMINI_API_KEY")}`, { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ contents: [{ role: "user", parts: [...imgs.map((i) => ({ inlineData: { mimeType: i.mime, data: i.data } })), { text: ask }] }], generationConfig: { temperature: 0 } }) });
-      if (!r.ok) throw new Error(`gemini ${r.status}: ${(await r.text()).slice(0, 160)}`);
-      const g = await r.json(); const text = (g.candidates?.[0]?.content?.parts ?? []).map((x: any) => x.text ?? "").join("").trim();
+        if (!r.ok) throw new Error(`gemini ${r.status}: ${(await r.text()).slice(0, 160)}`); return await r.json(); }); const text = (g.candidates?.[0]?.content?.parts ?? []).map((x: any) => x.text ?? "").join("").trim();
       if (text) return { text, _provider: "gemini" };
       throw new Error("gemini: rỗng");
     } catch (e) { errs.push(String((e as Error).message ?? e)); }
