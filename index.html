@@ -530,6 +530,11 @@ body.in-game #nav{display:none}
 .fc-card .fc-face{background:color-mix(in srgb,#1f9d55 calc(max(var(--sw),0) * 38%),color-mix(in srgb,#d64545 calc(max(calc(var(--sw) * -1),0) * 38%),var(--card)))!important;transition:background .1s}
 .fc-stamp{font-size:1.6rem!important;padding:8px 16px!important;border-width:4px!important}
 .swipe-r .fc-face{box-shadow:0 0 0 4px #1f9d55 inset}.swipe-l .fc-face{box-shadow:0 0 0 4px #d64545 inset}
+
+.saga-bar{position:sticky;top:max(8px,env(safe-area-inset-top));z-index:40;margin:10px 0;padding:8px 16px;border-radius:99px;background:color-mix(in srgb,var(--card) 82%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);box-shadow:0 4px 14px rgba(0,0,0,.12);border:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.saga-fab{position:fixed;right:max(16px,calc(50vw - 224px));bottom:calc(86px + env(safe-area-inset-bottom));z-index:45;min-height:44px;padding:0 16px;border-radius:99px;border:0;background:var(--amber);color:#1a1205;font:700 .95rem var(--fd);box-shadow:0 6px 16px rgba(0,0,0,.25);cursor:pointer}
+body.in-game .saga-fab{display:none}
+.saga-bar>span{white-space:nowrap}.saga-bar>span.mut{display:none}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -1309,7 +1314,7 @@ function vMap(){const N=SCTX().LEVELS,open=sagaMaxOpen(),GAP=96,CHH=140,PADT=40;
   
   ${fr.length?`<div class="saga-friends">${fr.slice(0,2).map(u=>`<span title="${esc(u.name)}">${avatarHTML(u.avatar,u.user_id||u.name,30)}</span>`).join('')}${fr.length>2?`<span>+${fr.length-2}</span>`:''}</div>`:''}</div>`)}
  setTimeout(()=>{const el=document.querySelector('.saga-node.cur');if(el&&!SG.scrolled){el.scrollIntoView({block:'center'});SG.scrolled=1}},60);
- return `<div class="saga-bar"><span>★ <b>${sagaStars()}</b>/${N*3}</span><span>Level <b>${open}</b></span><span class="od-count" title="Số level đạt Overdrive">⚡ <b>${Object.values(SG.best).filter(x=>x.od).length}</b></span>${USER?'':'<span class="mut" style="font-size:.75rem">Đăng nhập để lên bảng xếp hạng</span>'}</div>
+ return `<button class="saga-fab" onclick="const n=document.querySelector('.saga-node.cur');n&&n.scrollIntoView({behavior:'smooth',block:'center'})" aria-label="Về level hiện tại">📍 Level ${open}</button><div class="saga-bar"><span>★ <b>${sagaStars()}</b>/${N*3}</span><span>Level <b>${open}</b></span><span class="od-count" title="Số level đạt Overdrive">⚡ <b>${Object.values(SG.best).filter(x=>x.od).length}</b></span>${USER?'':'<span class="mut" style="font-size:.75rem">Đăng nhập để lên bảng xếp hạng</span>'}</div>
  <div class="saga-map theme-${themeOf(curTrack())}" style="height:${H+96}px;margin-bottom:-96px">${bands}<svg class="saga-path" viewBox="0 0 100 ${H}" preserveAspectRatio="none"><path d="${d}" class="p00"/><path d="${d}" class="p0"/><path d="${d}" class="p1"/><path d="${d}" class="p2"/></svg>${nodes.join('')}${ghostMarkers(pos)}${racerMarkers(pos,open)}${meMarker(pos,open)}</div>`}
 function sagaIntro(lv){const L=SAGA.gen(lv,SCTX()),b=SG.best[lv]||{};const types={mean:'Chọn nghĩa',rev:'Chọn từ',listen:'Nghe & chọn',cloze:'Điền từ',order:'Xếp quy trình'};const cnt={};L.questions.forEach(q=>cnt[q.type]=(cnt[q.type]||0)+1);
  const m=document.createElement('div');m.className='saga-modal';m.innerHTML=`<div class="saga-sheet" role="dialog" aria-label="Level ${lv}"><div class="saga-sheet-top" style="background:linear-gradient(135deg,${CH_STYLE[L.chapter%8][0]},${CH_STYLE[L.chapter%8][1]})"><div class="lbl" style="color:#dfe9f3">Khu ${L.chapter+1} · ${esc(L.name)}</div><h1>Level ${lv}</h1><div class="saga-stars big">${[1,2,3].map(i=>`<i class="${i<=(b.stars||0)?'on':''}">★</i>`).join('')}</div></div>
