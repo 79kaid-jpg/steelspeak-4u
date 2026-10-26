@@ -525,6 +525,11 @@ body.in-game #nav{display:none}
 .mt-cell{touch-action:none;user-select:none;-webkit-user-select:none}.mt-cell.dragging{opacity:.35}.mt-cell.over{border-color:var(--amber)!important;transform:scale(1.03);box-shadow:0 0 0 3px color-mix(in srgb,var(--amber) 35%,transparent)}
 .mt-ghost{position:fixed;left:0;top:0;z-index:2147483647;pointer-events:none;padding:8px 10px;border-radius:14px;border:2px solid var(--amber);background:var(--card);font-size:.92rem;box-shadow:0 10px 24px rgba(0,0,0,.25);opacity:.95}
 .mt-line{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:2147483646}.mt-line line{stroke:var(--amber);stroke-width:4;stroke-dasharray:2 8}
+
+.fc-card{--sw:0}
+.fc-card .fc-face{background:color-mix(in srgb,#1f9d55 calc(max(var(--sw),0) * 38%),color-mix(in srgb,#d64545 calc(max(calc(var(--sw) * -1),0) * 38%),var(--card)))!important;transition:background .1s}
+.fc-stamp{font-size:1.6rem!important;padding:8px 16px!important;border-width:4px!important}
+.swipe-r .fc-face{box-shadow:0 0 0 4px #1f9d55 inset}.swipe-l .fc-face{box-shadow:0 0 0 4px #d64545 inset}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -1239,17 +1244,17 @@ function grade(gr){const g=S.game,t=g.q.shift();g.hist.push({t,prev:S.srs[t.en]?
  else{S.srs[t.en]={ef:n.ef,iv:n.iv,reps:n.reps,due:Date.now()+n.iv*DAY};g.seen[t.en]=1;if(gr>=2)hit(t);S.xp+=gr==3?6:gr==2?5:3}
  g.flip=false;tick();save();render();if(S.fc.auto&&g.q[0])setTimeout(sayFront,200)}
 function undoFc(){const g=S.game,h=g.hist.pop();if(!h)return;if(h.prev)S.srs[h.t.en]=h.prev;else delete S.srs[h.t.en];g.q=h.q;g.seen=h.seen;g.grades=h.grades;g.flip=true;save();render()}
-function vFlashDone(){const g=S.game,G=g.grades,tot=G[1]+G[2]+G[3];const nxt=Object.values(S.srs).filter(v=>v.due>Date.now()).sort((a,b)=>a.due-b.due)[0];
- return `<div class="coil" style="text-align:center;margin-top:16px"><div class="lbl">Hoàn thành phiên ôn</div><h1>${tot} thẻ đã thuộc</h1><p style="margin:6px 0 0;color:#d4e3f2">Phải học lại ${G[0]} lần</p></div>
+function vFlashDone(){const g=S.game,G=g.grades,tot=G[1]+G[2]+G[3];if(g.l.path&&!g.marked){g.marked=1;S.done[doneKey(g.l.path)]=1;save()}const nxt=Object.values(S.srs).filter(v=>v.due>Date.now()).sort((a,b)=>a.due-b.due)[0];
+ return `<div class="coil" style="text-align:center;margin-top:16px"><div class="lbl">${g.l.path?'✓ Đã hoàn thành chặng':'Hoàn thành phiên ôn'}</div><h1>${tot} thẻ đã thuộc</h1><p style="margin:6px 0 0;color:#d4e3f2">Phải học lại ${G[0]} lần</p></div>
  <div class="fc-sum"><div class="g0"><b>${G[0]}</b>Học lại</div><div class="g1"><b>${G[1]}</b>Khó</div><div class="g2"><b>${G[2]}</b>Tốt</div><div class="g3"><b>${G[3]}</b>Dễ</div></div>
  <p class="mut" style="text-align:center">${nxt?'Lượt ôn tiếp theo: '+new Date(nxt.due).toLocaleString('vi',{weekday:'long',hour:'2-digit',minute:'2-digit'}):''}</p>
  <div class="stack"><button class="btn" onclick="startFlash(S.game.l)">Học thêm thẻ mới</button>${Object.keys(S.wrong).length?'<button class="btn ghost" onclick="reviewWrong()">Ôn sổ từ sai</button>':''}<button class="btn ghost" onclick="S.game=null;render()">Về trang chính</button></div>`}
 /* gestures + keys */
 (function(){let x0=null,y0=0,dx=0,dy=0,t0=0,el=null,axis=null;
-function reset(c){if(!c)return;c.style.transition='';c.style.transform='';c.classList.remove('swipe-l','swipe-r')}
+function reset(c){if(!c)return;c.style.transition='';c.style.transform='';c.style.removeProperty('--sw');c.classList.remove('swipe-l','swipe-r')}
 document.addEventListener('pointerdown',e=>{el=e.target.closest('#fcc');if(!el||e.target.closest('button'))return el=null;x0=e.clientX;y0=e.clientY;dx=dy=0;axis=null;t0=performance.now();try{el.setPointerCapture(e.pointerId)}catch(_){}el.style.transition='none'});
 document.addEventListener('pointermove',e=>{if(!el||x0==null)return;dx=e.clientX-x0;dy=e.clientY-y0;if(!axis){if(Math.hypot(dx,dy)<8)return;axis=Math.abs(dx)>Math.abs(dy)?'x':'y'}if(axis!='x')return;e.preventDefault();
- const fl=S.game.flip;el.style.transform=`translateX(${dx}px) rotate(${dx/16}deg)`+(fl?' rotateY(180deg)':'');const th=el.offsetWidth*.22;el.classList.toggle('swipe-l',fl&&dx<-th);el.classList.toggle('swipe-r',fl&&dx>th);
+ const fl=S.game.flip;el.style.transform=`translateX(${dx}px) rotate(${dx/16}deg)`+(fl?' rotateY(180deg)':'');const th=el.offsetWidth*.22;if(fl)el.style.setProperty('--sw',Math.max(-1,Math.min(1,dx/th)).toFixed(2));el.classList.toggle('swipe-l',fl&&dx<-th);el.classList.toggle('swipe-r',fl&&dx>th);
  if(fl&&Math.abs(dx)>th&&!el._buzz){el._buzz=1;navigator.vibrate&&navigator.vibrate(10)}else if(Math.abs(dx)<th)el._buzz=0},{passive:false});
 document.addEventListener('pointercancel',()=>{reset(el);el=null;x0=null});
 document.addEventListener('pointerup',e=>{if(!el)return;const d=dx,c=el,v=Math.abs(d)/Math.max(1,performance.now()-t0),th=c.offsetWidth*.22;el=null;x0=null;
