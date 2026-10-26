@@ -64,7 +64,9 @@ function vRead(){if(RD.quiz)return vReadQuiz();if(!RD.lib){rdLoad();return `<div
 
 /* ---- trình đọc lật trang ---- */
 function rdLib(){return new Promise((ok,no)=>{if(window.St)return ok();const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js';s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
-function rdSize(){const W=Math.min(innerWidth-24,1100),H=innerHeight-150;const single=W<720;let pw=single?W:Math.floor(W/2),ph=Math.round(pw*1.42);if(ph>H){ph=H;pw=Math.round(ph/1.42)}return{pw,ph,single}}
+/* Kích thước trang theo khung còn trống. Điện thoại: một trang lấp đầy màn hình. Máy tính: hai trang tỉ lệ sách. */
+function rdStageBox(){const s=document.getElementById('rd-stage');return{W:Math.floor(Math.min(s?s.clientWidth:innerWidth-16,1300)),H:Math.floor(s?s.clientHeight:innerHeight-120)}}
+function rdSize(){const{W,H}=rdStageBox();const single=W<720;if(single){const pw=W,ph=Math.min(H,Math.round(W*1.9));return{pw,ph,single}}let pw=Math.floor(W/2),ph=Math.round(pw*1.42);if(ph>H){ph=H;pw=Math.round(ph/1.42)}return{pw,ph,single}}
 function rdPaginate(b,pw,ph,fs){const m=document.createElement('div');m.style.cssText='position:absolute;left:-9999px;top:0;visibility:hidden';document.body.appendChild(m);
  const pg=document.createElement('div');pg.className='rd-page';pg.style.cssText=`position:relative;width:${pw}px;height:${ph}px;font-size:${fs}px`;const inner=document.createElement('div');inner.className='rd-in';pg.appendChild(inner);m.appendChild(pg);
  const over=()=>inner.scrollHeight>inner.clientHeight+1,pages=[];const flush=()=>{pages.push(inner.innerHTML);inner.innerHTML=''};
@@ -129,7 +131,7 @@ async function rdpOpen(n){RD.book={id:'pdf:'+n,title:rdpName(n),pdf:n,kids:true}
   RDP.pdf=await pdfjsLib.getDocument(data.signedUrl).promise;RDP.done=new Set();rdpBuild()}
  catch(e){const st=document.getElementById('rd-stage');if(st)st.innerHTML=`<div style="color:#f3b0a8">Không mở được sách: ${esc(e.message||'lỗi mạng')}</div>`}}
 async function rdpBuild(){const b=RD.book,pdf=RDP.pdf;if(!b||!pdf)return;const p1=await pdf.getPage(1),vp=p1.getViewport({scale:1}),ar=vp.height/vp.width;
- const W=Math.min(innerWidth-24,1300),H=innerHeight-150,single=W<720||ar<1;let pw=single?W:Math.floor(W/2),ph=Math.round(pw*ar);if(ph>H){ph=H;pw=Math.round(ph/ar)}
+ const{W,H}=rdStageBox(),single=W<720||ar<1;let pw=single?W:Math.floor(W/2),ph=Math.round(pw*ar);if(ph>H){ph=H;pw=Math.round(ph/ar)}
  if(RD.flip){try{RD.flip.destroy()}catch(e){}RD.flip=null}RDP.done=new Set();
  const st=document.getElementById('rd-stage');st.innerHTML='<div id="rd-book"></div>';const el=document.getElementById('rd-book');
  for(let i=1;i<=pdf.numPages;i++){const d=document.createElement('div');d.className='rd-page rd-pdf';if(i==1||i==pdf.numPages)d.dataset.density='hard';d.innerHTML=`<canvas data-p="${i}"></canvas>`;el.appendChild(d)}
