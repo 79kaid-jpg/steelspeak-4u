@@ -211,7 +211,7 @@ var CHAPTERS = [
  {cat:'talk', name:'Hội nghị khách hàng', seq:null}
 ];
 var PER_CH = 4, LEVELS = CHAPTERS.length * PER_CH;
-var STD = {mean:6000, rev:7000, listen:7000, cloze:10000, order:25000, bank:9000};
+var STD = {mean:6000, rev:7000, listen:7000, cloze:10000, order:25000, bank:9000, match:16000, memory:22000, spell:12000};
 
 function hash(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
 function rng(seed){var a=seed>>>0;return function(){a=(a+0x6D2B79F5)>>>0;var t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
@@ -238,7 +238,7 @@ function gen(level,ctx){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.ch
  var prev=ci>0?[].concat.apply([],CHAPTERS.slice(0,ci).map(function(c){return c.pool||TERMS.filter(function(t){return t.cat===c.cat})})):[];
  var pool=kaka?own.concat(prev):k<3?own:own.concat(pick(prev,6,r,[]));
  var boss=(k===PER_CH-1), kaka=boss&&level%12===0;
- var plan=kaka?['cloze','listen','cloze','rev','listen','cloze','listen','rev','cloze','listen','order','cloze','listen','rev','cloze','listen','cloze','listen']:boss?['cloze','listen','rev','cloze','listen','rev','cloze','listen','order','rev','cloze','listen']:[['mean','mean','rev','mean','listen','rev','mean','listen','cloze','mean'],
+ var plan=kaka?['cloze','listen','match','rev','spell','cloze','listen','memory','cloze','listen','order','match','listen','rev','spell','cloze','memory','listen']:boss?['cloze','listen','rev','cloze','listen','rev','cloze','listen','order','rev','cloze','listen']:[['mean','mean','rev','mean','listen','rev','mean','listen','cloze','mean'],
            ['mean','rev','listen','cloze','mean','rev','listen','cloze','mean','rev'],
            ['rev','listen','cloze','mean','listen','cloze','rev','mean','cloze','order'],
            ['cloze','listen','rev','cloze','listen','mean','cloze','rev','listen','order']][k];
@@ -254,6 +254,11 @@ function gen(level,ctx){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.ch
    if(seq){var all=seq.steps.length<=7,start=all?0:Math.floor(r()*Math.max(1,seq.steps.length-4)),steps=all?seq.steps.slice():seq.steps.slice(start,start+5);
     qs.push({type:'order',bank:seq.bank,prompt:all?seq.title:seq.title+' (bước '+(start+1)+'–'+(start+steps.length)+')',items:shuffle(steps.map(function(s,i){return {i:i,t:s}}),r),n:steps.length});return}
    type='cloze'}
+  if(type==='match'||type==='memory'){var src=pool.length>=4?pool:own.length>=4?own:TERMS;var ps=pick(src.filter(function(x){return used.indexOf(x)<0}),4,r,[]);if(ps.length<4)ps=pick(src,4,r,[]);ps.forEach(function(x){used.push(x)});
+   if(type==='match'){var rv=shuffle(ps.map(function(x,i){return {i:i,t:x.vi}}),r);qs.push({type:'match',left:ps.map(function(x){return x.en}),right:rv.map(function(x){return x.t}),ans:ps.map(function(x,i){return rv.map(function(y){return y.i}).indexOf(i)}),terms:ps.map(function(x){return x.en})});return}
+   var cards=shuffle([].concat(ps.map(function(x,i){return {p:i,t:x.en,en:1}}),ps.map(function(x,i){return {p:i,t:x.vi}})),r);qs.push({type:'memory',cards:cards,n:4,terms:ps.map(function(x){return x.en})});return}
+  if(type==='spell'){var sp=pick(pool.filter(function(x){var w=x.en.split(' (')[0];return /^[A-Za-z]{4,11}$/.test(w)&&used.indexOf(x)<0}),1,r,[])[0];
+   if(sp){used.push(sp);var w=sp.en.split(' (')[0].toLowerCase(),tl=shuffle(w.split(''),r);if(tl.join('')===w)tl=tl.reverse();qs.push({type:'spell',prompt:sp.vi,term:w,tiles:tl,ans:w});return}type='cloze'}
   var t=pick(pool,1,r,used)[0]||pick(own,1,r,[])[0];used.push(t);
   if(type==='cloze'&&!blank(t))type='rev';
   var others=pick(own.length>=8?own:TERMS,3,r,[t]);var opts=shuffle([t].concat(others),r);
@@ -275,11 +280,17 @@ function gen(level,ctx){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.ch
  return {level:level,chapter:ci,name:ch.name,cat:ch.cat,questions:qs,std:std,boss:boss,kaka:kaka,penalty:kaka?6000:2000,bonus:kaka?900:boss?300:0,s1:kaka?0.85:boss?0.75:0.6,s2:kaka?0.95:boss?0.85:0.8}}
 
 /* answers: [{a: số thứ tự đáp án | mảng thứ tự (order), ms: thời gian của câu}] */
+/* Kiểm tra 1 câu trả lời (dùng chung cho app và máy chủ) */
+function check(q,a){
+ if(q.type==='order')return Array.isArray(a)&&a.length===q.n&&a.every(function(v,j){return q.items[v]&&q.items[v].i===j});
+ if(q.type==='match')return Array.isArray(a)&&a.length===q.ans.length&&a.every(function(v,j){return v===q.ans[j]});
+ if(q.type==='memory')return typeof a==='number'&&a>=0&&a<=4;          // lật sai tối đa 4 lần
+ if(q.type==='spell')return String(a||'').toLowerCase()===q.ans;
+ return a===q.ans}
 function grade(level,answers,ctx){
  var L=gen(level,ctx),correct=0,ms=0,wrong=0;
  L.questions.forEach(function(q,i){var x=answers[i]||{};var t=Math.max(0,Math.min(120000,+x.ms||0));ms+=t;
-  var ok=q.type==='order'?(Array.isArray(x.a)&&x.a.length===q.n&&x.a.every(function(v,j){return q.items[v]&&q.items[v].i===j})):(x.a===q.ans);
-  if(ok)correct++;else wrong++});
+  if(check(q,x.a))correct++;else wrong++});
  var minHuman=L.questions.length*900;var suspicious=ms<minHuman;
  ms+=wrong*L.penalty;
  var n=L.questions.length,rt=correct/n;
@@ -289,7 +300,7 @@ function grade(level,answers,ctx){
  if(suspicious){stars=0;score=0;overdrive=false}
  return {level:level,correct:correct,total:L.questions.length,ms:ms,std:L.std,stars:stars,score:score,overdrive:overdrive,suspicious:suspicious,boss:L.boss,kaka:L.kaka}}
 
-var api={TERMS:TERMS,CATS:CATS,CHAPTERS:CHAPTERS,PER_CH:PER_CH,LEVELS:LEVELS,gen:gen,grade:grade,buildCtx:buildCtx};
+var api={TERMS:TERMS,CATS:CATS,CHAPTERS:CHAPTERS,PER_CH:PER_CH,LEVELS:LEVELS,gen:gen,grade:grade,check:check,buildCtx:buildCtx};
 root.SAGA=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
 
