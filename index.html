@@ -477,6 +477,7 @@ body.in-game #nav{display:none}
 @keyframes cdrop{from{opacity:0;transform:translateY(-8px) scale(.97)}}@keyframes cdropout{to{opacity:0;transform:translateY(-6px) scale(.98)}}
 @media (prefers-reduced-motion:reduce){.cdrop,.cdrop-bg.out .cdrop{animation:none}}
 .course-pill .chev{transition:transform .18s}
+.nav-dot{position:absolute;top:6px;right:calc(50% - 16px);width:9px;height:9px;border-radius:50%;background:var(--bad);border:2px solid var(--card)}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -727,7 +728,7 @@ async function doBoot(u){USER=u;if(!u)PROF=null;
  if(u){PROF=p?.data||{id:u.id,email:u.email,full_name:'',role:'TPL',department:'',is_admin:false};if(pg?.data)load(pg.data.data);else save();S.sync='cloud';SG.loaded=false;SG.board=null}
  if(tr.error){TR.legacy=/does not exist|schema cache|relation/i.test(tr.error.message);TR.err=tr.error.message;render();return}
  TR.tracks=tr.data||[];TR.enr={};(en?.data||[]).forEach(x=>TR.enr[x.track_id]=x);if(!curTrack()&&TR.tracks[0])TR.active=TR.tracks[0].slug;TR.ready=true;render();
- await loadWords();tkBind();TR.loading=false;cachePut();render()}
+ await loadWords();tkBind();TR.loading=false;cachePut();render();admCounts()}
 async function loadPlatform(){return boot(true)}
 SB.auth.onAuthStateChange((ev,s)=>{if(ev=='PASSWORD_RECOVERY'){S.tab='me';S.recover=1;return boot(true)}const uid=s?.user?.id||null;if(BOOT_P&&uid!==BOOT_UID)boot()});
 async function loginPw(){const em=$('#em').value.trim(),pw=$('#pw').value;if(!em||!pw)return toast('Nhập email và mật khẩu');const {error}=await SB.auth.signInWithPassword({email:em,password:pw});
@@ -754,7 +755,7 @@ const slow=(t)=>`<button class="ic" aria-label="Nghe chậm" onclick="event.stop
 /* ---- nav ---- */
 const TABS=[['home','Học','home'],['vocab','Từ vựng','book'],['saga','Đua level','trophy'],['make','Tạo bài','plus'],['me','Tài khoản','user']];
 function go(t){S.tab=t;S.game=null;render();scrollTo(0,0)}
-function render(){document.body.classList.toggle('in-game',!!(S.game&&!S.game.saga));$('#nav').innerHTML=TABS.map(([k,n,i])=>`<button class="${S.tab==k?'on':''}" onclick="go('${k}')">${svg(i)}${n}</button>`).join('');
+function render(){document.body.classList.toggle('in-game',!!(S.game&&!S.game.saga));$('#nav').innerHTML=TABS.map(([k,n,i])=>`<button class="${S.tab==k?'on':''}" onclick="go('${k}')" style="position:relative">${svg(i)}${n}${k=='me'&&ADMN.total?`<span class="nav-dot" aria-label="${ADMN.total} việc quản trị chờ xử lý"></span>`:''}</button>`).join('');
 const GATED=['vocab','speak','make','saga','contrib'];$('#app').innerHTML=S.game?vGame():(GATED.includes(S.tab)&&!canLearn()?trackBar()+vGate():({home:vHome,vocab:vVocab,speak:vSpeak,make:vMake,spec:vSpec,me:vMe,admin:vAdmin,saga:vSaga,tracks:vTracks,contrib:vContrib,ielts:vIelts})[S.tab]())}
 /* ---- home ---- */
 const PATH_STEEL=[['coat','Cấu trúc thép phủ màu'],['qual','Thử nghiệm & khiếu nại'],['nspe','Quy trình NSPE'],['colr','Pha màu & chạy thử'],['npd','Phát triển sản phẩm mới'],['talk','Họp & email với CFT']];
@@ -932,7 +933,7 @@ ${S.recover?'<p class="note" style="margin-top:12px">Bạn đang đặt lại m�
 ${vBadges()}<h2>Ảnh đại diện</h2><div class="card row" style="margin-top:8px;flex-wrap:nowrap;gap:14px"><div class="av-prev">${avatarHTML(p.avatar,USER.id,84)}</div><div class="stack" style="flex:1;gap:8px"><label class="btn ghost" for="avf" style="display:block">Tải ảnh lên</label><input type="file" id="avf" accept="image/*" hidden onchange="avUpload(this.files[0])"><button class="btn ghost" onclick="avShuffle()">Đổi nhân vật</button></div></div>
 <details class="set"><summary>Hồ sơ cá nhân<span class="chev">›</span></summary><div class="stack"><label class="lbl" for="pn">Họ tên</label>${inp('pn',p.full_name,'Nguyễn Văn A')}<label class="lbl" for="pr">Vai trò</label>${roleSel('pr',p.role)}<label class="lbl" for="pd">Phòng ban / Nhà máy</label>${inp('pd',p.department,'VD: Product Management – Phú Mỹ')}<button class="btn" onclick="saveProfile()">Lưu hồ sơ</button></div></details>
 <details class="set" ${S.recover?'open':''}><summary>Đổi mật khẩu<span class="chev">›</span></summary><div class="stack">${inp('np1','','Mật khẩu mới (ít nhất 8 ký tự)','password')}${inp('np2','','Nhập lại mật khẩu mới','password')}<button class="btn" onclick="changePw()">Cập nhật mật khẩu</button></div></details>
-<div class="stack" style="margin-top:22px"><button class="btn" onclick="go('tracks')">Thư viện khóa học</button>${p.is_admin?`<button class="btn amber" onclick="go('admin')">Quản trị người dùng</button>`:''}<button class="btn ghost" onclick="go('spec')">Xem bản thiết kế ứng dụng</button><button class="btn ghost" onclick="logout()">Đăng xuất</button></div>`}
+<div class="stack" style="margin-top:22px"><button class="btn" onclick="go('tracks')">Thư viện khóa học</button>${p.is_admin?`<button class="btn amber" onclick="go('admin')">Quản trị${ADMN.reports?` · ⚑ ${ADMN.reports} báo lỗi`:''}</button><a class="btn ghost" href="admin.html" style="text-align:center">🖥️ Trang quản trị nội dung (máy tính)</a>`:''}<button class="btn ghost" onclick="go('spec')">Xem bản thiết kế ứng dụng</button><button class="btn ghost" onclick="logout()">Đăng xuất</button></div>`}
 async function saveProfile(){const v={id:USER.id,email:USER.email,full_name:$('#pn').value.trim(),role:$('#pr').value,department:$('#pd').value.trim()};
 const {error}=await SB.from('profiles').upsert(v);if(error)return toast('Chưa lưu được: '+error.message);PROF={...PROF,...v};toast('Đã lưu hồ sơ');render()}
 async function changePw(){const a=$('#np1').value,b=$('#np2').value;if(a.length<8)return toast('Mật khẩu cần ít nhất 8 ký tự');if(a!==b)return toast('Hai mật khẩu chưa khớp');
@@ -953,7 +954,7 @@ async function setAIP(k){const {error}=await SB.from('app_settings').upsert({key
 let QB={for:null,list:null,reports:null,tab:'q',edit:null,drafts:[],busy:false,err:''};
 async function qbLoad(){const tr=curTrack();QB.for=tr?.id||'x';if(!tr){QB.list=[];QB.reports=[];return}
  const [a,b]=await Promise.all([SB.from('question_bank').select('*').eq('track_id',tr.id).order('id',{ascending:false}).limit(500),SB.from('question_reports').select('*').eq('status','open').order('id',{ascending:false}).limit(200)]);
- QB.err=a.error?(/question_bank/.test(a.error.message)?'Cần chạy supabase/question_bank.sql':a.error.message):'';QB.list=a.data||[];QB.reports=(b.data||[]).filter(r=>!r.track_id||r.track_id===tr.id);render()}
+ QB.err=a.error?(/question_bank/.test(a.error.message)?'Cần chạy supabase/question_bank.sql':a.error.message):'';QB.list=a.data||[];QB.reports=b.data||[];render()}
 function qbTabs(){const n=(QB.reports||[]).length;return `<div class="saga-tabs" style="margin-top:8px">${[['q','Câu hỏi ('+(QB.list||[]).length+')'],['r','Báo lỗi'+(n?' <span class="dot-new"></span> '+n:'')],['ai','✨ AI soạn']].map(([k,n])=>`<button class="${QB.tab==k?'on':''}" onclick="QB.tab='${k}';QB.edit=null;render()">${n}</button>`).join('')}</div>`}
 function vBankAdmin(){const tr=curTrack();if(!tr)return '';if(QB.for!==tr.id){QB.list=null;qbLoad()}
  let body='';
@@ -1101,7 +1102,10 @@ function vIeltsAdmin(){const tr=curTrack();if(!tr||!isIelts())return '';if(ISA.f
  return `<h2>Kho đề IELTS</h2><p class="mut">${(ISA.list||[]).length} đề. ⭐ = đề chất lượng (ưu tiên cho người học). Tắt đề sai để không ai gặp lại.</p><div class="hscroll" style="margin:6px 0">${[['all','Tất cả'],...Object.entries(lab)].map(([k,n])=>`<button class="chip ${ISA.skill==k?'on':''}" onclick="ISA.skill='${k}';render()">${n}</button>`).join('')}</div>
  <div class="stack">${ISA.list==null?'<div class="skel-list"><i></i><i></i></div>':L.slice(0,80).map(s=>`<div class="course-row" style="${s.status=='off'?'opacity:.5':''}"><span style="flex:1;min-width:0;text-align:left"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.quality?'⭐ ':''}${esc(s.title||s.topic||'(không tên)')}</b><small>${lab[s.skill]||s.skill}${s.sub?(s.skill=='wprompt'?' Task ':' Part ')+s.sub:''} · ${esc(s.topic||'')} · ${s.uses} lượt${s.status=='off'?' · đã tắt':''}</small></span><button class="chip" aria-label="Đánh dấu chất lượng" onclick="isaSet(${s.id},{quality:${!s.quality}})">${s.quality?'Bỏ ⭐':'⭐'}</button><button class="chip ${s.status=='off'?'':'danger'}" onclick="isaSet(${s.id},{status:'${s.status=='off'?'live':'off'}'})">${s.status=='off'?'Bật':'Tắt'}</button></div>`).join('')}</div>`}
 async function isaSet(id,patch){const {error}=await SB.from('ielts_sets').update(patch).eq('id',id);if(error)return toast(error.message);const s=(ISA.list||[]).find(x=>x.id===id);if(s)Object.assign(s,patch);render()}
-function vAdmin(){if(!PROF?.is_admin)return `<h1>Quản trị</h1><p class="mut">Chỉ admin mới vào được trang này.</p>`;return vAIAdmin()+vBankAdmin()+vIeltsAdmin()+vSharedAdmin()+vEnrAdmin()+vSugAdmin()+vTrackAdmin()+vAdminUsers()}
+
+let ADMN={reports:0,lessons:0,total:0};
+async function admCounts(){if(!PROF?.is_admin)return;const [r,l]=await Promise.all([SB.from('question_reports').select('id',{count:'exact',head:true}).eq('status','open'),SB.from('shared_lessons').select('id',{count:'exact',head:true}).eq('status','pending')]);ADMN={reports:r.count||0,lessons:l.count||0,total:(r.count||0)+(l.count||0)};render()}
+function vAdmin(){if(!PROF?.is_admin)return `<h1>Quản trị</h1><p class="mut">Chỉ admin mới vào được trang này.</p>`;return `<a class="card login-nudge" href="admin.html" style="text-decoration:none;color:inherit"><span class="tile2-ic">🖥️</span><span style="flex:1;text-align:left"><b>Trang quản trị nội dung${ADMN.reports?` · <span style="color:var(--bad)">⚑ ${ADMN.reports} báo lỗi</span>`:''}${ADMN.lessons?` · ${ADMN.lessons} bài chờ duyệt`:''}</b><small>Rà soát & sửa từ vựng, đáp án, đề IELTS trên màn hình lớn</small></span><span class="chev">›</span></a>`+vAIAdmin()+vBankAdmin()+vIeltsAdmin()+vSharedAdmin()+vEnrAdmin()+vSugAdmin()+vTrackAdmin()+vAdminUsers()}
 function vAdminUsers(){if(!ADM.list){admLoad();return `<h1>Quản trị người dùng</h1><p class="mut">Đang tải danh sách…</p>`}
 const L=ADM.list.filter(u=>!ADM.q||(u.email+' '+(u.full_name||'')+' '+(u.department||'')).toLowerCase().includes(ADM.q.toLowerCase()));const e=ADM.edit;
 return `<h1 style="margin-top:6px">Quản trị người dùng</h1>${ADM.err?`<p class="note">${esc(ADM.err)}</p>`:''}
