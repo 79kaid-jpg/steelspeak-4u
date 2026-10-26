@@ -59,6 +59,7 @@ function vRead(){if(RD.quiz)return vReadQuiz();if(!RD.lib){rdLoad();return `<div
  <div class="hscroll">${F.map(([k,n])=>`<button class="chip ${RD.filter==k?'on':''}" onclick="RD.filter='${k}';render()">${n}</button>`).join('')}</div>
  ${RD.err?`<div class="card" style="color:var(--bad)">${esc(RD.err)}</div>`:''}
  <div class="stack">${list.length?list.map(b=>rdCard(b,tag(b))).join(''):`<div class="card mut">Chưa có truyện ở mục này. Truyện mới được thêm mỗi thứ Hai.</div>`}</div>
+ ${vReadPrivate()}
  <p class="mut" style="font-size:.78rem">Truyện thuộc phạm vi công cộng (public domain), lấy từ Project Gutenberg.</p></div>`}
 
 /* ---- trình đọc lật trang ---- */
@@ -94,6 +95,48 @@ function rdBuild(){const b=RD.book;if(!b)return;const{pw,ph,single}=rdSize();con
  f.on('flip',upd);upd()}
 function rdSpeak(){const f=RD.flip;if(!f)return;if(speechSynthesis.speaking){speechSynthesis.cancel();return}const i=f.getCurrentPageIndex(),els=[...document.querySelectorAll('#rd-book .rd-page')];
  const vis=rdSize().single?[i]:[i,i+1];const txt=vis.map(k=>els[k]).filter(Boolean).map(e=>[...e.querySelectorAll('.rd-in p, h2')].map(p=>p.textContent).join(' ')).join(' ').trim();if(txt)say(txt,RD.book.kids?0.85:0.95);else toast('Trang này không có chữ')}
-function rdClose(){try{speechSynthesis.cancel()}catch(e){}if(RD.flip){try{RD.flip.destroy()}catch(e){}RD.flip=null}document.getElementById('rd-ov')?.remove();document.body.classList.remove('rd-open');RD.book=null;render()}
-let rdRT;addEventListener('resize',()=>{if(!RD.book)return;clearTimeout(rdRT);rdRT=setTimeout(rdBuild,300)});
+function rdClose(){try{speechSynthesis.cancel()}catch(e){}if(RD.flip){try{RD.flip.destroy()}catch(e){}RD.flip=null}document.getElementById('rd-ov')?.remove();if(RDP.pdf){try{RDP.pdf.destroy()}catch(e){}RDP.pdf=null}document.body.classList.remove('rd-open');RD.book=null;render()}
+let rdRT;addEventListener('resize',()=>{if(!RD.book)return;clearTimeout(rdRT);rdRT=setTimeout(RD.book.pdf?rdpBuild:rdBuild,300)});
 addEventListener('keydown',e=>{if(!RD.flip)return;if(e.key=='ArrowLeft')RD.flip.flipPrev();if(e.key=='ArrowRight')RD.flip.flipNext();if(e.key=='Escape')rdClose()});
+
+/* ===================== TỦ SÁCH RIÊNG (PDF của chính người dùng, chỉ chủ tài khoản đọc được) =====================
+ File nằm trong bucket riêng tư 'private-books' trên Supabase, thư mục <user id>/. Cần chạy supabase/private_books.sql. */
+const RDP={list:null,err:'',busy:'',pdf:null,done:new Set()};
+const rdpName=n=>n.replace(/^(\d+_)+/,'').replace(/\.pdf$/i,'').replace(/[_-]+/g,' ').trim();
+async function rdpLoad(){if(!USER){RDP.list=[];return}RDP.list=RDP.list||[];const {data,error}=await SB.storage.from('private-books').list(USER.id,{limit:200,sortBy:{column:'created_at',order:'desc'}});
+ RDP.err=error?(/not found|bucket/i.test(error.message)?'Tủ sách riêng chưa được bật: cần chạy supabase/private_books.sql trên Supabase.':error.message):'';RDP.list=(data||[]).filter(f=>/\.pdf$/i.test(f.name));if(S.tab=='read'&&!RD.book)render()}
+function vReadPrivate(){if(!USER)return `<div class="card mut" style="font-size:.88rem">Đăng nhập để dùng Tủ sách riêng: tải PDF của bạn lên và đọc lật trang, chỉ mình bạn xem được.</div>`;
+ if(RDP.list===null){RDP.list=[];rdpLoad()}
+ return `<div class="rd-priv"><div class="row" style="justify-content:space-between"><div><div class="lbl">Chỉ mình bạn thấy</div><h3>Tủ sách riêng</h3></div>
+  <label class="chip" style="cursor:pointer">${svg('plus')} Tải PDF lên<input type="file" id="rdp-up" accept="application/pdf" multiple hidden onchange="rdpUpload(this.files)"></label></div>
+  <p class="mut" style="font-size:.82rem;margin:4px 0 8px">Sách bạn tự có, ví dụ truyện tranh. Không ai khác dùng app thấy hay mở được các file này.</p>
+  ${RDP.busy?`<div class="card mut">${esc(RDP.busy)}</div>`:''}${RDP.err?`<div class="card" style="color:var(--bad)">${esc(RDP.err)}</div>`:''}
+  <div class="stack">${RDP.list.map(f=>`<div class="rd-book" style="grid-template-columns:52px 1fr auto;align-items:center"><div class="rd-cov" style="width:52px;height:70px">PDF</div>
+   <button style="text-align:left" onclick="rdpOpen(${esc(JSON.stringify(f.name))})"><b style="font-family:var(--fd);font-size:1.05rem">${esc(rdpName(f.name))}</b><div class="mut" style="font-size:.78rem">${((f.metadata?.size||0)/1048576).toFixed(1)} MB${(rdState().ppos||{})[f.name]?' · đang đọc trang '+((rdState().ppos||{})[f.name]+1):''}</div></button>
+   <button class="ic" aria-label="Xóa ${esc(rdpName(f.name))}" onclick="rdpDel(${esc(JSON.stringify(f.name))})">✕</button></div>`).join('')||(RDP.err?'':'<div class="card mut" style="font-size:.86rem">Chưa có sách nào. Bấm "Tải PDF lên" để thêm.</div>')}</div></div>`}
+async function rdpUpload(files){for(const f of files){if(f.size>50*1048576){toast(f.name+' lớn hơn 50 MB');continue}RDP.busy='Đang tải lên '+f.name+'…';render();
+  const safe=f.name.normalize('NFD').replace(/[^\w.\-]+/g,'_');const {error}=await SB.storage.from('private-books').upload(`${USER.id}/${Date.now()}_${safe}`,f,{contentType:'application/pdf',upsert:false});
+  if(error){RDP.err='Chưa tải lên được: '+(/bucket|not found/i.test(error.message)?'cần chạy supabase/private_books.sql trên Supabase.':error.message)}}
+ RDP.busy='';await rdpLoad();render()}
+async function rdpDel(n){if(RDP.confirm!==n){RDP.confirm=n;toast('Bấm ✕ lần nữa để xóa');setTimeout(()=>{if(RDP.confirm===n)RDP.confirm=null},3000);return}RDP.confirm=null;const {error}=await SB.storage.from('private-books').remove([`${USER.id}/${n}`]);if(error)return toast('Chưa xóa được: '+error.message);toast('Đã xóa');rdpLoad()}
+function rdpLib(){return new Promise((ok,no)=>{if(window.pdfjsLib)return ok();const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=()=>{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';ok()};s.onerror=no;document.head.appendChild(s)})}
+async function rdpOpen(n){RD.book={id:'pdf:'+n,title:rdpName(n),pdf:n,kids:true};
+ let ov=document.getElementById('rd-ov');if(!ov){ov=document.createElement('div');ov.id='rd-ov';document.body.appendChild(ov)}
+ ov.innerHTML=`<div class="rd-top"><button class="chip" onclick="rdClose()">← Thư viện</button><b class="rd-ttl">${esc(RD.book.title)}</b><span id="rd-pos" class="mono"></span></div><div id="rd-stage"><div style="color:#cfc6b5">Đang mở sách…</div></div>
+  <div class="rd-bot"><button class="chip" onclick="RD.flip&&RD.flip.flipPrev()" aria-label="Trang trước">←</button><button class="chip" onclick="RD.flip&&RD.flip.flipNext()" aria-label="Trang sau">→</button></div>`;
+ document.body.classList.add('rd-open');
+ try{await Promise.all([rdLib(),rdpLib()]);const {data,error}=await SB.storage.from('private-books').createSignedUrl(`${USER.id}/${n}`,3600);if(error)throw error;
+  RDP.pdf=await pdfjsLib.getDocument(data.signedUrl).promise;RDP.done=new Set();rdpBuild()}
+ catch(e){const st=document.getElementById('rd-stage');if(st)st.innerHTML=`<div style="color:#f3b0a8">Không mở được sách: ${esc(e.message||'lỗi mạng')}</div>`}}
+async function rdpBuild(){const b=RD.book,pdf=RDP.pdf;if(!b||!pdf)return;const p1=await pdf.getPage(1),vp=p1.getViewport({scale:1}),ar=vp.height/vp.width;
+ const W=Math.min(innerWidth-24,1300),H=innerHeight-150,single=W<720||ar<1;let pw=single?W:Math.floor(W/2),ph=Math.round(pw*ar);if(ph>H){ph=H;pw=Math.round(ph/ar)}
+ if(RD.flip){try{RD.flip.destroy()}catch(e){}RD.flip=null}RDP.done=new Set();
+ const st=document.getElementById('rd-stage');st.innerHTML='<div id="rd-book"></div>';const el=document.getElementById('rd-book');
+ for(let i=1;i<=pdf.numPages;i++){const d=document.createElement('div');d.className='rd-page rd-pdf';if(i==1||i==pdf.numPages)d.dataset.density='hard';d.innerHTML=`<canvas data-p="${i}"></canvas>`;el.appendChild(d)}
+ const f=new St.PageFlip(el,{width:pw,height:ph,size:'fixed',showCover:!single,usePortrait:single,maxShadowOpacity:.4,mobileScrollSupport:false,flippingTime:700});
+ f.loadFromHTML(el.querySelectorAll('.rd-page'));RD.flip=f;const tot=f.getPageCount();
+ const draw=async i=>{if(i<0||i>=tot||RDP.done.has(i))return;RDP.done.add(i);const c=el.querySelector(`canvas[data-p="${i+1}"]`);if(!c)return;const pg=await pdf.getPage(i+1);const sc=pw*Math.min(2,devicePixelRatio||1)/pg.getViewport({scale:1}).width;const v=pg.getViewport({scale:sc});c.width=v.width;c.height=v.height;await pg.render({canvasContext:c.getContext('2d'),viewport:v}).promise};
+ const near=i=>{for(let k=-2;k<=3;k++)draw(i+k)};
+ const pos=(rdState().ppos||{})[b.pdf]||0;if(pos>0&&pos<tot)f.turnToPage(pos);
+ const upd=()=>{const i=f.getCurrentPageIndex();near(i);const pe=document.getElementById('rd-pos');if(pe)pe.textContent=`${i+1}/${tot}`;const s=rdState();s.ppos=s.ppos||{};s.ppos[b.pdf]=i;try{localStorage.setItem('ssread',JSON.stringify(s))}catch(e){}};
+ f.on('flip',upd);upd()}
