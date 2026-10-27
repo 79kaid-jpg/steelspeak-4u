@@ -582,6 +582,7 @@ body.rd-open{overflow:hidden}body.rd-open nav{display:none}
 .rd-cvin img{max-height:45%;object-fit:contain;align-self:center;margin-bottom:auto;background:#fbf8f1;padding:6px;border-radius:4px}
 .rd-cvin .k{font:600 .68rem var(--fm);letter-spacing:.14em;text-transform:uppercase;opacity:.8}.rd-cvin h2{font-family:var(--fd);font-size:2em;line-height:1.05;margin:0;color:#f3ecdd}
 .rd-cvin .a{font-style:italic}.rd-cvin .src{font:.66rem var(--fm);opacity:.7}
+.fc-stage{touch-action:none;user-select:none;-webkit-user-select:none}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -1305,16 +1306,17 @@ function vFlashDone(){const g=S.game,G=g.grades,tot=G[1]+G[2]+G[3];if(g.l.path&&
 /* gestures + keys */
 (function(){let x0=null,y0=0,dx=0,dy=0,t0=0,el=null,axis=null;
 function reset(c){if(!c)return;c.style.transition='';c.style.transform='';c.style.removeProperty('--sw');c.classList.remove('swipe-l','swipe-r')}
-document.addEventListener('pointerdown',e=>{el=e.target.closest('#fcc');if(!el||e.target.closest('button'))return el=null;x0=e.clientX;y0=e.clientY;dx=dy=0;axis=null;t0=performance.now();try{el.setPointerCapture(e.pointerId)}catch(_){}el.style.transition='none'});
-document.addEventListener('pointermove',e=>{if(!el||x0==null)return;dx=e.clientX-x0;dy=e.clientY-y0;if(!axis){if(Math.hypot(dx,dy)<8)return;axis=Math.abs(dx)>Math.abs(dy)?'x':'y'}if(axis!='x')return;e.preventDefault();
- const fl=S.game.flip;el.style.transform=`translateX(${dx}px) rotate(${dx/16}deg)`+(fl?' rotateY(180deg)':'');const th=el.offsetWidth*.22;if(fl)el.style.setProperty('--sw',Math.max(-1,Math.min(1,dx/th)).toFixed(2));el.classList.toggle('swipe-l',fl&&dx<-th);el.classList.toggle('swipe-r',fl&&dx>th);
+let fromBtn=false,supp=0;document.addEventListener('click',e=>{if(supp&&Date.now()-supp<400&&e.target.closest('.fc-stage')){e.stopPropagation();e.preventDefault()}},true);
+document.addEventListener('pointerdown',e=>{const stg=e.target.closest('.fc-stage');el=stg&&stg.querySelector('#fcc');if(!el)return;fromBtn=!!e.target.closest('button');x0=e.clientX;y0=e.clientY;dx=dy=0;axis=null;t0=performance.now();try{el.setPointerCapture(e.pointerId)}catch(_){}el.style.transition='none'});
+document.addEventListener('pointermove',e=>{if(!el||x0==null)return;dx=e.clientX-x0;dy=e.clientY-y0;if(!axis){if(Math.hypot(dx,dy)<6)return;axis=Math.abs(dx)>=Math.abs(dy)*0.8?'x':'y'}if(axis!='x')return;e.preventDefault();
+ const fl=S.game.flip;el.style.transform=`translateX(${dx*1.1}px) rotate(${dx/22}deg)`+(fl?' rotateY(180deg)':'');const th=el.offsetWidth*.16;if(fl)el.style.setProperty('--sw',Math.max(-1,Math.min(1,dx/th)).toFixed(2));el.classList.toggle('swipe-l',fl&&dx<-th);el.classList.toggle('swipe-r',fl&&dx>th);
  if(fl&&Math.abs(dx)>th&&!el._buzz){el._buzz=1;navigator.vibrate&&navigator.vibrate(10)}else if(Math.abs(dx)<th)el._buzz=0},{passive:false});
 document.addEventListener('pointercancel',()=>{reset(el);el=null;x0=null});
-document.addEventListener('pointerup',e=>{if(!el)return;const d=dx,c=el,v=Math.abs(d)/Math.max(1,performance.now()-t0),th=c.offsetWidth*.22;el=null;x0=null;
- if(!axis||(axis=='x'&&Math.abs(d)<8)){reset(c);flipFc();return}
+document.addEventListener('pointerup',e=>{if(!el)return;const d=dx,c=el,v=Math.abs(d)/Math.max(1,performance.now()-t0),th=c.offsetWidth*.16;el=null;x0=null;
+ if(!axis||(axis=='x'&&Math.abs(d)<8)){reset(c);if(!fromBtn)flipFc();return}supp=Date.now();
  if(axis!='x'){reset(c);return}
  if(!S.game.flip){reset(c);flipFc();return}           // chưa lật: vuốt = lật thẻ để xem đáp án trước
- const go=Math.abs(d)>th||(v>.45&&Math.abs(d)>30);if(!go){reset(c);return}
+ const go=Math.abs(d)>th||(v>.3&&Math.abs(d)>20);if(!go){reset(c);return}
  c.style.transition='transform .2s ease-in';c.style.transform=`translateX(${d>0?130:-130}%) rotate(${d>0?20:-20}deg) rotateY(180deg)`;setTimeout(()=>{reset(c);grade(d>0?2:0)},180)});
 document.addEventListener('keydown',e=>{if(!S.game||!S.game.fc||/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;if(e.code=='Space'||e.key=='Enter'){e.preventDefault();flipFc()}else if(S.game.flip&&'1234'.includes(e.key)){grade(+e.key-1)}else if(e.key=='z'&&(e.ctrlKey||e.metaKey))undoFc()})})();
 
