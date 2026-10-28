@@ -232,13 +232,13 @@ function buildCtx0(track,words){
  else{cats.forEach(function(c){var cw=words.filter(function(w){return w.cat===c});if(cw.length)chs.push({cat:c,name:track.cats[c],seq:null,pool:cw})})}
  chs=chs.filter(function(c){return c.pool.length>=4});
  return {slug:track.slug,terms:words,chapters:chs,LEVELS:chs.length*PER_CH}}
-function gen(level,ctx){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.chapters;
- var ci=Math.floor((level-1)/PER_CH), k=(level-1)%PER_CH, ch=CHAPTERS[ci], r=rng(hash(ctx.slug==='steel'?'steelspeak-saga-v1-L'+level:'steelspeak-saga-v1-'+ctx.slug+'-L'+level));
+function gen(level,ctx,opt){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.chapters;
+ var ci=Math.floor((level-1)/PER_CH), k=(level-1)%PER_CH, ch=CHAPTERS[ci], r=rng(hash(opt?opt.key:ctx.slug==='steel'?'steelspeak-saga-v1-L'+level:'steelspeak-saga-v1-'+ctx.slug+'-L'+level));
  var own=ch.pool||TERMS.filter(function(t){return t.cat===ch.cat});
  var prev=ci>0?[].concat.apply([],CHAPTERS.slice(0,ci).map(function(c){return c.pool||TERMS.filter(function(t){return t.cat===c.cat})})):[];
- var pool=kaka?own.concat(prev):k<3?own:own.concat(pick(prev,6,r,[]));
- var boss=(k===PER_CH-1), kaka=boss&&level%12===0;
- var plan=kaka?['cloze','listen','match','rev','spell','cloze','listen','memory','cloze','listen','order','match','listen','rev','spell','cloze','memory','listen']:boss?['cloze','listen','rev','cloze','listen','rev','cloze','listen','order','rev','cloze','listen']:[['mean','mean','rev','mean','listen','rev','mean','listen','cloze','mean'],
+ var boss=!opt&&(k===PER_CH-1), kaka=boss&&level%12===0;
+ var pool=opt?own:kaka?own.concat(prev):k<3?own:own.concat(pick(prev,6,r,[]));
+ var plan=opt?opt.plan:kaka?['cloze','listen','match','rev','spell','cloze','listen','memory','cloze','listen','order','match','listen','rev','spell','cloze','memory','listen']:boss?['cloze','listen','rev','cloze','listen','rev','cloze','listen','order','rev','cloze','listen']:[['mean','mean','rev','mean','listen','rev','mean','listen','cloze','mean'],
            ['mean','rev','listen','cloze','mean','rev','listen','cloze','mean','rev'],
            ['rev','listen','cloze','mean','listen','cloze','rev','mean','cloze','order'],
            ['cloze','listen','rev','cloze','listen','mean','cloze','rev','listen','order']][k];
@@ -269,7 +269,7 @@ function gen(level,ctx){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.ch
   else{q.prompt=blank(t);q.hint=t.exvi;q.opts=opts.map(function(o){return o.en})}
   qs.push(q)});
  // Trộn câu hỏi từ ngân hàng (thay câu mean/rev/cloze, tối đa 2; trùm 3)
- var bk=(ctx.bank||[]).filter(function(q){return (q.level_min||1)<=level&&(!q.cat||q.cat===ch.cat)&&!(q.type==='order'&&q.cat)});
+ var bk=opt?[]:(ctx.bank||[]).filter(function(q){return (q.level_min||1)<=level&&(!q.cat||q.cat===ch.cat)&&!(q.type==='order'&&q.cat)});
  if(bk.length){var rb=rng(hash('bank-'+ctx.slug+'-L'+level+'-'+bk.length)),take=pick(bk,boss?3:2,rb,[]);
   var slots=[];qs.forEach(function(q,i){if(q.type==='mean'||q.type==='rev'||q.type==='cloze')slots.push(i)});slots=shuffle(slots,rb);
   take.forEach(function(b,j){if(j>=slots.length)return;var nq;
@@ -287,6 +287,10 @@ function check(q,a){
  if(q.type==='memory')return typeof a==='number'&&a>=0&&a<=4;          // lật sai tối đa 4 lần
  if(q.type==='spell')return String(a||'').toLowerCase()===q.ans;
  return a===q.ans}
+/* Bài thi lên level: 1 bài cho mỗi khu (chương), đề theo seed của lượt thi do máy chủ cấp */
+var EXAM_PLAN=['mean','rev','listen','cloze','mean','spell','rev','listen','cloze','match','mean','rev','listen','cloze','spell','mean','rev','listen','cloze','memory'];
+function exam(ci,seed,ctx){ctx=ctx||DEFAULT_CTX;var L=gen(ci*PER_CH+1,ctx,{key:'exam-'+ctx.slug+'-'+ci+'-'+seed,plan:EXAM_PLAN});L.exam=true;L.chapter=ci;L.name=ctx.chapters[ci].name;L.pass=0.8;L.minutes=12;return L}
+function gradeExam(ci,seed,answers,ctx){var L=exam(ci,seed,ctx),c=0;L.questions.forEach(function(q,i){var x=(answers||[])[i]||{};if(check(q,x.a))c++});return {correct:c,total:L.questions.length,passed:c/L.questions.length>=L.pass,name:L.name}}
 function grade(level,answers,ctx){
  var L=gen(level,ctx),correct=0,ms=0,wrong=0;
  L.questions.forEach(function(q,i){var x=answers[i]||{};var t=Math.max(0,Math.min(120000,+x.ms||0));ms+=t;
@@ -300,6 +304,6 @@ function grade(level,answers,ctx){
  if(suspicious){stars=0;score=0;overdrive=false}
  return {level:level,correct:correct,total:L.questions.length,ms:ms,std:L.std,stars:stars,score:score,overdrive:overdrive,suspicious:suspicious,boss:L.boss,kaka:L.kaka}}
 
-var api={TERMS:TERMS,CATS:CATS,CHAPTERS:CHAPTERS,PER_CH:PER_CH,LEVELS:LEVELS,gen:gen,grade:grade,check:check,buildCtx:buildCtx};
+var api={TERMS:TERMS,CATS:CATS,CHAPTERS:CHAPTERS,PER_CH:PER_CH,LEVELS:LEVELS,gen:gen,grade:grade,check:check,exam:exam,gradeExam:gradeExam,buildCtx:buildCtx};
 root.SAGA=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -29,6 +29,50 @@ Deno.serve(async (req) => {
       try { const { data: qb } = await admin.from("question_bank").select("id,type,prompt,options,answer,explanation,cat,level_min").eq("track_id", track.id).eq("status", "live").order("id").limit(2000); bank = qb ?? []; } catch (_) { /* chưa có bảng */ }
       ctx = SAGA.buildCtx(track, words, bank);
     } else if (slug !== "steel") return json({ error: "Không tìm thấy khóa học" }, 404);
+    // ===== Bài thi lên level =====
+    if (b.action === "exam_start" || b.action === "exam_submit") {
+      const c2 = ctx || SAGA.buildCtx(null, null);
+      if (b.action === "exam_start") {
+        const ch = Math.floor(Number(b.chapter));
+        if (!(ch >= 0 && ch < c2.chapters.length)) return json({ error: "Khu không hợp lệ" }, 400);
+        // Điều kiện: đã qua cả 4 level của khu trong Đua level
+        let q2 = admin.from("saga_scores").select("level").eq("user_id", user.id).gte("stars", 1).gte("level", ch * SAGA.PER_CH + 1).lte("level", ch * SAGA.PER_CH + SAGA.PER_CH);
+        if (trackId) q2 = q2.eq("track_id", trackId);
+        const { data: done } = await q2;
+        const lv = new Set((done ?? []).map((x: any) => x.level));
+        if (lv.size < SAGA.PER_CH) return json({ error: `Cần qua đủ ${SAGA.PER_CH} level của khu này trong Đua level trước khi thi` }, 403);
+        // Tối đa 3 lượt thi / khu / ngày
+        const since = new Date(Date.now() - 86400000).toISOString();
+        let q3 = admin.from("exam_attempts").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("chapter", ch).gte("started_at", since);
+        if (trackId) q3 = q3.eq("track_id", trackId);
+        const { count } = await q3;
+        if ((count ?? 0) >= 3) return json({ error: "Đã thi 3 lượt trong 24 giờ, hãy ôn thêm rồi thi lại sau" }, 429);
+        const seed = crypto.randomUUID().slice(0, 8);
+        const { data: att, error } = await admin.from("exam_attempts").insert({ user_id: user.id, track_id: trackId, chapter: ch, seed }).select("id").single();
+        if (error) return json({ error: error.message }, 500);
+        return json({ id: att.id, seed, chapter: ch });
+      }
+      const { data: att } = await admin.from("exam_attempts").select("*").eq("id", Number(b.id)).eq("user_id", user.id).maybeSingle();
+      if (!att) return json({ error: "Không tìm thấy lượt thi" }, 404);
+      if (att.submitted_at) return json({ error: "Lượt thi này đã nộp" }, 409);
+      const L = SAGA.exam(att.chapter, att.seed, c2);
+      const elapsed = Date.now() - new Date(att.started_at).getTime();
+      if (elapsed > (L.minutes + 2) * 60000) { await admin.from("exam_attempts").update({ submitted_at: new Date().toISOString(), correct: 0, total: L.questions.length, passed: false }).eq("id", att.id); return json({ error: "Hết giờ làm bài", timeout: true }, 408); }
+      const g = SAGA.gradeExam(att.chapter, att.seed, Array.isArray(b.answers) ? b.answers.slice(0, 40) : [], c2);
+      await admin.from("exam_attempts").update({ submitted_at: new Date().toISOString(), correct: g.correct, total: g.total, ms: elapsed, passed: g.passed }).eq("id", att.id);
+      let cert = null;
+      if (g.passed) {
+        const { data: prof } = await admin.from("profiles").select("full_name,email").eq("id", user.id).maybeSingle();
+        const holder = (prof?.full_name || "").trim() || String(prof?.email || user.email || "").split("@")[0];
+        const code = ("SS-" + crypto.randomUUID().replace(/-/g, "").slice(0, 10)).toUpperCase();
+        const score = Math.round(g.correct / g.total * 100);
+        const row = { code, user_id: user.id, track_id: trackId, chapter: att.chapter, level_name: g.name, track_name: track?.name || "Steel", holder_name: holder, score };
+        const { data: old } = await admin.from("certificates").select("*").eq("user_id", user.id).eq("chapter", att.chapter).eq("track_id", trackId).maybeSingle();
+        if (old) { if (score > old.score) await admin.from("certificates").update({ score, issued_at: new Date().toISOString(), holder_name: holder }).eq("id", old.id); cert = { ...old, score: Math.max(score, old.score) }; }
+        else { const { data: nc } = await admin.from("certificates").insert(row).select().single(); cert = nc; }
+      }
+      return json({ ...g, cert });
+    }
     const LEVELS = ctx ? ctx.LEVELS : SAGA.LEVELS;
     const level = Math.floor(Number(b.level));
     if (!(level >= 1 && level <= LEVELS)) return json({ error: "Level không hợp lệ" }, 400);

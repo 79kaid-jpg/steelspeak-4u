@@ -1,0 +1,15 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kiểm tra chứng chỉ SteelSpeak</title>
+<style>:root{--ink:#14212e;--mut:#5f6f80;--steel:#1f4e79;--good:#1f7a4d;--bad:#c0392b}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f3f5f8;color:var(--ink);font:16px/1.5 system-ui,sans-serif;padding:16px}
+.card{background:#fff;border-radius:16px;padding:24px;max-width:460px;width:100%;box-shadow:0 8px 24px rgba(0,0,0,.08);text-align:center}h1{font-size:1.3rem;margin:.2em 0}.ok{color:var(--good)}.no{color:var(--bad)}dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;text-align:left;margin:16px 0}dt{color:var(--mut)}dd{margin:0;font-weight:600}
+input{width:100%;padding:10px;border:1px solid #dde3ea;border-radius:10px;font:inherit;text-transform:uppercase}button{margin-top:10px;width:100%;min-height:44px;border:0;border-radius:10px;background:var(--steel);color:#fff;font:600 1rem system-ui;cursor:pointer}a{color:var(--steel)}</style></head>
+<body><div class="card" id="c"><p>Đang kiểm tra…</p></div>
+<script src="config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SB=supabase.createClient(SS_CONFIG.SUPABASE_URL,SS_CONFIG.SUPABASE_ANON_KEY,{auth:{persistSession:false}});const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const box=document.getElementById('c');
+function form(msg){box.innerHTML=`${msg||''}<h1>Kiểm tra chứng chỉ SteelSpeak</h1><p style="color:var(--mut)">Nhập mã in trên chứng chỉ (dạng SS-XXXXXXXXXX)</p><form id="f"><label for="code" style="position:absolute;left:-9999px">Mã chứng chỉ</label><input id="code" placeholder="SS-..." autocomplete="off"><button>Kiểm tra</button></form>`;document.getElementById('f').onsubmit=e=>{e.preventDefault();check(document.getElementById('code').value)}}
+async function check(code){code=String(code||'').trim().toUpperCase();if(!code)return form();box.innerHTML='<p>Đang kiểm tra…</p>';const {data,error}=await SB.rpc('cert_verify',{code});const c=data&&data[0];
+ if(error||!c)return form(`<p class="no"><b>✗ Không tìm thấy chứng chỉ với mã ${esc(code)}</b></p>`);
+ box.innerHTML=`<div style="font-size:2.6rem">🏅</div><h1 class="ok">✓ Chứng chỉ hợp lệ</h1><dl><dt>Người nhận</dt><dd>${esc(c.holder_name)}</dd><dt>Level</dt><dd>${esc(c.level_name)}</dd><dt>Khóa học</dt><dd>${esc(c.track_name)}</dd><dt>Điểm</dt><dd>${c.score}%</dd><dt>Ngày cấp</dt><dd>${new Date(c.issued_at).toLocaleDateString('vi-VN')}</dd><dt>Mã</dt><dd>${esc(c.code)}</dd></dl><a href="./">Về SteelSpeak</a>`}
+const q=new URLSearchParams(location.search).get('code');q?check(q):form();
+</script></body></html>

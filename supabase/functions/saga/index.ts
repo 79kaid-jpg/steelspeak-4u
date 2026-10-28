@@ -232,13 +232,13 @@ function buildCtx0(track,words){
  else{cats.forEach(function(c){var cw=words.filter(function(w){return w.cat===c});if(cw.length)chs.push({cat:c,name:track.cats[c],seq:null,pool:cw})})}
  chs=chs.filter(function(c){return c.pool.length>=4});
  return {slug:track.slug,terms:words,chapters:chs,LEVELS:chs.length*PER_CH}}
-function gen(level,ctx){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.chapters;
- var ci=Math.floor((level-1)/PER_CH), k=(level-1)%PER_CH, ch=CHAPTERS[ci], r=rng(hash(ctx.slug==='steel'?'steelspeak-saga-v1-L'+level:'steelspeak-saga-v1-'+ctx.slug+'-L'+level));
+function gen(level,ctx,opt){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.chapters;
+ var ci=Math.floor((level-1)/PER_CH), k=(level-1)%PER_CH, ch=CHAPTERS[ci], r=rng(hash(opt?opt.key:ctx.slug==='steel'?'steelspeak-saga-v1-L'+level:'steelspeak-saga-v1-'+ctx.slug+'-L'+level));
  var own=ch.pool||TERMS.filter(function(t){return t.cat===ch.cat});
  var prev=ci>0?[].concat.apply([],CHAPTERS.slice(0,ci).map(function(c){return c.pool||TERMS.filter(function(t){return t.cat===c.cat})})):[];
- var pool=kaka?own.concat(prev):k<3?own:own.concat(pick(prev,6,r,[]));
- var boss=(k===PER_CH-1), kaka=boss&&level%12===0;
- var plan=kaka?['cloze','listen','match','rev','spell','cloze','listen','memory','cloze','listen','order','match','listen','rev','spell','cloze','memory','listen']:boss?['cloze','listen','rev','cloze','listen','rev','cloze','listen','order','rev','cloze','listen']:[['mean','mean','rev','mean','listen','rev','mean','listen','cloze','mean'],
+ var boss=!opt&&(k===PER_CH-1), kaka=boss&&level%12===0;
+ var pool=opt?own:kaka?own.concat(prev):k<3?own:own.concat(pick(prev,6,r,[]));
+ var plan=opt?opt.plan:kaka?['cloze','listen','match','rev','spell','cloze','listen','memory','cloze','listen','order','match','listen','rev','spell','cloze','memory','listen']:boss?['cloze','listen','rev','cloze','listen','rev','cloze','listen','order','rev','cloze','listen']:[['mean','mean','rev','mean','listen','rev','mean','listen','cloze','mean'],
            ['mean','rev','listen','cloze','mean','rev','listen','cloze','mean','rev'],
            ['rev','listen','cloze','mean','listen','cloze','rev','mean','cloze','order'],
            ['cloze','listen','rev','cloze','listen','mean','cloze','rev','listen','order']][k];
@@ -269,7 +269,7 @@ function gen(level,ctx){ctx=ctx||DEFAULT_CTX;var TERMS=ctx.terms,CHAPTERS=ctx.ch
   else{q.prompt=blank(t);q.hint=t.exvi;q.opts=opts.map(function(o){return o.en})}
   qs.push(q)});
  // Trộn câu hỏi từ ngân hàng (thay câu mean/rev/cloze, tối đa 2; trùm 3)
- var bk=(ctx.bank||[]).filter(function(q){return (q.level_min||1)<=level&&(!q.cat||q.cat===ch.cat)&&!(q.type==='order'&&q.cat)});
+ var bk=opt?[]:(ctx.bank||[]).filter(function(q){return (q.level_min||1)<=level&&(!q.cat||q.cat===ch.cat)&&!(q.type==='order'&&q.cat)});
  if(bk.length){var rb=rng(hash('bank-'+ctx.slug+'-L'+level+'-'+bk.length)),take=pick(bk,boss?3:2,rb,[]);
   var slots=[];qs.forEach(function(q,i){if(q.type==='mean'||q.type==='rev'||q.type==='cloze')slots.push(i)});slots=shuffle(slots,rb);
   take.forEach(function(b,j){if(j>=slots.length)return;var nq;
@@ -287,6 +287,10 @@ function check(q,a){
  if(q.type==='memory')return typeof a==='number'&&a>=0&&a<=4;          // lật sai tối đa 4 lần
  if(q.type==='spell')return String(a||'').toLowerCase()===q.ans;
  return a===q.ans}
+/* Bài thi lên level: 1 bài cho mỗi khu (chương), đề theo seed của lượt thi do máy chủ cấp */
+var EXAM_PLAN=['mean','rev','listen','cloze','mean','spell','rev','listen','cloze','match','mean','rev','listen','cloze','spell','mean','rev','listen','cloze','memory'];
+function exam(ci,seed,ctx){ctx=ctx||DEFAULT_CTX;var L=gen(ci*PER_CH+1,ctx,{key:'exam-'+ctx.slug+'-'+ci+'-'+seed,plan:EXAM_PLAN});L.exam=true;L.chapter=ci;L.name=ctx.chapters[ci].name;L.pass=0.8;L.minutes=12;return L}
+function gradeExam(ci,seed,answers,ctx){var L=exam(ci,seed,ctx),c=0;L.questions.forEach(function(q,i){var x=(answers||[])[i]||{};if(check(q,x.a))c++});return {correct:c,total:L.questions.length,passed:c/L.questions.length>=L.pass,name:L.name}}
 function grade(level,answers,ctx){
  var L=gen(level,ctx),correct=0,ms=0,wrong=0;
  L.questions.forEach(function(q,i){var x=answers[i]||{};var t=Math.max(0,Math.min(120000,+x.ms||0));ms+=t;
@@ -300,7 +304,7 @@ function grade(level,answers,ctx){
  if(suspicious){stars=0;score=0;overdrive=false}
  return {level:level,correct:correct,total:L.questions.length,ms:ms,std:L.std,stars:stars,score:score,overdrive:overdrive,suspicious:suspicious,boss:L.boss,kaka:L.kaka}}
 
-var api={TERMS:TERMS,CATS:CATS,CHAPTERS:CHAPTERS,PER_CH:PER_CH,LEVELS:LEVELS,gen:gen,grade:grade,check:check,buildCtx:buildCtx};
+var api={TERMS:TERMS,CATS:CATS,CHAPTERS:CHAPTERS,PER_CH:PER_CH,LEVELS:LEVELS,gen:gen,grade:grade,check:check,exam:exam,gradeExam:gradeExam,buildCtx:buildCtx};
 root.SAGA=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
 
@@ -334,6 +338,50 @@ Deno.serve(async (req) => {
       try { const { data: qb } = await admin.from("question_bank").select("id,type,prompt,options,answer,explanation,cat,level_min").eq("track_id", track.id).eq("status", "live").order("id").limit(2000); bank = qb ?? []; } catch (_) { /* chưa có bảng */ }
       ctx = SAGA.buildCtx(track, words, bank);
     } else if (slug !== "steel") return json({ error: "Không tìm thấy khóa học" }, 404);
+    // ===== Bài thi lên level =====
+    if (b.action === "exam_start" || b.action === "exam_submit") {
+      const c2 = ctx || SAGA.buildCtx(null, null);
+      if (b.action === "exam_start") {
+        const ch = Math.floor(Number(b.chapter));
+        if (!(ch >= 0 && ch < c2.chapters.length)) return json({ error: "Khu không hợp lệ" }, 400);
+        // Điều kiện: đã qua cả 4 level của khu trong Đua level
+        let q2 = admin.from("saga_scores").select("level").eq("user_id", user.id).gte("stars", 1).gte("level", ch * SAGA.PER_CH + 1).lte("level", ch * SAGA.PER_CH + SAGA.PER_CH);
+        if (trackId) q2 = q2.eq("track_id", trackId);
+        const { data: done } = await q2;
+        const lv = new Set((done ?? []).map((x: any) => x.level));
+        if (lv.size < SAGA.PER_CH) return json({ error: `Cần qua đủ ${SAGA.PER_CH} level của khu này trong Đua level trước khi thi` }, 403);
+        // Tối đa 3 lượt thi / khu / ngày
+        const since = new Date(Date.now() - 86400000).toISOString();
+        let q3 = admin.from("exam_attempts").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("chapter", ch).gte("started_at", since);
+        if (trackId) q3 = q3.eq("track_id", trackId);
+        const { count } = await q3;
+        if ((count ?? 0) >= 3) return json({ error: "Đã thi 3 lượt trong 24 giờ, hãy ôn thêm rồi thi lại sau" }, 429);
+        const seed = crypto.randomUUID().slice(0, 8);
+        const { data: att, error } = await admin.from("exam_attempts").insert({ user_id: user.id, track_id: trackId, chapter: ch, seed }).select("id").single();
+        if (error) return json({ error: error.message }, 500);
+        return json({ id: att.id, seed, chapter: ch });
+      }
+      const { data: att } = await admin.from("exam_attempts").select("*").eq("id", Number(b.id)).eq("user_id", user.id).maybeSingle();
+      if (!att) return json({ error: "Không tìm thấy lượt thi" }, 404);
+      if (att.submitted_at) return json({ error: "Lượt thi này đã nộp" }, 409);
+      const L = SAGA.exam(att.chapter, att.seed, c2);
+      const elapsed = Date.now() - new Date(att.started_at).getTime();
+      if (elapsed > (L.minutes + 2) * 60000) { await admin.from("exam_attempts").update({ submitted_at: new Date().toISOString(), correct: 0, total: L.questions.length, passed: false }).eq("id", att.id); return json({ error: "Hết giờ làm bài", timeout: true }, 408); }
+      const g = SAGA.gradeExam(att.chapter, att.seed, Array.isArray(b.answers) ? b.answers.slice(0, 40) : [], c2);
+      await admin.from("exam_attempts").update({ submitted_at: new Date().toISOString(), correct: g.correct, total: g.total, ms: elapsed, passed: g.passed }).eq("id", att.id);
+      let cert = null;
+      if (g.passed) {
+        const { data: prof } = await admin.from("profiles").select("full_name,email").eq("id", user.id).maybeSingle();
+        const holder = (prof?.full_name || "").trim() || String(prof?.email || user.email || "").split("@")[0];
+        const code = ("SS-" + crypto.randomUUID().replace(/-/g, "").slice(0, 10)).toUpperCase();
+        const score = Math.round(g.correct / g.total * 100);
+        const row = { code, user_id: user.id, track_id: trackId, chapter: att.chapter, level_name: g.name, track_name: track?.name || "Steel", holder_name: holder, score };
+        const { data: old } = await admin.from("certificates").select("*").eq("user_id", user.id).eq("chapter", att.chapter).eq("track_id", trackId).maybeSingle();
+        if (old) { if (score > old.score) await admin.from("certificates").update({ score, issued_at: new Date().toISOString(), holder_name: holder }).eq("id", old.id); cert = { ...old, score: Math.max(score, old.score) }; }
+        else { const { data: nc } = await admin.from("certificates").insert(row).select().single(); cert = nc; }
+      }
+      return json({ ...g, cert });
+    }
     const LEVELS = ctx ? ctx.LEVELS : SAGA.LEVELS;
     const level = Math.floor(Number(b.level));
     if (!(level >= 1 && level <= LEVELS)) return json({ error: "Level không hợp lệ" }, 400);
