@@ -1276,7 +1276,7 @@ async function admCounts(){if(!PROF?.is_admin)return;const [r,l]=await Promise.a
 
 // ===================== Thi lên level & chứng chỉ =====================
 let CERT={list:null,for:null};
-async function certLoad(){CERT.for='all';CERT.list=CERT.list||[];if(!USER)return;const {data}=await SB.from('certificates').select('*').eq('user_id',USER.id).order('issued_at',{ascending:false});CERT.list=data||[];render()}
+async function certLoad(){if(!USER||CERT.for==='loading')return;CERT.for='loading';const {data,error}=await SB.from('certificates').select('*').eq('user_id',USER.id).order('issued_at',{ascending:false});if(error){CERT.for=null;console.warn('certs',error);return}CERT.list=data||[];CERT.for='all';render()}
 function certOf(ci){const tid=curTrack()?.id;return (CERT.list||[]).find(c=>c.chapter===ci&&(!tid||c.track_id===tid))}
 function examReady(ci){for(let k=1;k<=SAGA.PER_CH;k++)if(!((SG.best[ci*SAGA.PER_CH+k]||{}).stars>=1))return false;return true}
 function examState(ci){if(CERT.for!=='all')certLoad();return certOf(ci)?'cert':examReady(ci)?'ready':'locked'}
@@ -1331,7 +1331,7 @@ async function certShare(url){const btn=event?.target;
   else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();try{await navigator.clipboard.writeText(text)}catch(_){}toast('Đã tải ảnh giấy khen & chép lời chúc')}}
  catch(e){if(e&&e.name==='AbortError'){}else{try{await navigator.clipboard.writeText(text);toast('Không mở được chia sẻ, đã chép link')}catch(_){toast('Không chia sẻ được: '+(e.message||e))}}}
  finally{}}
-function vCerts(){if(!USER)return '';if(CERT.for!=='all'){CERT.for='all';SB.from('certificates').select('*').eq('user_id',USER.id).order('issued_at',{ascending:false}).then(({data})=>{CERT.list=data||[];CERT.for='all';render()})}const L=CERT.list||[];
+function vCerts(){if(!USER)return '';if(CERT.for!=='all')certLoad();const L=CERT.list||[];
  return `<h2>🏅 Chứng chỉ của tôi</h2>${L.length?`<div class="stack" style="margin-top:8px">${L.map(c=>`<button class="course-row" onclick="certOpen('${c.code}')"><span style="font-size:1.4rem">🏅</span><span style="flex:1;min-width:0;text-align:left"><b>${esc(c.level_name)}</b><small>${esc(c.track_name)} · ${c.score}% · ${new Date(c.issued_at).toLocaleDateString('vi-VN')}</small></span><span class="chev">›</span></button>`).join('')}</div>`:'<p class="mut">Qua đủ 4 level của một khu trong Đua level để mở bài thi lên level.</p>'}`}
 function vAdmin(){if(!PROF?.is_admin)return `<h1>Quản trị</h1><p class="mut">Chỉ admin mới vào được trang này.</p>`;return `<a class="card login-nudge" href="admin.html" style="text-decoration:none;color:inherit"><span class="tile2-ic">🖥️</span><span style="flex:1;text-align:left"><b>Trang quản trị nội dung${ADMN.reports?` · <span style="color:var(--bad)">⚑ ${ADMN.reports} báo lỗi</span>`:''}${ADMN.lessons?` · ${ADMN.lessons} bài chờ duyệt`:''}</b><small>Rà soát & sửa từ vựng, đáp án, đề IELTS trên màn hình lớn</small></span><span class="chev">›</span></a>`+vAIAdmin()+vBankAdmin()+vIeltsAdmin()+vSharedAdmin()+vEnrAdmin()+vSugAdmin()+vTrackAdmin()+vAdminUsers()}
 function vAdminUsers(){if(!ADM.list){admLoad();return `<h1>Quản trị người dùng</h1><p class="mut">Đang tải danh sách…</p>`}
