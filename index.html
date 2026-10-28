@@ -596,6 +596,20 @@ body.rd-open{overflow:hidden}body.rd-open nav{display:none}
 .cert-foot{display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:8px;font-size:.75rem}.cert-foot small{display:block;color:#8b8073}.cert-seal{font-size:2rem}
 .cert-url{font-size:.62rem;color:#8b8073;word-break:break-all;margin-top:4px}
 @media print{body *{visibility:hidden}#cert,#cert *{visibility:visible}#cert{position:fixed;inset:0;margin:auto;width:100%;box-shadow:none}.no-print,nav{display:none!important}@page{size:A4 landscape;margin:10mm}}
+
+.cert.fun{position:relative;overflow:hidden;padding:10px;background:var(--cbg);color:#1a1205;border-radius:22px;aspect-ratio:auto!important}
+.cf-in{position:relative;background:#fffdf6;border-radius:16px;padding:18px 16px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;border:3px dashed rgba(0,0,0,.12)}
+.cf-top{width:100%;display:flex;justify-content:space-between;align-items:center}.cf-brand{font:700 .95rem var(--fd);color:#1f4e79}.cf-stk{font-size:2rem;transform:rotate(12deg);animation:cfwob 2.4s ease-in-out infinite}
+.cf-k{font:800 clamp(1rem,4.5vw,1.4rem) var(--fd);letter-spacing:.04em;background:var(--cbg);-webkit-background-clip:text;background-clip:text;color:transparent}
+.cf-sub{font-size:.85rem;color:#6b6155}.cf-name{font:800 clamp(1.5rem,7vw,2.4rem)/1.1 var(--fd);color:#1a1205;padding:2px 10px;background:linear-gradient(transparent 60%,#ffe08a 60%)}
+.cf-lv{font:800 clamp(1.2rem,5.5vw,1.8rem) var(--fd);color:#1f4e79}.cf-tr{font-size:.9rem;font-weight:600}
+.cf-badges{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:6px}.cf-badges span{padding:6px 12px;border-radius:99px;font-size:.85rem;background:#fff3c4;border:2px solid #1a1205;box-shadow:3px 3px 0 #1a1205;transform:rotate(-2deg)}.cf-badges .cf-score{background:#c9f7e3;transform:rotate(2deg)}
+.cf-quote{margin-top:8px;font-style:italic;font-size:.9rem;color:#4a4036}
+.cf-foot{width:100%;display:flex;justify-content:space-between;margin-top:8px;font-size:.75rem;color:#8b8073}.cf-code{font-family:var(--fm,monospace);opacity:.7}
+.cf-confetti{position:absolute;inset:0;pointer-events:none}.cf-confetti i{position:absolute;top:-10px;left:var(--x);width:7px;height:12px;background:var(--c);border-radius:2px;animation:cffall 3.2s linear var(--d) infinite}
+@keyframes cffall{to{transform:translateY(560px) rotate(540deg)}}@keyframes cfwob{50%{transform:rotate(-8deg) scale(1.1)}}
+@media (prefers-reduced-motion:reduce){.cf-confetti,.cf-stk{animation:none!important;display:none}}
+@media print{.cf-confetti{display:none}}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -1266,8 +1280,17 @@ function vExamRes(){const g=S.game,r=g.res;if(r.pending)return `<div class="saga
 async function certOpen(code){const {data}=await SB.rpc('cert_verify',{code});const c=data&&data[0];if(!c)return toast('Không tìm thấy chứng chỉ');S.game=null;S.cert=c;S.tab='cert';render();scrollTo(0,0)}
 function vCert(){const c=S.cert;if(!c)return '';const url=location.origin+location.pathname.replace(/index\.html$/,'')+'verify.html?code='+c.code;const d=new Date(c.issued_at).toLocaleDateString('vi-VN',{day:'2-digit',month:'long',year:'numeric'});
  return `<div class="no-print row" style="justify-content:space-between;margin-bottom:10px"><button class="back" onclick="go('me')">‹ Tài khoản</button><div class="row"><button class="btn ghost" onclick="certShare('${url}')">Chia sẻ</button><button class="btn amber" onclick="window.print()">In / Lưu PDF</button></div></div>
- <div class="cert" id="cert"><div class="cert-in"><div class="cert-brand">SteelSpeak</div><div class="cert-k">CHỨNG CHỈ HOÀN THÀNH LEVEL</div><div class="cert-sub">Chứng nhận</div><div class="cert-name">${esc(c.holder_name)}</div><div class="cert-sub">đã hoàn thành bài thi lên level</div><div class="cert-lv">${esc(c.level_name)}</div><div class="cert-tr">Khóa ${esc(c.track_name)} · Điểm ${c.score}%</div>
- <div class="cert-foot"><div><small>Ngày cấp</small><b>${d}</b></div><div class="cert-seal">🏅</div><div><small>Mã kiểm tra</small><b>${esc(c.code)}</b></div></div><div class="cert-url">Kiểm tra tại: ${esc(url)}</div></div></div>`}
+ ${certFun(c,d)}`}
+function certFun(c,d){const th=c.track_name&&/ielts/i.test(c.track_name)?'race':/cefr|general/i.test(c.track_name||'')?'travel':'factory';
+ const P={race:{bg:'linear-gradient(135deg,#ff4d4d,#ffb703)',ic:['🏎️','🏁','🔥','⚡'],t:'Tay đua'},travel:{bg:'linear-gradient(135deg,#00b4d8,#7b2ff7)',ic:['✈️','🌏','🎒','📸'],t:'Phượt thủ'},factory:{bg:'linear-gradient(135deg,#1f4e79,#ff8c42)',ic:['🏗️','⚙️','🔩','🦺'],t:'Thợ cả'}}[th];
+ const rank=c.score>=100?'Huyền thoại':c.score>=95?'Siêu sao':c.score>=90?'Cao thủ':'Chiến binh';
+ const quotes=['Không ai cản nổi nữa rồi! 🚀','Tiếng Anh đã sợ bạn rồi đấy 😎','Một bước nhỏ cho bạn, một bước lớn cho từ vựng 🌙','Level up! Bắn pháo hoa đi nào 🎆'];const qt=quotes[(c.code||'').split('').reduce((a,x)=>a+x.charCodeAt(0),0)%quotes.length];
+ return `<div class="cert fun" id="cert" style="--cbg:${P.bg}"><div class="cf-confetti" aria-hidden="true">${Array.from({length:18},(_,k)=>`<i style="--x:${(k*37)%100}%;--d:${(k%6)*.4}s;--c:${['#ffd166','#ef476f','#06d6a0','#118ab2','#ffffff'][k%5]}"></i>`).join('')}</div>
+ <div class="cf-in"><div class="cf-top"><span class="cf-brand">SteelSpeak</span><span class="cf-stk">${P.ic[0]}</span></div>
+ <div class="cf-k">🎉 GIẤY KHEN LÊN LEVEL 🎉</div><div class="cf-sub">Trao tặng ${P.t} xuất sắc</div><div class="cf-name">${esc(c.holder_name)}</div>
+ <div class="cf-sub">vì đã chinh phục level</div><div class="cf-lv">${esc(c.level_name)}</div><div class="cf-tr">${P.ic[1]} ${esc(c.track_name)}</div>
+ <div class="cf-badges"><span class="cf-rank">🏆 Danh hiệu: <b>${rank}</b></span><span class="cf-score">${P.ic[3]} ${c.score}%</span></div>
+ <div class="cf-quote">“${qt}”</div><div class="cf-foot"><span>${P.ic[2]} ${d}</span><span class="cf-code">#${esc(c.code)}</span></div></div></div>`}
 async function certShare(url){try{if(navigator.share)await navigator.share({title:'Chứng chỉ SteelSpeak',url});else{await navigator.clipboard.writeText(url);toast('Đã chép link kiểm tra')}}catch(e){}}
 function vCerts(){if(!USER)return '';if(CERT.for!=='all'){CERT.for='all';SB.from('certificates').select('*').eq('user_id',USER.id).order('issued_at',{ascending:false}).then(({data})=>{CERT.list=data||[];CERT.for='all';render()})}const L=CERT.list||[];
  return `<h2>🏅 Chứng chỉ của tôi</h2>${L.length?`<div class="stack" style="margin-top:8px">${L.map(c=>`<button class="course-row" onclick="certOpen('${c.code}')"><span style="font-size:1.4rem">🏅</span><span style="flex:1;min-width:0;text-align:left"><b>${esc(c.level_name)}</b><small>${esc(c.track_name)} · ${c.score}% · ${new Date(c.issued_at).toLocaleDateString('vi-VN')}</small></span><span class="chev">›</span></button>`).join('')}</div>`:'<p class="mut">Qua đủ 4 level của một khu trong Đua level để mở bài thi lên level.</p>'}`}
