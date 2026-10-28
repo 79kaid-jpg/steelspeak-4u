@@ -1905,9 +1905,9 @@ hydrate();tkBind();render();boot();
 /* iOS Safari đôi khi tính sai đáy màn hình (sau khi thanh địa chỉ thu/giãn, bàn phím, ghi âm) làm menu dưới trôi lên. Bám menu theo visualViewport. */
 (function(){const vv=window.visualViewport;if(!vv)return;let raf=0;
 function fit(){raf=0;const n=document.querySelector('body>nav')||document.querySelector('nav');if(!n)return;
- const gap=window.innerHeight-(vv.height+vv.offsetTop);// >0: menu đang nằm trên đáy thật? <0: dưới
- const kb=gap>120; // bàn phím mở: giữ nguyên
- n.style.transform=(!kb&&Math.abs(gap)>1)?`translateY(${gap}px)`:'';}
+ const d=(vv.height+vv.offsetTop)-window.innerHeight;// >0: đáy thật nằm thấp hơn chỗ menu đang đứng
+ const kb=d<-120; // bàn phím mở: giữ nguyên
+ n.style.transform=(!kb&&Math.abs(d)>1)?`translateY(${d}px)`:'';}
 function q(){if(!raf)raf=requestAnimationFrame(fit)}
 vv.addEventListener('resize',q);vv.addEventListener('scroll',q);addEventListener('scroll',q,{passive:true});addEventListener('orientationchange',()=>setTimeout(fit,300));addEventListener('pageshow',q);setInterval(fit,1500)})();
 </script>
