@@ -627,6 +627,7 @@ body.rd-open{overflow:hidden}body.rd-open nav{display:none}
 @keyframes xgspin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.xg::before{animation:none}.xg-in{transition:none}}
 .xg-pop{animation:xgpop .6s cubic-bezier(.2,1.6,.4,1)}@keyframes xgpop{from{transform:scale(.2) rotate(-30deg);opacity:0}}
+.cert.snap .cf-confetti{display:none}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
@@ -1305,7 +1306,7 @@ function vExamRes(){const g=S.game,r=g.res;if(r.pending){const n=g.L.questions.l
  const pct=Math.round(r.correct/r.total*100);return `<div class="saga-res" style="text-align:center;position:relative;overflow:hidden">${r.passed?`<div class="cf-confetti" aria-hidden="true">${Array.from({length:24},(_,k)=>`<i style="--x:${(k*41)%100}%;--d:${(k%8)*.25}s;--c:${['#ffd166','#ef476f','#06d6a0','#4cc9f0','#ffffff'][k%5]}"></i>`).join('')}</div>`:''}<div style="font-size:3rem;position:relative" class="${r.passed?'xg-pop':''}">${r.passed?'🏅':'📘'}</div><h1>${r.passed?'Chúc mừng! Bạn đã lên level':'Chưa đạt lần này'}</h1><p>${esc(r.name)} · ${r.correct}/${r.total} câu đúng (${pct}%)</p>${r.passed?'<div class="saga-od" style="background:#ffd166;color:#1a1205">+100 XP · Chứng chỉ đã được cấp</div>':`<p class="mut" style="color:#dfe9f3">Cần ${Math.ceil(r.total*.8)} câu đúng. Ôn lại từ sai rồi thi lại nhé.</p>`}
  <div class="stack" style="margin-top:14px">${r.passed&&r.cert?`<button class="btn amber" onclick="certOpen('${r.cert.code}')">Xem chứng chỉ</button>`:''}<button class="btn ghost" onclick="S.game=null;S.tab='saga';render()">Về bản đồ</button></div></div>`}
 async function certOpen(code){const {data}=await SB.rpc('cert_verify',{code});const c=data&&data[0];if(!c)return toast('Không tìm thấy chứng chỉ');S.game=null;S.cert=c;S.tab='cert';render();scrollTo(0,0)}
-function vCert(){const c=S.cert;if(!c)return '';const url=location.origin+location.pathname.replace(/index\.html$/,'')+'verify.html?code='+c.code;const d=new Date(c.issued_at).toLocaleDateString('vi-VN',{day:'2-digit',month:'long',year:'numeric'});
+function vCert(){const c=S.cert;if(!c)return '';certPrep(c.code);const url=location.origin+location.pathname.replace(/index\.html$/,'')+'verify.html?code='+c.code;const d=new Date(c.issued_at).toLocaleDateString('vi-VN',{day:'2-digit',month:'long',year:'numeric'});
  return `<div class="no-print row" style="justify-content:space-between;margin-bottom:10px"><button class="back" onclick="go('me')">‹ Tài khoản</button><div class="row"><button class="btn ghost" onclick="certShare('${url}')">Chia sẻ</button><button class="btn amber" onclick="window.print()">In / Lưu PDF</button></div></div>
  ${certFun(c,d)}`}
 function certFun(c,d){const th=c.track_name&&/ielts/i.test(c.track_name)?'race':/cefr|general/i.test(c.track_name||'')?'travel':'factory';
@@ -1318,7 +1319,18 @@ function certFun(c,d){const th=c.track_name&&/ielts/i.test(c.track_name)?'race':
  <div class="cf-sub">vì đã chinh phục level</div><div class="cf-lv">${esc(c.level_name)}</div><div class="cf-tr">${P.ic[1]} ${esc(c.track_name)}</div>
  <div class="cf-badges"><span class="cf-rank">🏆 Danh hiệu: <b>${rank}</b></span><span class="cf-score">${P.ic[3]} ${c.score}%</span></div>
  <div class="cf-quote">“${qt}”</div><div class="cf-foot"><span>${P.ic[2]} ${d}</span><span class="cf-code">#${esc(c.code)}</span></div></div></div>`}
-async function certShare(url){try{if(navigator.share)await navigator.share({title:'Chứng chỉ SteelSpeak',url});else{await navigator.clipboard.writeText(url);toast('Đã chép link kiểm tra')}}catch(e){}}
+async function certImage(){const el=document.getElementById('cert');const H=await lib('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js','html2canvas');el.classList.add('snap');try{const cv=await H(el,{scale:2,backgroundColor:null,useCORS:true,logging:false});return await new Promise(ok=>cv.toBlob(ok,'image/png'))}finally{el.classList.remove('snap')}}
+let CERTIMG={code:null,blob:null,p:null};function certPrep(code){if(CERTIMG.code===code)return CERTIMG.p;CERTIMG={code,blob:null,p:null};CERTIMG.p=new Promise(r=>setTimeout(r,700)).then(certImage).then(b=>{if(CERTIMG.code===code)CERTIMG.blob=b;return b}).catch(()=>null);return CERTIMG.p}
+async function certShare(url){const btn=event?.target;
+ const text='🎉 Mình vừa lên level trên SteelSpeak! '+url;
+ // iPhone chỉ cho mở bảng chia sẻ ngay khi bấm: dùng ảnh đã tạo sẵn, chưa có thì tạo xong rồi bấm lại
+ if(!CERTIMG.blob&&S.cert){if(btn){btn.disabled=true;btn.textContent='Đang tạo ảnh…'}await certPrep(S.cert.code);if(btn){btn.disabled=false;btn.textContent='Chia sẻ ảnh 📤'}if(CERTIMG.blob)return toast('Ảnh đã sẵn sàng, bấm lại để chia sẻ')}
+ try{const blob=CERTIMG.blob;if(!blob)throw new Error('no-image');const file=new File([blob],'giay-khen-steelspeak.png',{type:'image/png'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Giấy khen SteelSpeak',text})}
+  else if(navigator.share){await navigator.share({title:'Giấy khen SteelSpeak',text,url})}
+  else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;a.click();try{await navigator.clipboard.writeText(text)}catch(_){}toast('Đã tải ảnh giấy khen & chép lời chúc')}}
+ catch(e){if(e&&e.name==='AbortError'){}else{try{await navigator.clipboard.writeText(text);toast('Không mở được chia sẻ, đã chép link')}catch(_){toast('Không chia sẻ được: '+(e.message||e))}}}
+ finally{}}
 function vCerts(){if(!USER)return '';if(CERT.for!=='all'){CERT.for='all';SB.from('certificates').select('*').eq('user_id',USER.id).order('issued_at',{ascending:false}).then(({data})=>{CERT.list=data||[];CERT.for='all';render()})}const L=CERT.list||[];
  return `<h2>🏅 Chứng chỉ của tôi</h2>${L.length?`<div class="stack" style="margin-top:8px">${L.map(c=>`<button class="course-row" onclick="certOpen('${c.code}')"><span style="font-size:1.4rem">🏅</span><span style="flex:1;min-width:0;text-align:left"><b>${esc(c.level_name)}</b><small>${esc(c.track_name)} · ${c.score}% · ${new Date(c.issued_at).toLocaleDateString('vi-VN')}</small></span><span class="chev">›</span></button>`).join('')}</div>`:'<p class="mut">Qua đủ 4 level của một khu trong Đua level để mở bài thi lên level.</p>'}`}
 function vAdmin(){if(!PROF?.is_admin)return `<h1>Quản trị</h1><p class="mut">Chỉ admin mới vào được trang này.</p>`;return `<a class="card login-nudge" href="admin.html" style="text-decoration:none;color:inherit"><span class="tile2-ic">🖥️</span><span style="flex:1;text-align:left"><b>Trang quản trị nội dung${ADMN.reports?` · <span style="color:var(--bad)">⚑ ${ADMN.reports} báo lỗi</span>`:''}${ADMN.lessons?` · ${ADMN.lessons} bài chờ duyệt`:''}</b><small>Rà soát & sửa từ vựng, đáp án, đề IELTS trên màn hình lớn</small></span><span class="chev">›</span></a>`+vAIAdmin()+vBankAdmin()+vIeltsAdmin()+vSharedAdmin()+vEnrAdmin()+vSugAdmin()+vTrackAdmin()+vAdminUsers()}
