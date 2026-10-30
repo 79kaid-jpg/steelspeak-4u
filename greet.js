@@ -56,7 +56,8 @@ const css=`.gx{position:fixed;inset:0;z-index:2147483600;background:radial-gradi
 .gc-it b{color:#ffd166}.gc-it code{display:inline-block;margin-top:2px;padding:2px 8px;border:1.5px dashed #ffd166;border-radius:8px;color:#ffd166;font:700 .85rem ui-monospace,monospace}
 .gc-ok{margin-top:16px;width:100%;min-height:48px;border:0;border-radius:999px;font:800 1rem system-ui,sans-serif;color:#2a0812;background:linear-gradient(135deg,#ffd166,#ff9f43);cursor:pointer}
 @media (prefers-reduced-motion:reduce){.gx *{animation-duration:.01s!important;transition-duration:.01s!important}}`;
-let AC;function ac(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume();return AC}catch(e){return null}}
+let AC;function ac(){try{try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state!=='running')AC.resume();return AC}catch(e){return null}}
+function unlock(){const c=ac();if(!c)return;try{const b=c.createBuffer(1,1,22050),s=c.createBufferSource();s.buffer=b;s.connect(c.destination);s.start(0)}catch(e){}}
 function bell(f,t,d=1.6,v=.12){const c=ac();if(!c)return;const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,c.currentTime+t);g.gain.linearRampToValueAtTime(v,c.currentTime+t+.01);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+t+d);o.connect(g).connect(c.destination);o.start(c.currentTime+t);o.stop(c.currentTime+t+d)}
 function jingle(){for(let i=0;i<14;i++)bell(2200+Math.random()*1800,i*.045+Math.random()*.03,.5,.05)}
 function tune(){/* Happy Birthday, hộp nhạc */const N={G:392,A:440,B:494,C:523,D:587,E:659,F:698,g:784};const s=[['G',0],['G',.3],['A',.6],['G',1.2],['C',1.8],['B',2.4],['G',3.4],['G',3.7],['A',4],['G',4.6],['D',5.2],['C',5.8],['G',6.8],['G',7.1],['g',7.4],['E',8],['C',8.6],['B',9.2],['A',9.8],['F',10.8],['F',11.1],['E',11.4],['C',12],['D',12.6],['C',13.2]];s.forEach(([n,t])=>{bell(N[n]*2,t+.2,1.4,.09);bell(N[n]*4,t+.2,.6,.02)})}
@@ -71,7 +72,7 @@ function open(g){if(document.querySelector('.gx'))return;
  document.body.appendChild(el);requestAnimationFrame(()=>el.classList.add('on'));
  el.querySelector('.gx-x').onclick=()=>{el.classList.remove('on');setTimeout(()=>el.remove(),600)};
  const box=el.querySelector('.gx-box');let opened=false;
- const go=()=>{if(opened)return;opened=true;jingle();el.classList.add('open');const r=box.getBoundingClientRect();sparks(el,r.left+r.width/2,r.top+30,40);petals(el,40);
+ const go=()=>{if(opened)return;opened=true;unlock();jingle();el.classList.add('open');const r=box.getBoundingClientRect();sparks(el,r.left+r.width/2,r.top+30,40);petals(el,40);
   setTimeout(()=>{el.querySelector('.gx-pre').remove();const st=document.createElement('div');st.className='gx-stage';
    const tas=Array.from({length:11},(_,i)=>`<b style="left:calc(50% - 2px);transform:rotate(${(i-5)*9}deg)"></b>`).join('');
    st.innerHTML=`<div class="gx-ring">${g.image?`<img src="${g.image}" alt="">`:''}${tas}</div><div class="gx-t">${esc(g.title)}</div><div class="gx-n">${esc(g.name||'')}</div><div class="gx-m"></div><div class="gx-f">— ${esc(g.from_name)} —</div><button class="gx-spinbtn">🎡 Quay quà may mắn</button>`;

@@ -1681,7 +1681,7 @@ function carHTML(uid,av,size=1,cls=''){const {type,color}=carOf(uid);return `<di
 
 // ===================== Âm nhạc & hiệu ứng âm thanh (tự tổng hợp bằng Web Audio, không dùng nhạc có bản quyền) =====================
 const MUSIC={on:(()=>{try{return localStorage.getItem('music')!=='0'}catch(e){return true}})(),playing:null,timer:null,step:0,next:0,bus:null};
-function actx(){ACX=ACX||new (window.AudioContext||window.webkitAudioContext)();if(ACX.state=='suspended')ACX.resume();return ACX}
+function actx(){try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}ACX=ACX||new (window.AudioContext||window.webkitAudioContext)();if(ACX.state=='suspended')ACX.resume();return ACX}
 const N2F=n=>440*Math.pow(2,(n-69)/12);
 const SONGS={
  race:{bpm:150,bass:[40,40,52,40,43,43,55,43,45,45,57,45,43,43,47,50],lead:[64,67,71,72,71,67,64,62,64,67,69,71,74,71,69,67],wave:'sawtooth',lv:.045,drums:'xx-x'},

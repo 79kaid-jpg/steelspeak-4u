@@ -148,7 +148,7 @@ function openGift(kind){const d=new Date();let html,xp;
  document.querySelector('.ss-gift')?.remove()}
 
 /* ---------- Âm thanh ---------- */
-let AC;function ac(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();return AC}catch(e){return null}}
+let AC;function ac(){try{try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state!=='running')AC.resume();return AC}catch(e){return null}}
 function bell(f,t,d,v){const c=ac();if(!c)return;const t0=c.currentTime+t,lp=c.createBiquadFilter(),g=c.createGain();lp.type='lowpass';lp.frequency.value=2600;g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(v,t0+.01);g.gain.exponentialRampToValueAtTime(.0001,t0+d);[[1,1],[2.76,.18]].forEach(([m,a])=>{const o=c.createOscillator(),og=c.createGain();o.type='sine';o.frequency.value=f*m;og.gain.value=a;o.connect(og).connect(g);o.start(t0);o.stop(t0+d+.02)});g.connect(lp).connect(c.destination)}
 function crack(t){const c=ac();if(!c)return;const len=c.sampleRate*.05,b=c.createBuffer(1,len,c.sampleRate),x=b.getChannelData(0);for(let i=0;i<len;i++)x[i]=(Math.random()*2-1)*Math.pow(1-i/len,3);const s=c.createBufferSource(),g=c.createGain();g.gain.value=.12;s.buffer=b;s.connect(g).connect(c.destination);s.start(c.currentTime+t)}
 function sound(kind,big){if(!CFG.sound)return;try{if(typeof MUSIC!=='undefined'&&!MUSIC.on)return}catch(e){}
