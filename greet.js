@@ -42,7 +42,13 @@ const css=`.gx{position:fixed;inset:0;z-index:2147483600;background:radial-gradi
 .gw-hub:disabled{opacity:.7;cursor:default}
 .gw-msg{min-height:3.2em;text-align:center;color:#ffe3ea;font:600 1rem/1.5 system-ui,sans-serif;max-width:340px}
 .gw-msg b{color:#ffd166;font-size:1.15rem}.gw-code{display:inline-block;margin-top:6px;padding:4px 12px;border:2px dashed #ffd166;border-radius:10px;font:800 1rem ui-monospace,monospace;color:#ffd166;letter-spacing:.08em}
-.gw-left{color:#e9b9c6;font-size:.86rem}
+.gw-left{color:#e9b9c6;font-size:.86rem;text-align:center;max-width:340px}
+.gw-acts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.gw-acts button{min-height:48px;padding:0 20px;border-radius:999px;font:800 .95rem system-ui,sans-serif;cursor:pointer;transition:transform .2s}
+.gw-send{border:2px solid #fff;color:#2a0812;background:linear-gradient(135deg,#ffd166,#ff9f43);box-shadow:0 8px 22px #ff9f4366}
+.gw-send:disabled{opacity:.6}.gw-close{border:2px solid #ffffff88;color:#fff;background:transparent}
+.gw-acts button:hover{transform:translateY(-2px)}
+.gw-x{position:absolute;top:calc(12px + env(safe-area-inset-top));right:14px;width:44px;height:44px;border-radius:50%;border:0;background:#ffffff22;color:#fff;font-size:26px;cursor:pointer}
 @media (prefers-reduced-motion:reduce){.gx *{animation-duration:.01s!important;transition-duration:.01s!important}}`;
 let AC;function ac(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume();return AC}catch(e){return null}}
 function bell(f,t,d=1.6,v=.12){const c=ac();if(!c)return;const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,c.currentTime+t);g.gain.linearRampToValueAtTime(v,c.currentTime+t+.01);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+t+d);o.connect(g).connect(c.destination);o.start(c.currentTime+t);o.stop(c.currentTime+t+d)}
@@ -74,10 +80,17 @@ const SPINS=2;
 function wheel(el,g){if(el.querySelector('.gw'))return;const key='gx-spin-'+g.id;let st;try{st=JSON.parse(localStorage.getItem(key))||{n:0,won:[],turn:0}}catch(e){st={n:0,won:[],turn:0}}
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(st))}catch(e){}};
  const w=document.createElement('div');w.className='gw';
- w.innerHTML=`<h3>Vòng quay may mắn</h3><div class="gw-wrap"><div class="gw-pin"></div><div class="gw-wheel">${PRIZES.map((p,i)=>`<span style="transform:rotate(${i*72+36-90}deg)"><em>${p.e}</em>${p.s}</span>`).join('')}</div><button class="gw-hub">QUAY</button></div><div class="gw-msg"></div><div class="gw-left"></div>`;
+ w.innerHTML=`<h3>Vòng quay may mắn</h3><div class="gw-wrap"><div class="gw-pin"></div><div class="gw-wheel">${PRIZES.map((p,i)=>`<span style="transform:rotate(${i*72+36-90}deg)"><em>${p.e}</em>${p.s}</span>`).join('')}</div><button class="gw-hub">QUAY</button></div><div class="gw-msg"></div><div class="gw-left"></div><div class="gw-acts" hidden><button class="gw-send">🎁 Gửi quà cho ${esc(g.from_name||"người tặng")}</button><button class="gw-close">Đóng</button></div><button class="gw-x" aria-label="Đóng">×</button>`;
  el.appendChild(w);const wh=w.querySelector('.gw-wheel'),hub=w.querySelector('.gw-hub'),msg=w.querySelector('.gw-msg'),left=w.querySelector('.gw-left');let rot=0;
  const code=i=>'HH-'+String(g.id).padStart(2,'0')+'-'+(['TS','NH','NHAU','AV'][i])+'-'+(1000+((g.id*37+i*91)%9000));
- const show=()=>{left.textContent=st.n>=SPINS?'Đã hết lượt quay. Chụp màn hình gửi người tặng để đổi quà nhé!':`Còn ${SPINS-st.n} lượt quay`;hub.disabled=st.n>=SPINS;
+ const acts=w.querySelector('.gw-acts'),send=w.querySelector('.gw-send'),closeAll=()=>{el.classList.remove('on');setTimeout(()=>el.remove(),600)};
+ w.querySelector('.gw-x').onclick=closeAll;w.querySelector('.gw-close').onclick=closeAll;
+ if(st.sent){send.disabled=true;send.textContent='✓ Đã gửi quà'}
+ send.onclick=async()=>{send.disabled=true;send.textContent='Đang gửi…';const SB=window.__ss&&window.__ss.SB,U=window.__ss&&window.__ss.USER;
+  try{const {error}=await SB.from('gift_claims').insert({greeting_id:g.id,user_email:(U&&U.email)||'',prizes:st.won.map(i=>({name:PRIZES[i].n,code:code(i)}))});if(error)throw error;
+   st.sent=true;save();send.textContent='✓ Đã gửi quà';left.textContent='Đã gửi cho '+(g.from_name||'người tặng')+'. Nhớ đòi quà nha! 🎉';sparks(el,innerWidth/2,innerHeight/2,40);setTimeout(closeAll,2200)}
+  catch(e){send.disabled=false;send.textContent='Thử gửi lại';left.textContent='Chưa gửi được ('+(e.message||e)+'). Bạn chụp màn hình gửi trực tiếp nhé.'}};
+ const show=()=>{left.textContent=st.n>=SPINS?(st.sent?'Quà đã được gửi.':'Đã hết lượt quay. Bấm "Gửi quà" để báo người tặng nhé!'):`Còn ${SPINS-st.n} lượt quay`;hub.disabled=st.n>=SPINS;acts.hidden=!st.won.length;send.hidden=st.n<SPINS;
   if(st.won.length)msg.innerHTML='Quà đã trúng:<br>'+st.won.map(i=>`${PRIZES[i].e} <b>${PRIZES[i].n}</b><br><span class="gw-code">${code(i)}</span>`).join('<br>')};
  show();
  hub.onclick=()=>{if(st.n>=SPINS||hub.disabled)return;hub.disabled=true;msg.textContent='Đang quay…';
