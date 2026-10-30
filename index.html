@@ -885,7 +885,7 @@ function tkBind(){const s=tkSlug();if(S.tkCur===s)return;tkStash();S.tk=S.tk||{}
   S.tk[s]=b}
  TK_KEYS.forEach(k=>S[k]=b[k]||tkEmpty(k));S.tkCur=s}
 try{load(JSON.parse(localStorage.getItem('ss2')||'null'))}catch(e){}
-const SB=supabase.createClient(window.SS_CONFIG.SUPABASE_URL,window.SS_CONFIG.SUPABASE_ANON_KEY);let USER=null,saveT=null;window.__ss={get USER(){return USER},SB};
+const SB=supabase.createClient(window.SS_CONFIG.SUPABASE_URL,window.SS_CONFIG.SUPABASE_ANON_KEY);let USER=null,saveT=null;window.__ss={get USER(){return USER},get PROF(){try{return PROF}catch(e){return null}},SB};
 function save(){const today=new Date().toISOString().slice(0,10);if(S.tdate!==today){S.tdate=today;S.txp=0}if(S._lx!=null&&S.xp>S._lx)S.txp=(S.txp||0)+(S.xp-S._lx);S._lx=S.xp;tkStash();const v={xp:S.xp,streak:S.streak,last:S.last,tk:S.tk||{},tdate:S.tdate,txp:S.txp||0,goal:S.goal||50};try{localStorage.setItem('ss2',JSON.stringify(v))}catch(e){}
 if(USER){clearTimeout(saveT);saveT=setTimeout(async()=>{const {error}=await SB.from('progress').upsert({user_id:USER.id,data:v,updated_at:new Date().toISOString()});S.sync=error?'err':'cloud'},600)}}
 let PROF=null;const ROLES=['TPL','QA','QC','Khác'];

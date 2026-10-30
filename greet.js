@@ -98,6 +98,9 @@ async function check(){const USER=window.__ss&&window.__ss.USER,SB=window.__ss&&
  let {data}=await q.limit(30);data=(data||[]).filter(x=>prev||until(x)>=T);const me=(USER.email||'').toLowerCase();
  // của mình & đúng ngày; admin xem trước được lời chúc sắp tới của người khác (chỉ hiện nút, không tự mở)
  let g=(data||[]).find(x=>x.to_email.toLowerCase()==me&&x.show_on<=T&&until(x)>=T)||(prev&&data&&data[0]);
+ // Admin (người tạo lời chúc) trải nghiệm y như người nhận: tự bật hộp quà, có nút 🎁 và vòng quay
+ if(!g&&!window.__ss.PROF&&(check.w=(check.w||0)+1)<8){busy=false;setTimeout(check,1500);return}
+ if(!g&&window.__ss.PROF&&window.__ss.PROF.is_admin)g=(data||[]).find(x=>x.to_email.toLowerCase()!=me);
  if(!g){const pv=(data||[]).find(x=>x.to_email.toLowerCase()!=me);if(pv&&!document.querySelector('.gx-replay')){if(!document.getElementById('gx-css')){const st=document.createElement('style');st.id='gx-css';st.textContent=css;document.head.appendChild(st)}const b=document.createElement('button');b.className='gx-replay';b.title='Xem trước quà cho '+pv.to_email;b.setAttribute('aria-label',b.title);b.textContent='🎁';b.onclick=()=>open(pv);document.body.appendChild(b)}return}
  const k='gx-seen-'+g.id+'-'+T;let seen=false;try{seen=localStorage.getItem(k)}catch(e){}
  if(!document.querySelector('.gx-replay')){const b=document.createElement('button');b.className='gx-replay';b.setAttribute('aria-label','Mở lại quà sinh nhật');b.textContent='🎁';b.onclick=()=>open(g);
