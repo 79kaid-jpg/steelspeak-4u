@@ -74,6 +74,11 @@ html[data-season="tet"] .ring::after{content:"";position:absolute;top:-12px;left
 html[data-season="tet"] .ss-gift{background:radial-gradient(circle at 35% 30%,#ff5a5f,#a50d22);border-color:#ffc72c}
 html[data-season="tet"] .saga-map::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(#ffc72c1f,transparent 30%,transparent 75%,#c8102e22)}
 .ss-card.tet{background:linear-gradient(160deg,#c8102e,#8a0a1d);color:#fff3dc;border:2px solid #ffc72c}.ss-card.tet .xp{background:#ffc72c;color:#5a1500}.ss-card.tet .en{color:#ffe08a}
+html[data-season="noel"] #sgme::after{content:"";position:absolute;left:50%;top:-14px;width:30px;height:22px;margin-left:-8px;background:${HAT} center/contain no-repeat;transform:rotate(14deg);pointer-events:none;z-index:3}
+html[data-season="noel"] .saga-node-wrap.boss::after{content:"";position:absolute;left:50%;top:-12px;width:34px;height:24px;margin-left:-10px;background:${HAT} center/contain no-repeat;transform:rotate(16deg);pointer-events:none}
+html[data-season="tet"] #sgme::after{content:"";position:absolute;right:-12px;top:-14px;width:18px;height:28px;background:${LANTERN} center/contain no-repeat;animation:sssw 2.4s ease-in-out infinite;transform-origin:50% 0;pointer-events:none;z-index:3}
+html[data-season="tet"] .saga-node-wrap.boss::after{content:"";position:absolute;left:50%;top:-16px;width:18px;height:28px;margin-left:-9px;background:${LANTERN} center/contain no-repeat;animation:sssw 2.4s ease-in-out infinite;transform-origin:50% 0;pointer-events:none}
+html[data-season] .saga-map::before{display:none}
 `;
 
 /* ---------- Nội dung ---------- */
@@ -131,11 +136,44 @@ function sound(kind,big){if(!CFG.sound)return;try{if(typeof MUSIC!=='undefined'&
  else{for(let i=0;i<(big?14:5);i++)crack(i*.06+Math.random()*.05);if(big)[[392,.9],[440,1.1],[523,1.3],[587,1.5],[659,1.7],[587,2],[523,2.2]].forEach(([f,t])=>bell(f*2,t,.5,.06))}}
 function hookSFX(){try{if(!SFX||SFX.__ss)return;SFX.__ss=1;const ok=SFX.ok,win=SFX.win;if(ok)SFX.ok=function(){const r=ok.apply(this,arguments);if(CUR)sound(CUR,false);return r};if(win)SFX.win=function(){const r=win.apply(this,arguments);if(CUR)sound(CUR,true);return r}}catch(e){}}
 
+
+/* ---------- Bản đồ Đua level theo mùa ---------- */
+const MAP_SCN={
+ noel:[
+  {city:'Làng tuyết Bắc Cực',sky:['#1b2a52','#41608f'],hill:['#eef4fb','#d3e1ef'],props:['xtree','cabin','snowman','gifts'],night:true,stars:28,bush:false},
+  {city:'Chợ phiên Giáng sinh',sky:['#0f2a1f','#2a5b44'],hill:['#f4f8fc','#dbe6f0'],props:['cabin','xtree','gifts','xtree'],night:true,stars:20,bush:false},
+  {city:'Rừng thông tuyết',sky:['#cfe3f5','#f5fbff'],hill:['#ffffff','#dde9f4'],props:['pine','snowman','pine','xtree'],bush:false},
+  {city:'Xưởng quà ông già Noel',sky:['#3a1630','#7a2a4a'],hill:['#f6f1f4','#e2d6dc'],props:['gifts','cabin','gifts','snowman'],night:true,stars:24,bush:false}],
+ tet:[
+  {city:'Chợ hoa ngày Tết',sky:['#ffd9a8','#fff4e0'],hill:['#9fd07a','#6fae4f'],props:['mai','lanterns','dao','banhchung']},
+  {city:'Phố ông đồ',sky:['#ffe0b2','#fff8ec'],hill:['#c9a46a','#a78449'],props:['caudoi','lanterns','caudoi','mai'],bush:false},
+  {city:'Làng quê đón xuân',sky:['#bfe6ff','#f0faff'],hill:['#7cc47a','#4f9e57'],props:['dao','banhchung','mai','lanterns']},
+  {city:'Đêm giao thừa',sky:['#2a0b2e','#6a1838'],hill:['#7a1a2a','#5a1020'],props:['lanterns','fireworks','lanterns','fireworks'],night:true,stars:20,bush:false}]};
+function seasonProp(t,x,y,s,i){const g=c=>`<g transform="translate(${x} ${y}) scale(${s})" class="pp pp-${t}" style="--d:${(i%5)*0.6}s">${c}</g>`;
+ const cols=['#ff4d4d','#ffd34d','#4dd17a','#4db8ff','#ff8ad8'];
+ switch(t){
+ case 'xtree':return g(`<rect x="-4" y="12" width="8" height="12" fill="#6b4a2a"/>${[0,1,2].map(k=>`<path d="M${-22+k*5} ${14-k*13}h${44-k*10}l${-22+k*5} -20z" fill="#1f6b45"/>`).join('')}${Array.from({length:9},(_,k)=>`<circle class="twk" style="--d:${k*.25}s" cx="${[-14,6,14,-8,8,-4,4,-10,12][k]}" cy="${[8,6,10,-4,-6,-16,-20,2,-2][k]}" r="2.6" fill="${cols[k%5]}"/>`).join('')}<path d="M0 -50l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" fill="#f2c14e"/>`);
+ case 'snowman':return g(`<circle cy="10" r="13" fill="#fff" stroke="#c9d8e6"/><circle cy="-10" r="9" fill="#fff" stroke="#c9d8e6"/><path d="M0 -10l9 2-9 2z" fill="#f08a24"/><circle cx="-3" cy="-13" r="1.3" fill="#222"/><circle cx="3" cy="-13" r="1.3" fill="#222"/><rect x="-8" y="-24" width="16" height="4" fill="#222"/><rect x="-5" y="-33" width="10" height="10" fill="#222"/><path d="M-9 -3h18" stroke="#c8102e" stroke-width="3"/>`);
+ case 'cabin':return g(`<rect x="-24" y="-8" width="48" height="30" fill="#7a4a2a"/><path d="M-30 -8l30 -22 30 22z" fill="#fff"/><rect class="twk" style="--d:.4s" x="-14" y="0" width="10" height="10" fill="#ffd56a"/><rect class="twk" x="4" y="0" width="10" height="10" fill="#ffd56a"/><path d="M-30 -8h60" stroke="#ff4d4d" stroke-width="2" stroke-dasharray="3 4"/>`);
+ case 'gifts':return g(`${[[-14,6,'#c8102e','#f2c14e'],[6,8,'#1f6b45','#fff'],[-4,-8,'#f2c14e','#c8102e']].map(([a,b,c,d])=>`<rect x="${a-9}" y="${b-9}" width="18" height="18" rx="2" fill="${c}"/><path d="M${a} ${b-9}v18M${a-9} ${b}h18" stroke="${d}" stroke-width="3"/>`).join('')}`);
+ case 'mai':case 'dao':{const f=t=='mai'?'#ffc72c':'#f48fb1',c=t=='mai'?'#e8742a':'#c2185b';return g(`<path d="M0 22v-24M0 0l-14-16M0 -4l12-18M-6 -8l-10 -2M4 -14l10 -6" stroke="#5b3a1e" stroke-width="3" stroke-linecap="round"/>${[[-14,-16],[12,-22],[-16,-10],[14,-20],[0,-26],[-8,-6],[6,-10],[-4,-18],[10,-4]].map(([a,b],k)=>`<g transform="translate(${a} ${b}) rotate(${k*31})">${[0,72,144,216,288].map(r=>`<ellipse rx="2.4" ry="3.8" cy="-3.2" transform="rotate(${r})" fill="${f}"/>`).join('')}<circle r="1.4" fill="${c}"/></g>`).join('')}<rect x="-9" y="16" width="18" height="10" rx="2" fill="#c8102e"/>`)}
+ case 'lanterns':return g(`<path d="M-34 -30q34 14 68 0" stroke="#5b3a1e" fill="none"/>${[-24,0,24].map((a,k)=>`<g class="swing" style="transform-origin:${a}px -24px"><path d="M${a} -24v6" stroke="#5b3a1e"/><ellipse cx="${a}" cy="-8" rx="9" ry="11" fill="#c8102e"/><rect x="${a-4}" y="2" width="8" height="3" fill="#ffc72c"/><path d="M${a} 5v8" stroke="#ffc72c"/></g>`).join('')}`);
+ case 'banhchung':return g(`<rect x="-14" y="-6" width="28" height="28" fill="#3f8f3f"/><path d="M-14 3h28M-14 13h28M-5 -6v28M5 -6v28" stroke="#e8d9a6" stroke-width="2"/><rect x="-14" y="-6" width="28" height="28" fill="none" stroke="#2a6a2a" stroke-width="2"/>`);
+ case 'caudoi':return g(`<rect x="-8" y="-34" width="16" height="58" rx="2" fill="#c8102e"/><rect x="-6" y="-32" width="12" height="54" fill="none" stroke="#ffc72c"/>${[0,1,2].map(k=>`<path d="M-3 ${-24+k*16}q3 -4 6 0q-3 4 -6 0" stroke="#1a1a1a" stroke-width="2" fill="none"/>`).join('')}`);
+ case 'fireworks':return g(`${Array.from({length:12},(_,k)=>{const a=k*30*Math.PI/180;return `<path class="twk" style="--d:${k*.15}s" d="M0 -20L${Math.cos(a)*22} ${-20+Math.sin(a)*22}" stroke="${['#ffc72c','#ff5a5f','#f48fb1'][k%3]}" stroke-width="2.4" stroke-linecap="round"/>`}).join('')}<circle cy="-20" r="3" fill="#fff"/>`);
+ }return null}
+function hookMap(){try{if(typeof sceneSVG!=='function'||sceneSVG.__ss)return;
+ const oScene=sceneSVG,oProp=prop,oBottom=mapBottomColor;
+ THEME_SCN.noel=MAP_SCN.noel;THEME_SCN.tet=MAP_SCN.tet;
+ window.prop=prop=function(t,x,y,s,i){return seasonProp(t,x,y,s,i)??oProp(t,x,y,s,i)};
+ window.sceneSVG=sceneSVG=function(ci,h,theme){return oScene(ci,h,CUR||theme)};sceneSVG.__ss=1;
+ window.mapBottomColor=mapBottomColor=function(){if(CUR){const s=MAP_SCN[CUR][0];return s.hill[1]}return oBottom()};
+}catch(e){console.warn('season map',e)}}
 /* ---------- Áp dụng ---------- */
-function apply(){const k=pick();if(k===CUR&&document.querySelector(k?'.ss-deco':'body'))return;CUR=k;
+function apply(){const k=pick();if(k===CUR&&document.querySelector(k?'.ss-deco':'body'))return;CUR=k;try{if(typeof render=='function'&&S&&S.tab=='saga')render()}catch(e){}
  const root=document.documentElement;if(k)root.setAttribute('data-season',k);else root.removeAttribute('data-season');
  const mt=document.querySelector('meta[name=theme-color]');if(mt){mt.dataset.orig=mt.dataset.orig||mt.content;mt.content=k=='noel'?'#0f2a1f':k=='tet'?'#c8102e':mt.dataset.orig}
- if(k){deco(k);fxStart(k);hookSFX()}else{deco('');fxStop()}}
+ if(k){deco(k);fxStart(k);hookSFX();hookMap()}else{deco('');fxStop()}}
 async function load(){try{const {data}=await SB.from('app_settings').select('value').eq('key','season').maybeSingle();if(data&&data.value)CFG={...DEF,...JSON.parse(data.value)}}catch(e){}loaded=true;CUR='?';apply()}
 
 /* ---------- Giao diện quản trị & người dùng ---------- */
