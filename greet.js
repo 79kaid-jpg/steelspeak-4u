@@ -27,7 +27,7 @@ const css=`.gx{position:fixed;inset:0;z-index:2147483600;background:radial-gradi
 .gx-s{position:absolute;width:4px;height:4px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff;pointer-events:none;animation:gxs 1.8s ease-out forwards}
 @keyframes gxf{to{transform:translate(var(--dx),110vh) rotate(var(--r))}}
 @keyframes gxs{0%{transform:scale(0)}30%{transform:scale(1.4)}100%{transform:translate(var(--dx),var(--dy)) scale(0)}}
-.gx-replay{position:fixed;right:14px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:50;width:54px;height:54px;border-radius:50%;border:2px solid #fff;background:radial-gradient(circle at 35% 30%,#ff8fa3,#a80f2c);font-size:26px;box-shadow:0 8px 24px #a80f2c88;animation:gxw 2s infinite}
+.gx-replay{position:fixed;right:max(16px,calc(50vw - 224px));bottom:calc(144px + env(safe-area-inset-bottom));z-index:50;width:54px;height:54px;border-radius:50%;border:2px solid #fff;background:radial-gradient(circle at 35% 30%,#ff8fa3,#a80f2c);font-size:26px;box-shadow:0 8px 24px #a80f2c88;animation:gxw 2s infinite}
 .gx-spinbtn{margin-top:18px;border:2px solid #fff;border-radius:999px;padding:12px 22px;min-height:48px;font:800 1rem system-ui,sans-serif;color:#fff;background:linear-gradient(135deg,#ff6b8a,#a80f2c);box-shadow:0 10px 26px #a80f2c88;cursor:pointer;opacity:0;transition:opacity .8s,transform .25s}
 .gx.done .gx-spinbtn{opacity:1}.gx-spinbtn:hover{transform:translateY(-2px) scale(1.03)}
 .gw{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px 16px;background:radial-gradient(circle at 50% 40%,#5a1024,#1a0610);animation:gwIn .5s ease}
