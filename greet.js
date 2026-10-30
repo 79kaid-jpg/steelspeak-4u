@@ -49,6 +49,12 @@ const css=`.gx{position:fixed;inset:0;z-index:2147483600;background:radial-gradi
 .gw-send:disabled{opacity:.6}.gw-close{border:2px solid #ffffff88;color:#fff;background:transparent}
 .gw-acts button:hover{transform:translateY(-2px)}
 .gw-x{position:absolute;top:calc(12px + env(safe-area-inset-top));right:14px;width:44px;height:44px;border-radius:50%;border:0;background:#ffffff22;color:#fff;font-size:26px;cursor:pointer}
+.gc{position:fixed;inset:0;z-index:2147483645;display:flex;align-items:center;justify-content:center;padding:20px 16px;background:rgba(20,6,12,.62)}
+.gc-card{width:min(100%,380px);max-height:80vh;overflow:auto;border-radius:22px;padding:22px 18px;background:radial-gradient(circle at 50% 0,#6b1530,#22070f);color:#ffe3ea;box-shadow:0 20px 50px #0009;font:500 .95rem/1.5 system-ui,sans-serif}
+.gc-card h3{margin:0 0 4px;font-size:1.25rem;color:#fff}.gc-card small{color:#e9b9c6}
+.gc-it{margin-top:12px;padding:12px;border-radius:14px;background:#ffffff12}
+.gc-it b{color:#ffd166}.gc-it code{display:inline-block;margin-top:2px;padding:2px 8px;border:1.5px dashed #ffd166;border-radius:8px;color:#ffd166;font:700 .85rem ui-monospace,monospace}
+.gc-ok{margin-top:16px;width:100%;min-height:48px;border:0;border-radius:999px;font:800 1rem system-ui,sans-serif;color:#2a0812;background:linear-gradient(135deg,#ffd166,#ff9f43);cursor:pointer}
 @media (prefers-reduced-motion:reduce){.gx *{animation-duration:.01s!important;transition-duration:.01s!important}}`;
 let AC;function ac(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume();return AC}catch(e){return null}}
 function bell(f,t,d=1.6,v=.12){const c=ac();if(!c)return;const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,c.currentTime+t);g.gain.linearRampToValueAtTime(v,c.currentTime+t+.01);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+t+d);o.connect(g).connect(c.destination);o.start(c.currentTime+t);o.stop(c.currentTime+t+d)}
@@ -119,7 +125,17 @@ async function check(){const USER=window.__ss&&window.__ss.USER,SB=window.__ss&&
  if(!document.querySelector('.gx-replay')){const b=document.createElement('button');b.className='gx-replay';b.setAttribute('aria-label','Mở lại quà sinh nhật');b.textContent='🎁';b.onclick=()=>open(g);
   if(!document.getElementById('gx-css')){const st=document.createElement('style');st.id='gx-css';st.textContent=css;document.head.appendChild(st)}document.body.appendChild(b)}
  if(!seen||prev){try{localStorage.setItem(k,'1')}catch(e){}open(g)}
-}catch(e){console.warn('greet',e)}finally{busy=false}}
+}catch(e){console.warn('greet',e)}finally{busy=false;setTimeout(()=>claims(false),2500)}}
+/* Admin: thông báo khi người nhận gửi quà trúng từ vòng quay */
+async function claims(all){if(document.querySelector('.gc'))return;const SB=window.__ss&&window.__ss.SB,P=window.__ss&&window.__ss.PROF;if(!SB||!P||!P.is_admin)return;
+ const {data,error}=await SB.from('gift_claims').select('*').order('id',{ascending:false}).limit(20);if(error||!data)return all&&alert0('Chưa đọc được danh sách quà: '+(error&&error.message));
+ let seen=0;try{seen=+localStorage.getItem('gx-claim-seen')||0}catch(e){}const list=all?data:data.filter(x=>x.id>seen);if(!list.length)return all&&alert0('Chưa có ai gửi quà.');
+ if(!document.getElementById('gx-css')){const st=document.createElement('style');st.id='gx-css';st.textContent=css;document.head.appendChild(st)}
+ const d=document.createElement('div');d.className='gc';d.setAttribute('role','dialog');
+ d.innerHTML=`<div class="gc-card"><h3>🎁 ${all?'Quà đã được gửi':'Có quà mới cần trả!'}</h3><small>Từ vòng quay may mắn sinh nhật</small>${list.map(x=>`<div class="gc-it"><div>${esc(x.user_email)} · <small>${new Date(x.created_at).toLocaleString('vi-VN')}</small></div>${(x.prizes||[]).map(p=>`<div>• <b>${esc(p.name)}</b><br><code>${esc(p.code)}</code></div>`).join('')}</div>`).join('')}<button class="gc-ok">Đã biết, sẽ trả quà</button></div>`;
+ document.body.appendChild(d);d.querySelector('.gc-ok').onclick=()=>{try{localStorage.setItem('gx-claim-seen',String(data[0].id))}catch(e){}d.remove()}}
+function alert0(m){try{toast(m)}catch(e){}}
+window.greetClaims=claims;
 window.greetCheck=check;
 let tries=0;const t=setInterval(()=>{if(window.__ss&&window.__ss.USER){clearInterval(t);check()}else if(++tries>40)clearInterval(t)},700);
 })();
