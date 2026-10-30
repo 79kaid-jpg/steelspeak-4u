@@ -79,6 +79,25 @@ html[data-season="noel"] .saga-node-wrap.boss::after{content:"";position:absolut
 html[data-season="tet"] #sgme::after{content:"";position:absolute;right:-12px;top:-14px;width:18px;height:28px;background:${LANTERN} center/contain no-repeat;animation:sssw 2.4s ease-in-out infinite;transform-origin:50% 0;pointer-events:none;z-index:3}
 html[data-season="tet"] .saga-node-wrap.boss::after{content:"";position:absolute;left:50%;top:-16px;width:18px;height:28px;margin-left:-9px;background:${LANTERN} center/contain no-repeat;animation:sssw 2.4s ease-in-out infinite;transform-origin:50% 0;pointer-events:none}
 html[data-season] .saga-map::before{display:none}
+/* ===== Khung đăng nhập theo mùa ===== */
+html[data-season="noel"] .auth3d{background:linear-gradient(180deg,color-mix(in srgb,var(--good) 10%,var(--bg)),var(--bg) 45%);position:relative;overflow:visible}
+html[data-season="noel"] .auth3d::before{content:"";position:absolute;left:18px;right:18px;top:14px;height:12px;background:radial-gradient(circle,#e04a5f 0 3px,transparent 4px) 0 50%/36px 12px repeat-x,radial-gradient(circle,#f2c14e 0 3px,transparent 4px) 12px 50%/36px 12px repeat-x,radial-gradient(circle,#4fc98a 0 3px,transparent 4px) 24px 50%/36px 12px repeat-x;animation:auTwinkle 1.6s steps(2) infinite}
+@keyframes auTwinkle{50%{filter:brightness(1.6) saturate(1.3)}}
+html[data-season="noel"] .au-badge{color:var(--amber);box-shadow:7px 7px 14px var(--au-lo),-7px -7px 14px var(--au-hi),0 0 0 3px color-mix(in srgb,var(--amber) 55%,transparent)}
+html[data-season="noel"] .au-badge::after{content:"";position:absolute;width:40px;height:30px;margin:-46px 0 0 22px;transform:rotate(18deg);background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 30'%3E%3Cpath d='M4 24 Q14 2 30 6 Q34 14 36 22Z' fill='%23d2283f'/%3E%3Crect x='2' y='21' width='34' height='7' rx='3.5' fill='%23fff'/%3E%3Ccircle cx='36' cy='21' r='4' fill='%23fff'/%3E%3C/svg%3E") no-repeat center/contain}
+html[data-season="noel"] .au-badge{position:relative}
+html[data-season="noel"] .auth3d h2{color:var(--steel)}
+html[data-season="noel"] .au-btn{color:var(--steel);border:2px solid transparent;background:linear-gradient(var(--bg),var(--bg)) padding-box,repeating-linear-gradient(135deg,#d2283f 0 8px,#fff 8px 16px) border-box}
+html[data-season="noel"] .au-btn:hover,html[data-season="noel"] .au-btn:focus-visible{color:#fff;background:linear-gradient(#c01a35,#c01a35) padding-box,repeating-linear-gradient(135deg,#d2283f 0 8px,#fff 8px 16px) border-box}
+html[data-season="noel"] .au-soc svg{color:var(--good)}
+html[data-season="noel"] .au-soc:hover,html[data-season="noel"] .au-soc:focus-visible{box-shadow:8px 8px 16px var(--au-lo),-8px -8px 16px var(--au-hi),0 0 0 2px var(--amber)}
+html[data-season="noel"] .au-switch{color:var(--good)}
+html[data-season="noel"] .au-switch:hover,html[data-season="noel"] .au-switch:focus-visible{background:var(--good);color:#fff;box-shadow:0 8px 25px color-mix(in srgb,var(--good) 40%,transparent)}
+html[data-season="tet"] .auth3d{background:linear-gradient(180deg,color-mix(in srgb,#ffc72c 12%,var(--bg)),var(--bg) 45%)}
+html[data-season="tet"] .au-badge{color:#c8102e;box-shadow:7px 7px 14px var(--au-lo),-7px -7px 14px var(--au-hi),0 0 0 3px #ffc72c99}
+html[data-season="tet"] .au-btn:hover,html[data-season="tet"] .au-btn:focus-visible{background:#c8102e;color:#ffe08a}
+html[data-season="tet"] .au-soc svg{color:#c8102e}
+@media (prefers-reduced-motion:reduce){html[data-season] .auth3d::before{animation:none}}
 `;
 
 /* ---------- Nội dung ---------- */
