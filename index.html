@@ -663,6 +663,7 @@ body.rd-open{overflow:hidden}body.rd-open nav{display:none}
 input,select,textarea{font-size:max(16px,1em)!important}
 html,body{max-width:100%;overflow-x:hidden}
 </style>
+<script>/* Áp theme mùa ngay khi mở app, tránh nháy giao diện gốc */(function(){try{var p=sessionStorage.getItem('ss-season-preview'),k=p!=null?p:localStorage.getItem('ss-season-cur'),c=localStorage.getItem('ss-season-css');if(k&&c){var s=document.createElement('style');s.id='ss-season-css';s.textContent=c;document.head.appendChild(s);document.documentElement.setAttribute('data-season',k);var m=document.querySelector('meta[name=theme-color]');if(m){m.dataset.orig=m.content;m.content=k=='noel'?'#0f2a1f':k=='tet'?'#c8102e':m.content}}}catch(e){}})()</script>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
 <div class="toast" id="toast" hidden></div>

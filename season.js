@@ -212,7 +212,7 @@ function hookMap(){try{if(typeof sceneSVG!=='function'||sceneSVG.__ss)return;
 }catch(e){console.warn('season map',e)}}
 /* ---------- Áp dụng ---------- */
 function apply(){const k=pick();if(k===CUR&&document.querySelector(k?'.ss-deco':'body'))return;CUR=k;try{if(typeof render=='function'&&S&&S.tab=='saga')render()}catch(e){}
- const root=document.documentElement;if(k)root.setAttribute('data-season',k);else root.removeAttribute('data-season');
+ const root=document.documentElement;if(k)root.setAttribute('data-season',k);else root.removeAttribute('data-season');ls.set('ss-season-cur',k||'');
  const mt=document.querySelector('meta[name=theme-color]');if(mt){mt.dataset.orig=mt.dataset.orig||mt.content;mt.content=k=='noel'?'#0f2a1f':k=='tet'?'#c8102e':mt.dataset.orig}
  if(k){deco(k);fxStart(k);hookSFX();hookMap()}else{deco('');fxStop()}}
 async function load(){try{const {data}=await SB.from('app_settings').select('value').eq('key','season').maybeSingle();if(data&&data.value){CFG={...DEF,...JSON.parse(data.value)};ls.set('ss-season-cfg',data.value)}}catch(e){}loaded=true;CUR='?';apply()}
@@ -236,7 +236,7 @@ window.SEASON={
   return `<label class="card row" style="justify-content:space-between;margin-top:10px"><span><b>${a=='noel'?'🎄 Giao diện Giáng sinh':'🧧 Giao diện Tết'}</b><br><small class="mut">Tắt nếu bạn thích giao diện gốc</small></span><input type="checkbox" ${on?'checked':''} onchange="SEASON.toggleMine()" style="width:22px;height:22px"></label>`},
  gift(){if(CUR)openGift(CUR)}
 };
-const st=document.createElement('style');st.id='ss-season-css';st.textContent=CSS;document.head.appendChild(st);
+let st=document.getElementById('ss-season-css');if(!st){st=document.createElement('style');st.id='ss-season-css';document.head.appendChild(st)}st.textContent=CSS;ls.set('ss-season-css',CSS);
 // áp dụng xem thử ngay (không cần chờ mạng), rồi tải cài đặt
 if(sessionStorage.getItem('ss-season-preview')!=null)apply();
 setTimeout(load,300);let n=0;const w=setInterval(()=>{let ok=false;try{ok=!!USER}catch(e){}if(ok||++n>30){clearInterval(w);load()}},500);
