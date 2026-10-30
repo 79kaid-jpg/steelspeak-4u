@@ -914,7 +914,8 @@ async function forgot(){const em=$('#em').value.trim();if(!/^\S+@\S+\.\S+$/.test
 $('#lst').textContent=error?'Chưa gửi được: '+error.message:'Đã gửi link đặt lại mật khẩu tới '+em+'.'}
 async function login(){const em=$('#em').value.trim();if(!/^\S+@\S+\.\S+$/.test(em))return toast('Email chưa đúng định dạng');const {error}=await SB.auth.signInWithOtp({email:em,options:{emailRedirectTo:location.origin+location.pathname}});
 $('#lst').textContent=error?'Chưa gửi được: '+error.message:'Đã gửi link đăng nhập tới '+em+'. Mở email và bấm vào link.'}
-async function logout(){await SB.auth.signOut();try{localStorage.removeItem('ss2')}catch(e){}location.reload()}
+async function logout(){await SB.auth.signOut();try{localStorage.removeItem('ss2');sessionStorage.setItem('ss-go-login','1')}catch(e){}location.reload()}
+setTimeout(()=>{try{if(sessionStorage.getItem('ss-go-login')){sessionStorage.removeItem('ss-go-login');if(!USER)go('me')}}catch(e){}},600);
 async function ai(task,payload){const {data:{session}}=await SB.auth.getSession();if(!session)throw{code:'login'};
 const r=await fetch(window.SS_CONFIG.SUPABASE_URL+'/functions/v1/ai',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token,apikey:window.SS_CONFIG.SUPABASE_ANON_KEY},body:JSON.stringify({task,...payload})});
 const j=await r.json().catch(()=>({}));if(!r.ok)throw{code:r.status==429?'rate_limited':'err',message:j.error};return j}
