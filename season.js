@@ -93,11 +93,12 @@ function fxStart(kind){fxStop();if(!CFG.fx||matchMedia('(prefers-reduced-motion:
  const dpr=Math.min(2,devicePixelRatio||1);function rs(){cv.width=innerWidth*dpr;cv.height=innerHeight*dpr}rs();addEventListener('resize',rs);
  const N=innerWidth<500?18:26;
  const mk=(y)=>({x:Math.random()*innerWidth,y:y??Math.random()*innerHeight,r:kind=='noel'?1.5+Math.random()*2.6:4+Math.random()*3,vy:kind=='noel'?.35+Math.random()*.6:.5+Math.random()*.6,ph:Math.random()*6.28,rot:Math.random()*6.28,c:kind=='tet'?(Math.random()<.55?'#ffc72c':Math.random()<.85?'#f48fb1':'#c8102e'):'#fff',env:kind=='tet'&&Math.random()<.12});
- parts=Array.from({length:N},()=>mk());
+ parts=Array.from({length:N},()=>mk());if(kind=='noel')parts.forEach(p=>p.r*=2.2);
+ const flake=(p,col)=>{const R=p.r*dpr;ctx.save();ctx.translate(p.x*dpr,p.y*dpr);ctx.rotate(p.rot);ctx.strokeStyle=col;ctx.lineWidth=Math.max(1,R*.14);ctx.lineCap='round';ctx.beginPath();for(let k=0;k<6;k++){ctx.rotate(Math.PI/3);ctx.moveTo(0,0);ctx.lineTo(0,-R);ctx.moveTo(0,-R*.55);ctx.lineTo(R*.28,-R*.8);ctx.moveTo(0,-R*.55);ctx.lineTo(-R*.28,-R*.8)}ctx.stroke();ctx.restore()};
  const petal=(p)=>{ctx.save();ctx.translate(p.x*dpr,p.y*dpr);ctx.rotate(p.rot);if(p.env){ctx.fillStyle='#c8102e';ctx.fillRect(-4*dpr,-6*dpr,8*dpr,12*dpr);ctx.fillStyle='#ffc72c';ctx.fillRect(-2*dpr,-1*dpr,4*dpr,2*dpr)}else{ctx.fillStyle=p.c;ctx.globalAlpha=.85;ctx.beginPath();ctx.ellipse(0,0,p.r*.6*dpr,p.r*dpr,0,0,6.28);ctx.fill()}ctx.restore()};
  let last=0;const loop=t=>{raf=requestAnimationFrame(loop);if(document.hidden||t-last<30)return;last=t;ctx.clearRect(0,0,cv.width,cv.height);
   for(const p of parts){p.ph+=.015;p.y+=p.vy;p.x+=Math.sin(p.ph)*.5;p.rot+=.012;if(p.y>innerHeight+12)Object.assign(p,mk(-12));
-   if(kind=='noel'){const dk=document.documentElement.dataset.theme=='dark'||(document.documentElement.dataset.theme!='light'&&matchMedia('(prefers-color-scheme: dark)').matches);ctx.globalAlpha=dk?.8:.95;ctx.fillStyle=dk?'#fff':'#b9cde0';ctx.beginPath();ctx.arc(p.x*dpr,p.y*dpr,p.r*dpr,0,6.28);ctx.fill()}else petal(p)}};
+   if(kind=='noel'){const dk=document.documentElement.dataset.theme=='dark'||(document.documentElement.dataset.theme!='light'&&matchMedia('(prefers-color-scheme: dark)').matches);ctx.globalAlpha=dk?.8:.95;flake(p,dk?'#ffffff':'#9fbad3')}else petal(p)}};
  raf=requestAnimationFrame(loop)}
 function fxStop(){cancelAnimationFrame(raf);if(cv)cv.remove();cv=null}
 
@@ -129,12 +130,33 @@ function openGift(kind){const d=new Date();let html,xp;
 
 /* ---------- Âm thanh ---------- */
 let AC;function ac(){try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();return AC}catch(e){return null}}
-function bell(f,t,d,v){const c=ac();if(!c)return;const o=c.createOscillator(),g=c.createGain();o.frequency.value=f;g.gain.setValueAtTime(0,c.currentTime+t);g.gain.linearRampToValueAtTime(v,c.currentTime+t+.005);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+t+d);o.connect(g).connect(c.destination);o.start(c.currentTime+t);o.stop(c.currentTime+t+d)}
+function bell(f,t,d,v){const c=ac();if(!c)return;const t0=c.currentTime+t,lp=c.createBiquadFilter(),g=c.createGain();lp.type='lowpass';lp.frequency.value=2600;g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(v,t0+.01);g.gain.exponentialRampToValueAtTime(.0001,t0+d);[[1,1],[2.76,.18]].forEach(([m,a])=>{const o=c.createOscillator(),og=c.createGain();o.type='sine';o.frequency.value=f*m;og.gain.value=a;o.connect(og).connect(g);o.start(t0);o.stop(t0+d+.02)});g.connect(lp).connect(c.destination)}
 function crack(t){const c=ac();if(!c)return;const len=c.sampleRate*.05,b=c.createBuffer(1,len,c.sampleRate),x=b.getChannelData(0);for(let i=0;i<len;i++)x[i]=(Math.random()*2-1)*Math.pow(1-i/len,3);const s=c.createBufferSource(),g=c.createGain();g.gain.value=.12;s.buffer=b;s.connect(g).connect(c.destination);s.start(c.currentTime+t)}
 function sound(kind,big){if(!CFG.sound)return;try{if(typeof MUSIC!=='undefined'&&!MUSIC.on)return}catch(e){}
- if(kind=='noel'){[1568,2093,2637].forEach((f,i)=>bell(f,i*.07,.5,.05));if(big)[[659,0],[659,.2],[659,.4],[659,.8],[659,1],[659,1.2],[659,1.6],[784,1.8],[523,2],[587,2.2],[659,2.4]].forEach(([f,t])=>bell(f*2,t+.3,.6,.06))}
- else{for(let i=0;i<(big?14:5);i++)crack(i*.06+Math.random()*.05);if(big)[[392,.9],[440,1.1],[523,1.3],[587,1.5],[659,1.7],[587,2],[523,2.2]].forEach(([f,t])=>bell(f*2,t,.5,.06))}}
-function hookSFX(){try{if(!SFX||SFX.__ss)return;SFX.__ss=1;const ok=SFX.ok,win=SFX.win;if(ok)SFX.ok=function(){const r=ok.apply(this,arguments);if(CUR)sound(CUR,false);return r};if(win)SFX.win=function(){const r=win.apply(this,arguments);if(CUR)sound(CUR,true);return r}}catch(e){}}
+ if(kind=='noel'){[784,988,1175].forEach((f,i)=>bell(f,i*.08,.7,.045));if(big)[[659,0],[659,.2],[659,.4],[659,.8],[659,1],[659,1.2],[659,1.6],[784,1.8],[523,2],[587,2.2],[659,2.4]].forEach(([f,t])=>bell(f,t+.3,.8,.06))}
+ else{for(let i=0;i<(big?14:5);i++)crack(i*.06+Math.random()*.05);if(big)[[392,.9],[440,1.1],[523,1.3],[587,1.5],[659,1.7],[587,2],[523,2.2]].forEach(([f,t])=>bell(f,t,.6,.06))}}
+/* Nhạc Đua level theo mùa: Jingle Bells (dân gian, PD) cho Noel, giai điệu ngũ cung cho Tết */
+const SEQ={noel:{bpm:200,notes:[[64,2],[64,2],[64,4],[64,2],[64,2],[64,4],[64,2],[67,2],[60,3],[62,1],[64,8],[65,2],[65,2],[65,3],[65,1],[65,2],[64,2],[64,2],[64,1],[64,1],[64,2],[62,2],[62,2],[64,2],[62,4],[67,4],[64,2],[64,2],[64,4],[64,2],[64,2],[64,4],[64,2],[67,2],[60,3],[62,1],[64,8],[65,2],[65,2],[65,3],[65,1],[65,2],[64,2],[64,2],[64,1],[64,1],[67,2],[67,2],[65,2],[62,2],[60,8]],bass:[48,55,53,55],kind:'bell'},
+ tet:{bpm:168,notes:[[67,2],[69,2],[72,4],[74,2],[72,2],[69,4],[67,2],[64,2],[62,2],[64,2],[67,8],[69,2],[72,2],[74,4],[76,2],[74,2],[72,4],[69,2],[72,2],[67,2],[64,2],[62,8],[64,2],[67,2],[69,4],[72,2],[69,2],[67,4],[64,2],[62,2],[60,2],[62,2],[64,8],[67,2],[64,2],[62,2],[60,2],[62,4],[64,2],[67,2],[60,8]],bass:[48,55,50,55],kind:'pluck'}};
+let SM={timer:null,bus:null,on:false};
+function seasonMusic(k){const c=ac();if(!c)return;if(c.state=='suspended')c.resume();seasonMusicStop();const Q=SEQ[k],st=60/Q.bpm/2;SM.bus=c.createGain();SM.bus.gain.value=.9;const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=3200;SM.bus.connect(lp).connect(c.destination);
+ const flat=[];Q.notes.forEach(([n,len])=>{flat.push([n,len]);for(let i=1;i<len;i++)flat.push(null)});let step=0,next=c.currentTime+.1;SM.on=true;
+ const v=(()=>{try{return S.game?.55:1}catch(e){return 1}});
+ SM.timer=setInterval(()=>{while(next<c.currentTime+.25){const it=flat[step%flat.length],vol=v();
+  if(it){const f=440*Math.pow(2,(it[0]-69)/12),d=Math.min(1.2,st*it[1]+.25);voice(Q.kind,f,next,d,.055*vol)}
+  if(step%4==0){const b=Q.bass[Math.floor(step/8)%4];voice('bass',440*Math.pow(2,(b-69)/12),next,st*3.5,.07*vol)}
+  if(k=='noel'&&step%2==1)shaker(next,.018*vol);if(k=='tet'&&step%4==2)wood(next,.05*vol);
+  next+=st;step++}},60)}
+function voice(kind,f,t0,d,v){const c=AC,g=c.createGain();g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(v,t0+(kind=='bass'?.02:.008));g.gain.exponentialRampToValueAtTime(.0001,t0+d);g.connect(SM.bus);
+ const parts=kind=='bell'?[[1,1,'sine'],[2,.25,'sine'],[3.01,.08,'sine']]:kind=='pluck'?[[1,1,'triangle'],[2,.15,'sine']]:[[1,1,'triangle']];
+ parts.forEach(([m,a,w])=>{const o=c.createOscillator(),og=c.createGain();o.type=w;o.frequency.value=f*m;og.gain.value=a;o.connect(og).connect(g);o.start(t0);o.stop(t0+d+.02)})}
+function shaker(t0,v){const c=AC,len=c.sampleRate*.05,b=c.createBuffer(1,len,c.sampleRate),x=b.getChannelData(0);for(let i=0;i<len;i++)x[i]=(Math.random()*2-1)*(1-i/len);const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=b;f.type='bandpass';f.frequency.value=4500;f.Q.value=.8;g.gain.value=v;s.connect(f).connect(g).connect(SM.bus);s.start(t0)}
+function wood(t0,v){const c=AC,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(900,t0);o.frequency.exponentialRampToValueAtTime(600,t0+.05);g.gain.setValueAtTime(v,t0);g.gain.exponentialRampToValueAtTime(.0001,t0+.08);o.connect(g).connect(SM.bus);o.start(t0);o.stop(t0+.1)}
+function seasonMusicStop(){clearInterval(SM.timer);SM.timer=null;SM.on=false;if(SM.bus){const b=SM.bus;try{b.gain.setTargetAtTime(0,AC.currentTime,.1)}catch(e){}setTimeout(()=>{try{b.disconnect()}catch(e){}},400)}SM.bus=null}
+function hookMusic(){try{if(typeof musicStart!=='function'||musicStart.__ss)return;const ms=musicStart,mx=musicStop;
+ window.musicStart=function(theme){if(CUR&&CFG.sound&&SEQ[CUR]){if(MUSIC.playing==='ss-'+CUR)return;mx();MUSIC.playing='ss-'+CUR;seasonMusic(CUR);return}seasonMusicStop();return ms.apply(this,arguments)};window.musicStart.__ss=1;
+ window.musicStop=function(){seasonMusicStop();if(MUSIC.playing&&String(MUSIC.playing).startsWith('ss-'))MUSIC.playing=null;return mx.apply(this,arguments)}}catch(e){}}
+function hookSFX(){hookMusic();try{if(!SFX||SFX.__ss)return;SFX.__ss=1;const ok=SFX.ok,win=SFX.win;if(ok)SFX.ok=function(){const r=ok.apply(this,arguments);if(CUR)sound(CUR,false);return r};if(win)SFX.win=function(){const r=win.apply(this,arguments);if(CUR)sound(CUR,true);return r}}catch(e){}}
 
 
 /* ---------- Bản đồ Đua level theo mùa ---------- */
