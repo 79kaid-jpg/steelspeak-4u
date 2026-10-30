@@ -215,7 +215,7 @@ function apply(){const k=pick();if(k===CUR&&document.querySelector(k?'.ss-deco':
  const root=document.documentElement;if(k)root.setAttribute('data-season',k);else root.removeAttribute('data-season');ls.set('ss-season-cur',k||'');
  const mt=document.querySelector('meta[name=theme-color]');if(mt){mt.dataset.orig=mt.dataset.orig||mt.content;mt.content=k=='noel'?'#0f2a1f':k=='tet'?'#c8102e':mt.dataset.orig}
  if(k){deco(k);fxStart(k);hookSFX();hookMap()}else{deco('');fxStop()}}
-async function load(){try{const {data}=await SB.from('app_settings').select('value').eq('key','season').maybeSingle();if(data&&data.value){CFG={...DEF,...JSON.parse(data.value)};ls.set('ss-season-cfg',data.value)}}catch(e){}loaded=true;CUR='?';apply()}
+async function load(soft){const before=JSON.stringify(CFG);try{const {data}=await SB.from('app_settings').select('value').eq('key','season').maybeSingle();if(data&&data.value){CFG={...DEF,...JSON.parse(data.value)};ls.set('ss-season-cfg',data.value)}}catch(e){}loaded=true;if(soft&&JSON.stringify(CFG)===before&&pick()===CUR)return;CUR='?';apply();try{if(typeof render=='function')render()}catch(e){}}
 
 /* ---------- Giao diện quản trị & người dùng ---------- */
 const MODES=[['auto','Tự động','Noel: tháng 12 · Tết: 23 tháng Chạp → mùng 10'],['off','Tắt','Giao diện gốc'],['noel','🎄 Giáng sinh','Silent Night'],['tet','🧧 Tết','Xuân Như Ý']];
@@ -239,6 +239,6 @@ window.SEASON={
 let st=document.getElementById('ss-season-css');if(!st){st=document.createElement('style');st.id='ss-season-css';document.head.appendChild(st)}st.textContent=CSS;ls.set('ss-season-css',CSS);
 // áp dụng xem thử ngay (không cần chờ mạng), rồi tải cài đặt
 if(sessionStorage.getItem('ss-season-preview')!=null)apply();
-setTimeout(load,300);let n=0;const w=setInterval(()=>{let ok=false;try{ok=!!USER}catch(e){}if(ok||++n>30){clearInterval(w);load()}},500);
+setTimeout(load,300);let lastLoad=0;const reload=()=>{if(document.visibilityState!=='visible'||Date.now()-lastLoad<15000)return;lastLoad=Date.now();load(true)};document.addEventListener('visibilitychange',reload);addEventListener('pageshow',e=>{if(e.persisted)reload()});addEventListener('focus',reload);let n=0;const w=setInterval(()=>{let ok=false;try{ok=!!USER}catch(e){}if(ok||++n>30){clearInterval(w);load()}},500);
 setInterval(()=>{if(CUR&&!document.querySelector('.ss-gift')&&loaded)giftBtn(CUR)},60000);
 })();
