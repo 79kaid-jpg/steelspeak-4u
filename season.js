@@ -3,7 +3,7 @@
 (function(){
 const TET=[['2027-01-30','2027-02-15'],['2028-01-19','2028-02-04'],['2029-02-05','2029-02-22']];
 const DEF={mode:'auto',fx:true,sound:true,optout:true};
-let CFG={...DEF},CUR='',loaded=false;
+let CFG={...DEF},CUR='',loaded=false;try{const c=JSON.parse(localStorage.getItem('ss-season-cfg'));if(c)CFG={...DEF,...c}}catch(e){}
 const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}};
 const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 function autoSeason(){const t=ymd(new Date());if(t.slice(5,7)==='12')return 'noel';for(const [a,b] of TET)if(t>=a&&t<=b)return 'tet';return ''}
@@ -215,11 +215,11 @@ function apply(){const k=pick();if(k===CUR&&document.querySelector(k?'.ss-deco':
  const root=document.documentElement;if(k)root.setAttribute('data-season',k);else root.removeAttribute('data-season');
  const mt=document.querySelector('meta[name=theme-color]');if(mt){mt.dataset.orig=mt.dataset.orig||mt.content;mt.content=k=='noel'?'#0f2a1f':k=='tet'?'#c8102e':mt.dataset.orig}
  if(k){deco(k);fxStart(k);hookSFX();hookMap()}else{deco('');fxStop()}}
-async function load(){try{const {data}=await SB.from('app_settings').select('value').eq('key','season').maybeSingle();if(data&&data.value)CFG={...DEF,...JSON.parse(data.value)}}catch(e){}loaded=true;CUR='?';apply()}
+async function load(){try{const {data}=await SB.from('app_settings').select('value').eq('key','season').maybeSingle();if(data&&data.value){CFG={...DEF,...JSON.parse(data.value)};ls.set('ss-season-cfg',data.value)}}catch(e){}loaded=true;CUR='?';apply()}
 
 /* ---------- Giao diện quản trị & người dùng ---------- */
 const MODES=[['auto','Tự động','Noel: tháng 12 · Tết: 23 tháng Chạp → mùng 10'],['off','Tắt','Giao diện gốc'],['noel','🎄 Giáng sinh','Silent Night'],['tet','🧧 Tết','Xuân Như Ý']];
-async function saveCfg(p){const n={...CFG,...p};const {error}=await SB.from('app_settings').upsert({key:'season',value:JSON.stringify(n),updated_at:new Date().toISOString()});if(error){toast('Lỗi: '+error.message);return}CFG=n;sessionStorage.removeItem('ss-season-preview');apply();toast('Đã áp dụng cho mọi người dùng');render()}
+async function saveCfg(p){const n={...CFG,...p};const {error}=await SB.from('app_settings').upsert({key:'season',value:JSON.stringify(n),updated_at:new Date().toISOString()});if(error){toast('Lỗi: '+error.message);return}CFG=n;ls.set('ss-season-cfg',JSON.stringify(n));sessionStorage.removeItem('ss-season-preview');apply();toast('Đã áp dụng cho mọi người dùng');render()}
 const sw=(k,l)=>`<label class="row" style="justify-content:space-between;padding:8px 0;border-top:1px solid var(--line)"><span>${l}</span><input type="checkbox" ${CFG[k]?'checked':''} onchange="SEASON.save({${k}:this.checked})" style="width:22px;height:22px"></label>`;
 window.SEASON={
  get current(){return CUR},
@@ -239,6 +239,6 @@ window.SEASON={
 const st=document.createElement('style');st.id='ss-season-css';st.textContent=CSS;document.head.appendChild(st);
 // áp dụng xem thử ngay (không cần chờ mạng), rồi tải cài đặt
 if(sessionStorage.getItem('ss-season-preview')!=null)apply();
-let n=0;const w=setInterval(()=>{let ok=false;try{ok=!!USER}catch(e){}if(ok||++n>30){clearInterval(w);load()}},500);
+setTimeout(load,300);let n=0;const w=setInterval(()=>{let ok=false;try{ok=!!USER}catch(e){}if(ok||++n>30){clearInterval(w);load()}},500);
 setInterval(()=>{if(CUR&&!document.querySelector('.ss-gift')&&loaded)giftBtn(CUR)},60000);
 })();

@@ -658,6 +658,10 @@ body.rd-open{overflow:hidden}body.rd-open nav{display:none}
 .au-switch:hover,.au-switch:focus-visible{background:var(--steel);color:var(--onsteel);transform:rotate(180deg) scale(1.08);outline:0;box-shadow:0 8px 25px color-mix(in srgb,var(--steel) 35%,transparent)}
 .au-switch:active{transform:scale(.9)}
 @media (prefers-reduced-motion:reduce){.auth3d,.auth3d.au-out{animation:none}.auth3d *{transition:none!important}}
+
+/* iOS tự phóng to khi chữ trong ô nhập < 16px, rồi giữ nguyên zoom sau khi đăng nhập */
+input,select,textarea{font-size:max(16px,1em)!important}
+html,body{max-width:100%;overflow-x:hidden}
 </style>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
