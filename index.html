@@ -855,7 +855,7 @@ function tkBind(){const s=tkSlug();if(S.tkCur===s)return;tkStash();S.tk=S.tk||{}
   S.tk[s]=b}
  TK_KEYS.forEach(k=>S[k]=b[k]||tkEmpty(k));S.tkCur=s}
 try{load(JSON.parse(localStorage.getItem('ss2')||'null'))}catch(e){}
-const SB=supabase.createClient(window.SS_CONFIG.SUPABASE_URL,window.SS_CONFIG.SUPABASE_ANON_KEY);let USER=null,saveT=null;
+const SB=supabase.createClient(window.SS_CONFIG.SUPABASE_URL,window.SS_CONFIG.SUPABASE_ANON_KEY);let USER=null,saveT=null;window.__ss={get USER(){return USER},SB};
 function save(){const today=new Date().toISOString().slice(0,10);if(S.tdate!==today){S.tdate=today;S.txp=0}if(S._lx!=null&&S.xp>S._lx)S.txp=(S.txp||0)+(S.xp-S._lx);S._lx=S.xp;tkStash();const v={xp:S.xp,streak:S.streak,last:S.last,tk:S.tk||{},tdate:S.tdate,txp:S.txp||0,goal:S.goal||50};try{localStorage.setItem('ss2',JSON.stringify(v))}catch(e){}
 if(USER){clearTimeout(saveT);saveT=setTimeout(async()=>{const {error}=await SB.from('progress').upsert({user_id:USER.id,data:v,updated_at:new Date().toISOString()});S.sync=error?'err':'cloud'},600)}}
 let PROF=null;const ROLES=['TPL','QA','QC','Khác'];
@@ -865,7 +865,7 @@ function cacheGet(){try{return JSON.parse(localStorage.getItem(CK)||'null')}catc
 function cachePut(){try{const tr=curTrack();localStorage.setItem(CK,JSON.stringify({uid:USER?.id||null,prof:PROF,tracks:TR.tracks,enr:TR.enr,active:TR.active,slug:tr?.slug,terms:TERMS.length<=3000?TERMS:[],bank:BANK,t:Date.now()}))}catch(e){}}
 function hydrate(){const c=cacheGet();if(!c||!c.tracks)return;TR.tracks=c.tracks;TR.enr=c.enr||{};TR.active=TR.active||c.active;TR.ready=true;if(c.uid)PROF=c.prof;const tr=curTrack();if(tr&&c.slug===tr.slug&&c.terms&&c.terms.length){TERMS=c.terms;BANK=c.bank||[];Object.entries(tr.cats||{}).forEach(([k,v])=>{if(!CATS[k])CATS[k]={n:v,e:'',d:''};else CATS[k].n=v})}_sctx=null}
 async function boot(force){const {data:{session}}=await SB.auth.getSession();const u=session?.user||null,uid=u?.id||null;if(!force&&BOOT_P&&uid===BOOT_UID)return BOOT_P;BOOT_UID=uid;BOOT_P=doBoot(u);return BOOT_P}
-async function doBoot(u){USER=u;if(!u)PROF=null;
+async function doBoot(u){USER=u;if(!u)PROF=null;setTimeout(()=>window.greetCheck&&window.greetCheck(),1500);
  const [p,pg,tr,en]=await Promise.all([u?SB.from('profiles').select('*').eq('id',u.id).maybeSingle():null,u?SB.from('progress').select('data').eq('user_id',u.id).maybeSingle():null,SB.from('tracks').select('*').order('sort'),u?SB.from('enrollments').select('*').eq('user_id',u.id):null]);
  if(u){PROF=p?.data||{id:u.id,email:u.email,full_name:'',role:'TPL',department:'',is_admin:false};if(pg?.data)load(pg.data.data);else save();S.sync='cloud';SG.loaded=false;SG.board=null}
  if(tr.error){TR.legacy=/does not exist|schema cache|relation/i.test(tr.error.message);TR.err=tr.error.message;render();return}
@@ -1911,4 +1911,5 @@ function fit(){raf=0;const n=document.querySelector('body>nav')||document.queryS
 function q(){if(!raf)raf=requestAnimationFrame(fit)}
 vv.addEventListener('resize',q);vv.addEventListener('scroll',q);addEventListener('scroll',q,{passive:true});addEventListener('orientationchange',()=>setTimeout(fit,300));addEventListener('pageshow',q);setInterval(fit,1500)})();
 </script>
+<script src="greet.js" defer></script>
 </body></html>
