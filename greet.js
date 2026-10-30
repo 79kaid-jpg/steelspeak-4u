@@ -57,12 +57,13 @@ function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth
 let busy=false;
 async function check(){const USER=window.__ss&&window.__ss.USER,SB=window.__ss&&window.__ss.SB;if(busy||!USER||!SB)return;busy=true;try{
  const prev=new URLSearchParams(location.search).get('gift');
- let q=SB.from('greetings').select('*');q=prev?q.eq('id',+prev):q.gte('show_on',today()).order('show_on');
- const {data}=await q.limit(5);const me=(USER.email||'').toLowerCase();
+ let q=SB.from('greetings').select('*');q=prev?q.eq('id',+prev):q.order('show_on',{ascending:false});
+ const T=today(),until=x=>x.show_until||x.show_on;
+ let {data}=await q.limit(30);data=(data||[]).filter(x=>prev||until(x)>=T);const me=(USER.email||'').toLowerCase();
  // của mình & đúng ngày; admin xem trước được lời chúc sắp tới của người khác (chỉ hiện nút, không tự mở)
- let g=(data||[]).find(x=>x.to_email.toLowerCase()==me&&x.show_on==today())||(prev&&data&&data[0]);
+ let g=(data||[]).find(x=>x.to_email.toLowerCase()==me&&x.show_on<=T&&until(x)>=T)||(prev&&data&&data[0]);
  if(!g){const pv=(data||[]).find(x=>x.to_email.toLowerCase()!=me);if(pv&&!document.querySelector('.gx-replay')){if(!document.getElementById('gx-css')){const st=document.createElement('style');st.id='gx-css';st.textContent=css;document.head.appendChild(st)}const b=document.createElement('button');b.className='gx-replay';b.title='Xem trước quà cho '+pv.to_email;b.setAttribute('aria-label',b.title);b.textContent='🎁';b.onclick=()=>open(pv);document.body.appendChild(b)}return}
- const k='gx-seen-'+g.id;let seen=false;try{seen=localStorage.getItem(k)}catch(e){}
+ const k='gx-seen-'+g.id+'-'+T;let seen=false;try{seen=localStorage.getItem(k)}catch(e){}
  if(!document.querySelector('.gx-replay')){const b=document.createElement('button');b.className='gx-replay';b.setAttribute('aria-label','Mở lại quà sinh nhật');b.textContent='🎁';b.onclick=()=>open(g);
   if(!document.getElementById('gx-css')){const st=document.createElement('style');st.id='gx-css';st.textContent=css;document.head.appendChild(st)}document.body.appendChild(b)}
  if(!seen||prev){try{localStorage.setItem(k,'1')}catch(e){}open(g)}
