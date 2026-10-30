@@ -20,7 +20,7 @@ const css=`.gx{position:fixed;inset:0;z-index:2147483600;background:radial-gradi
 .gx.show .gx-ring{transform:none;opacity:1}.gx.show .gx-ring img{filter:none}
 .gx-t{font-family:'Great Vibes','Brush Script MT',cursive;font-size:clamp(2.4rem,11vw,3.6rem);line-height:1;margin:34px 0 4px;background:linear-gradient(90deg,#fff,#d9dde3,#fff,#c3c8d0);-webkit-background-clip:text;color:transparent;text-shadow:0 0 30px #ffffff30;opacity:0;transition:opacity 1s 1.2s}
 .gx-n{font-size:1.3rem;font-weight:800;letter-spacing:.06em;color:#ffd1dc;opacity:0;transition:opacity 1s 1.6s}
-.gx-m{margin-top:14px;font-size:1rem;line-height:1.6;color:#f3dce3;min-height:4.8em;white-space:pre-line}
+.gx-m{margin-top:14px;font-size:1rem;line-height:1.6;color:#f3dce3;white-space:pre-line;display:grid}.gx-m>*{grid-area:1/1}.gx-m .gx-ghost{visibility:hidden}
 .gx-f{margin-top:10px;font-style:italic;color:#e9b9c6;opacity:0;transition:opacity 1s}
 .gx.show .gx-t,.gx.show .gx-n{opacity:1}.gx.done .gx-f{opacity:1}
 .gx-p{position:absolute;top:-40px;width:16px;height:13px;border-radius:13px 0;background:radial-gradient(circle at 30% 30%,#e8435f,#8e0e27);pointer-events:none;animation:gxf linear forwards}
@@ -70,7 +70,7 @@ function open(g){if(document.querySelector('.gx'))return;
    const tas=Array.from({length:11},(_,i)=>`<b style="left:calc(50% - 2px);transform:rotate(${(i-5)*9}deg)"></b>`).join('');
    st.innerHTML=`<div class="gx-ring">${g.image?`<img src="${g.image}" alt="">`:''}${tas}</div><div class="gx-t">${esc(g.title)}</div><div class="gx-n">${esc(g.name||'')}</div><div class="gx-m"></div><div class="gx-f">— ${esc(g.from_name)} —</div><button class="gx-spinbtn">🎡 Quay quà may mắn</button>`;
    el.appendChild(st);st.querySelector('.gx-spinbtn').onclick=()=>wheel(el,g);requestAnimationFrame(()=>el.classList.add('show'));tune();petals(el,60);
-   const m=st.querySelector('.gx-m'),txt=g.message||'';let i=0;setTimeout(function ty(){m.textContent=txt.slice(0,++i);if(i<txt.length)setTimeout(ty,txt[i-1]=='\n'?260:38);else el.classList.add('done')},2200);
+   const mm=st.querySelector('.gx-m'),txt=g.message||'';mm.innerHTML='<span class="gx-ghost" aria-hidden="true"></span><span></span>';mm.firstChild.textContent=txt;const m=mm.lastChild;let i=0;setTimeout(function ty(){m.textContent=txt.slice(0,++i);if(i<txt.length)setTimeout(ty,txt[i-1]=='\n'?260:38);else el.classList.add('done')},2200);
    const loop=setInterval(()=>{if(!document.body.contains(el))return clearInterval(loop);petals(el,8);sparks(el,Math.random()*innerWidth,Math.random()*innerHeight*.6,10)},2500);
   },1100)};
  box.onclick=go;box.onkeydown=e=>{if(e.key=='Enter'||e.key==' ')go()};}
