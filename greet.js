@@ -140,3 +140,29 @@ window.greetClaims=claims;
 window.greetCheck=check;
 let tries=0;const t=setInterval(()=>{if(window.__ss&&window.__ss.USER){clearInterval(t);check()}else if(++tries>40)clearInterval(t)},700);
 })();
+
+/* ===== Hộp quà nổi: kéo thả tới bất kỳ đâu trên màn hình, nhớ vị trí ===== */
+(function(){
+ const KEY='ss-gift-pos',M=8;
+ const clamp=(v,a,b)=>Math.min(Math.max(v,a),b);
+ const bounds=el=>{const w=el.offsetWidth||54,h=el.offsetHeight||54,sb=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sab'))||0;
+  return {minX:M,maxX:innerWidth-w-M,minY:M+ (window.visualViewport?0:0),maxY:innerHeight-h-M-sb}};
+ function place(el,x,y){const b=bounds(el);x=clamp(x,b.minX,b.maxX);y=clamp(y,b.minY,b.maxY);el.style.left=x+'px';el.style.top=y+'px';el.style.right='auto';el.style.bottom='auto';return {x,y}}
+ function restore(el){try{const p=JSON.parse(localStorage.getItem(KEY)||'null');if(p)place(el,p.fx*innerWidth,p.fy*innerHeight)}catch(e){}}
+ function save(x,y){try{localStorage.setItem(KEY,JSON.stringify({fx:x/innerWidth,fy:y/innerHeight}))}catch(e){}}
+ function arm(el){if(el._drag)return;el._drag=1;el.style.touchAction='none';el.title=(el.title?el.title+' · ':'')+'Giữ và kéo để di chuyển';restore(el);
+  let sx,sy,ox,oy,moved=false,id=null;
+  el.addEventListener('pointerdown',e=>{if(e.button>0)return;id=e.pointerId;moved=false;const r=el.getBoundingClientRect();sx=e.clientX;sy=e.clientY;ox=r.left;oy=r.top;try{el.setPointerCapture(id)}catch(_){}});
+  el.addEventListener('pointermove',e=>{if(e.pointerId!==id)return;const dx=e.clientX-sx,dy=e.clientY-sy;
+   if(!moved&&Math.hypot(dx,dy)<8)return;if(!moved){moved=true;el.style.animation='none';el.style.transition='none';el.style.transform='scale(1.12)';el.style.cursor='grabbing'}
+   place(el,ox+dx,oy+dy);e.preventDefault()});
+  const end=e=>{if(e.pointerId!==id)return;id=null;if(!moved)return;el.style.transform='';el.style.animation='';el.style.cursor='';
+   const r=el.getBoundingClientRect();save(r.left,r.top);try{navigator.vibrate&&navigator.vibrate(12)}catch(_){}
+   el.addEventListener('click',ev=>{ev.stopImmediatePropagation();ev.preventDefault()},{capture:true,once:true})};
+  el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
+  // bàn phím: chọn nút rồi dùng phím mũi tên để di chuyển
+  el.addEventListener('keydown',e=>{const s=e.shiftKey?40:12,d={ArrowLeft:[-s,0],ArrowRight:[s,0],ArrowUp:[0,-s],ArrowDown:[0,s]}[e.key];if(!d)return;e.preventDefault();const r=el.getBoundingClientRect();const p=place(el,r.left+d[0],r.top+d[1]);save(p.x,p.y)})}
+ const scan=()=>document.querySelectorAll('.gx-replay').forEach(arm);
+ new MutationObserver(scan).observe(document.body||document.documentElement,{childList:true});scan();
+ addEventListener('resize',()=>document.querySelectorAll('.gx-replay').forEach(el=>{if(el.style.left){const r=el.getBoundingClientRect();place(el,r.left,r.top)}}));
+})();
