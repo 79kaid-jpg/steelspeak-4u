@@ -1,0 +1,312 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Khóa kỹ năng</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one-column mobile course — module list → lesson cards → quiz; sticky top bar with progress */
+:root{
+  --bg:#f3f4f2; --surface:#ffffff; --ink:#1d2326; --muted:#5d686d; --line:#d8dddb;
+  --accent:#a8322d;           /* painted-coil red */
+  --accent-soft:#f6e4e2; --steel:#46606b; --steel-soft:#e3eaec;
+  --good:#1f7a4a; --good-soft:#e1f2e8; --bad:#b3261e; --bad-soft:#fbe4e2;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141819; --surface:#1d2325; --ink:#e7ecec; --muted:#9aa7ab; --line:#33403f;
+  --accent:#e0675f; --accent-soft:#3a2220; --steel:#9cc0cc; --steel-soft:#22313a;
+  --good:#5cc98d; --good-soft:#173326; --bad:#ff8a80; --bad-soft:#3d1d1b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141819; --surface:#1d2325; --ink:#e7ecec; --muted:#9aa7ab; --line:#33403f;
+  --accent:#e0675f; --accent-soft:#3a2220; --steel:#9cc0cc; --steel-soft:#22313a;
+  --good:#5cc98d; --good-soft:#173326; --bad:#ff8a80; --bad-soft:#3d1d1b; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--ink)}
+body{font:17px/1.55 var(--f-body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:640px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.15;margin:0}
+h1{font-size:2rem}h2{font-size:1.5rem}h3{font-size:1.15rem}
+p{margin:0}
+.muted{color:var(--muted)}.small{font-size:.9rem}
+.eyebrow{font:600 .75rem/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--steel)}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.top .ttl{flex:1;min-width:0;font:700 1.05rem/1.2 var(--f-display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{height:6px;border-radius:99px;background:var(--line);overflow:hidden}.bar>i{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .3s}
+button{font:600 1rem var(--f-body);border-radius:10px;min-height:48px;padding:10px 16px;cursor:pointer;border:1.5px solid var(--steel);background:var(--surface);color:var(--ink)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.icon{min-height:44px;min-width:44px;padding:0 10px;border-color:var(--line)}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible,.opt:focus-visible,.m-item:focus-visible,.seq-item:focus-visible{outline:3px solid var(--steel);outline-offset:2px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.hero{padding-block:24px 8px;display:flex;flex-direction:column;gap:10px}
+.coil{display:flex;gap:6px;align-items:center;font:500 .8rem var(--f-mono);color:var(--muted);flex-wrap:wrap}
+.coil b{background:var(--steel-soft);color:var(--steel);padding:4px 8px;border-radius:6px;font-weight:500}
+.mod{display:flex;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;text-align:left;width:100%;min-height:76px}
+.mod .no{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font:700 1.1rem var(--f-display);background:var(--steel-soft);color:var(--steel)}
+.mod.done .no{background:var(--good-soft);color:var(--good)}
+.mod .meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mod .meta b{font:700 1.1rem var(--f-display)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:12px}
+.card ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.formula{font:500 .95rem/1.5 var(--f-mono);background:var(--steel-soft);color:var(--ink);border-radius:8px;padding:12px;overflow-x:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+.note{border-left:4px solid var(--accent);background:var(--accent-soft);padding:10px 12px;border-radius:0 8px 8px 0}
+.ex{border:1px dashed var(--steel);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.ex .lbl{font:600 .75rem var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--steel)}
+table{border-collapse:collapse;width:100%;font-size:.92rem}td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl{overflow-x:auto}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.9rem}
+.flow span{background:var(--steel-soft);color:var(--steel);border-radius:6px;padding:4px 8px;font-weight:600}
+.flow i{font-style:normal;color:var(--muted)}
+.nav{display:flex;gap:10px;justify-content:space-between;margin-top:14px}.nav button{flex:1}
+.qtype{font:600 .75rem var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.opt{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:12px;min-height:52px;font-weight:400}
+.opt .k{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--steel-soft);color:var(--steel);font-weight:700;font-size:.85rem}
+.opt.sel{border-color:var(--steel)}
+.opt.ok{border-color:var(--good);background:var(--good-soft)}.opt.no{border-color:var(--bad);background:var(--bad-soft)}
+.fb{border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:4px}
+.fb.ok{background:var(--good-soft);color:var(--ink);border:1px solid var(--good)}.fb.no{background:var(--bad-soft);color:var(--ink);border:1px solid var(--bad)}
+.fb b{font-family:var(--f-display);font-size:1.05rem}
+.match{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:start}
+.match .col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.m-item{position:relative;border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:10px;min-height:52px;font-size:.92rem;text-align:left;touch-action:none;user-select:none;-webkit-user-select:none;font-weight:400;line-height:1.3}
+.m-item.armed{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.m-item[data-pair]::after{content:attr(data-pair);position:absolute;top:-8px;right:-6px;width:22px;height:22px;border-radius:50%;background:var(--steel);color:var(--surface);font:700 .75rem/22px var(--f-body);text-align:center}
+.m-item.ok{border-color:var(--good);background:var(--good-soft)}.m-item.no{border-color:var(--bad);background:var(--bad-soft)}
+.ghost{position:fixed;pointer-events:none;z-index:20;padding:8px 10px;border-radius:8px;background:var(--accent);color:#fff;font-size:.85rem;max-width:60vw}
+.seq{display:flex;flex-direction:column;gap:8px}
+.seq-item{display:flex;gap:10px;align-items:center;text-align:left;width:100%;border:1.5px solid var(--line);background:var(--surface);border-radius:10px;padding:10px;min-height:50px;font-weight:400}
+.seq-item .pos{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--line);color:var(--muted);font-weight:700}
+.seq-item.picked .pos{background:var(--steel);color:var(--surface)}
+.seq-item.ok{border-color:var(--good);background:var(--good-soft)}.seq-item.no{border-color:var(--bad);background:var(--bad-soft)}
+input[type=number]{font:500 1.1rem var(--f-mono);width:100%;min-height:50px;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface);color:var(--ink)}
+.score{font:700 3rem/1 var(--f-display);color:var(--accent);font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.8rem;font-weight:700}
+.pill.ok{background:var(--good-soft);color:var(--good)}.pill.todo{background:var(--steel-soft);color:var(--steel)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+</head><body><div class="wrap" id="app"><p class="muted" style="padding:40px 0">Đang tải khóa học…</p></div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+/* Trang học khóa kỹ năng (vd. Costing). Nội dung lấy từ bảng course_modules;
+   máy chủ chỉ trả nội dung cho người đã được admin duyệt vào khóa (RLS is_enrolled). */
+const SLUG = (new URLSearchParams(location.search).get('c') || 'costing').replace(/[^a-z0-9_-]/g, '');
+const SB = supabase.createClient(window.SS_CONFIG.SUPABASE_URL, window.SS_CONFIG.SUPABASE_ANON_KEY);
+let C = null, TRK = null, UID = null;
+function gate(kind, tr){
+  const T = {
+    login: ['Cần đăng nhập', 'Đăng nhập trong ứng dụng SteelSpeak, rồi mở lại khóa học này.'],
+    none: ['Khóa học cần đăng ký', 'Mở Thư viện khóa học trong ứng dụng, chọn khóa này và gửi đơn tham gia. Admin duyệt xong là bạn học được ngay.'],
+    pending: ['Đơn đang chờ duyệt', 'Bạn đã gửi đơn tham gia. Admin duyệt xong là bạn học được ngay.'],
+    rejected: ['Đơn chưa được duyệt', 'Liên hệ admin nếu bạn cần học khóa này.'],
+    missing: ['Không tìm thấy khóa học', 'Khóa học này chưa được bật. Admin cần chạy file SQL của khóa.'],
+    empty: ['Khóa học chưa có nội dung', 'Admin cần chạy file SQL của khóa để nạp bài học.']
+  }[kind] || ['Không tải được khóa học', String(kind)];
+  document.getElementById('app').innerHTML = `<div class="hero"><span class="eyebrow">${tr ? esc(tr.name) : 'Khóa kỹ năng'}</span><h1>${T[0]}</h1><p class="muted">${esc(T[1])}</p>
+  <button class="primary" onclick="location.href='index.html'">Mở ứng dụng SteelSpeak</button></div>`;
+}
+async function boot(){
+  try {
+    const { data: { session } } = await SB.auth.getSession();
+    if (!session) return gate('login');
+    UID = session.user.id;
+    const { data: tr } = await SB.from('tracks').select('id,name,description,kind').eq('slug', SLUG).maybeSingle();
+    if (!tr) return gate('missing');
+    TRK = tr;
+    const { data: mods, error } = await SB.from('course_modules').select('idx,data').eq('track_id', tr.id).order('idx');
+    if (error || !mods || !mods.length) {
+      const { data: e } = await SB.from('enrollments').select('status').eq('user_id', UID).eq('track_id', tr.id).maybeSingle();
+      return gate(e && e.status == 'approved' ? (error ? error.message : 'empty') : e ? e.status : 'none', tr);
+    }
+    C = { title: tr.name, desc: tr.description || '', modules: mods.map(m => m.data) };
+    document.title = tr.name;
+    const { data: pr } = await SB.from('course_progress').select('module,best').eq('track_id', tr.id).eq('user_id', UID);
+    for (const p of pr || []) if ((S[p.module]?.best ?? -1) < p.best) S[p.module] = { best: p.best };
+    save();
+    for (const m of C.modules) if (S[m.id]?.best != null && !(pr || []).some(p => p.module == m.id && p.best >= S[m.id].best)) syncProg(m.id);
+    route();
+  } catch (e) { gate(e.message || e); }
+}
+async function syncProg(mid){
+  if (!TRK || !UID || S[mid]?.best == null) return;
+  try { await SB.from('course_progress').upsert({ user_id: UID, track_id: TRK.id, module: mid, best: S[mid].best, updated_at: new Date().toISOString() }); } catch (e) {}
+}
+/* ============================== ENGINE ============================== */
+const KEY = "skill-course-" + SLUG + "-v1";
+let S = load();
+function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e){ return {}; } }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
+const app = document.getElementById("app");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const fmt = n => Number(n).toLocaleString("en-US", { maximumFractionDigits: 4 });
+
+function route(){
+  if (!C) return;
+  const h = location.hash.replace("#", "");
+  const m = C.modules.find(x => h === x.id || h === x.id + "-quiz");
+  if (!m) return home();
+  if (h.endsWith("-quiz")) return quiz(m);
+  lesson(m, 0);
+}
+window.addEventListener("hashchange", route);
+
+function topBar(title, pct){
+  return `<div class="top"><button class="icon" id="back" aria-label="Back">←</button><div class="ttl">${esc(title)}</div>
+  <div style="width:80px" aria-hidden="true"><div class="bar"><i style="width:${pct}%"></i></div></div></div>`;
+}
+function wireBack(fn){ document.getElementById("back").onclick = fn; }
+
+function home(){
+  const done = C.modules.filter(m => S[m.id]?.best != null).length;
+  app.innerHTML = `<div class="top"><button class="icon" onclick="location.href='index.html'" aria-label="Về ứng dụng">←</button><div class="ttl">SteelSpeak</div></div><div class="hero"><span class="eyebrow">Khóa kỹ năng · ${C.modules.length} modules</span><h1>${esc(C.title)}</h1>
+  <p class="muted">${esc(C.desc)}</p>
+  <div class="bar" style="margin-top:6px"><i style="width:${done / C.modules.length * 100}%"></i></div>
+  <p class="small muted">${done} of ${C.modules.length} modules completed</p></div>
+  <div class="stack">${C.modules.map((m, i) => { const best = S[m.id]?.best;
+    return `<button class="mod ${best != null ? "done" : ""}" data-id="${m.id}"><span class="no">${best != null ? "✓" : i + 1}</span>
+    <span class="meta"><b>${esc(m.title)}</b><span class="small muted">${m.lessons.length} lessons · ${m.quiz.length} questions · ~${m.mins} min</span></span>
+    ${best != null ? `<span class="pill ok">${best}%</span>` : `<span class="pill todo">Start</span>`}</button>`; }).join("")}</div>
+  <div class="stack" style="margin-top:16px"><button id="exam">Final review: all ${C.modules.reduce((n, m) => n + m.quiz.length, 0)} questions</button>
+  ${Object.keys(S).length ? `<button id="reset" class="icon" style="border-color:var(--line)">Reset my progress</button>` : ""}</div>
+  <p class="small muted" style="margin-top:16px">Figures are examples from the Oct-2026 cost model, for learning only.</p>`;
+  app.querySelectorAll(".mod").forEach(b => b.onclick = () => location.hash = b.dataset.id);
+  document.getElementById("exam").onclick = () => quiz({ id: "final", title: "Final review", quiz: shuffle(C.modules.flatMap(m => m.quiz)) });
+  const r = document.getElementById("reset"); if (r) r.onclick = () => { r.textContent = "Tap again to confirm"; r.onclick = async () => { S = {}; save(); try { await SB.from("course_progress").delete().eq("track_id", TRK.id).eq("user_id", UID); } catch(e){} home(); }; };
+  window.scrollTo(0, 0);
+}
+
+function lesson(m, i){
+  const L = m.lessons[i], n = m.lessons.length;
+  app.innerHTML = topBar(m.title, (i + 1) / (n + 1) * 100) + `<div class="card"><span class="eyebrow">Lesson ${i + 1} of ${n}</span><h2>${esc(L.h)}</h2>${L.b}</div>
+  <div class="nav"><button id="prev" ${i ? "" : "disabled"}>Previous</button>${i < n - 1 ? `<button class="primary" id="next">Next</button>` : `<button class="primary" id="go">Start practice</button>`}</div>`;
+  wireBack(() => location.hash = "");
+  const p = document.getElementById("prev"); if (p) p.onclick = () => lesson(m, i - 1);
+  const nx = document.getElementById("next"); if (nx) nx.onclick = () => lesson(m, i + 1);
+  const g = document.getElementById("go"); if (g) g.onclick = () => location.hash = m.id + "-quiz";
+  window.scrollTo(0, 0);
+}
+
+function quiz(m){
+  let i = 0, right = 0;
+  const qs = m.quiz;
+  const show = () => {
+    const q = qs[i];
+    app.innerHTML = topBar(m.title + " · practice", i / qs.length * 100) + `<div class="card" id="qc"><span class="qtype">${({ mcq: "Choose one", match: "Connect the pairs", order: "Put in order", calc: "Calculate" })[q.t]} · ${i + 1}/${qs.length}</span><h3>${esc(q.q)}</h3><div id="qb"></div><div id="fb"></div></div>
+    <div class="nav"><button class="primary" id="chk" disabled>Check</button></div>`;
+    wireBack(() => location.hash = m.id === "final" ? "" : m.id);
+    const chk = document.getElementById("chk");
+    const done = ok => {
+      if (ok) right++;
+      const fb = document.getElementById("fb");
+      fb.innerHTML = `<div class="fb ${ok ? "ok" : "no"}"><b>${ok ? "Correct" : "Not quite"}</b><span>${esc(q.e)}</span></div>`;
+      chk.textContent = i < qs.length - 1 ? "Next question" : "See result"; chk.disabled = false;
+      chk.onclick = () => { i++; i < qs.length ? show() : result(); };
+      fb.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    };
+    ({ mcq, match, order, calc })[q.t](q, document.getElementById("qb"), chk, done);
+    window.scrollTo(0, 0);
+  };
+  const result = () => {
+    const pct = Math.round(right / qs.length * 100);
+    if (m.id !== "final") { S[m.id] = { best: Math.max(pct, S[m.id]?.best ?? 0) }; save(); syncProg(m.id); }
+    app.innerHTML = topBar(m.title, 100) + `<div class="card" style="align-items:flex-start"><span class="eyebrow">Result</span><div class="score">${pct}%</div>
+    <p>${right} of ${qs.length} correct. ${pct >= 80 ? "Solid understanding. Move on to the next module." : "Review the lessons and try again; questions come in a new order."}</p></div>
+    <div class="nav"><button id="again">Try again</button><button class="primary" id="home">All modules</button></div>`;
+    wireBack(() => location.hash = "");
+    document.getElementById("again").onclick = () => quiz(m.id === "final" ? { ...m, quiz: shuffle(m.quiz) } : m);
+    document.getElementById("home").onclick = () => { location.hash = ""; home(); };
+  };
+  show();
+}
+
+function mcq(q, box, chk, done){
+  const order = shuffle(q.o.map((t, k) => k)); let sel = null;
+  box.innerHTML = `<div class="stack" role="radiogroup">${order.map((k, j) => `<button class="opt" role="radio" aria-checked="false" data-k="${k}"><span class="k">${"ABCD"[j]}</span><span>${esc(q.o[k])}</span></button>`).join("")}</div>`;
+  const opts = [...box.querySelectorAll(".opt")];
+  opts.forEach(b => b.onclick = () => { if (chk.dataset.locked) return; opts.forEach(x => { x.classList.remove("sel"); x.setAttribute("aria-checked", "false"); }); b.classList.add("sel"); b.setAttribute("aria-checked", "true"); sel = +b.dataset.k; chk.disabled = false; });
+  chk.onclick = () => { chk.dataset.locked = 1; opts.forEach(b => { const k = +b.dataset.k; if (k === q.a) b.classList.add("ok"); else if (k === sel) b.classList.add("no"); }); done(sel === q.a); };
+}
+
+function match(q, box, chk, done){
+  const L = q.l.map((t, k) => ({ t, k })), R = shuffle(q.r.map((t, k) => ({ t, k })));
+  const pairs = new Map(); let armed = null, next = 1;
+  box.innerHTML = `<p class="small muted">Tap an item on the left, then its partner on the right, or drag from left to right. Tap a paired item to undo.</p>
+  <div class="match"><div class="col">${L.map(x => `<button class="m-item" data-side="l" data-k="${x.k}">${esc(x.t)}</button>`).join("")}</div>
+  <div class="col">${R.map(x => `<button class="m-item" data-side="r" data-k="${x.k}">${esc(x.t)}</button>`).join("")}</div></div>`;
+  const el = (s, k) => box.querySelector(`.m-item[data-side="${s}"][data-k="${k}"]`);
+  const redraw = () => {
+    box.querySelectorAll(".m-item").forEach(b => { b.removeAttribute("data-pair"); b.classList.remove("armed"); });
+    let n = 1; for (const [l, r] of pairs) { el("l", l).dataset.pair = n; el("r", r).dataset.pair = n; n++; }
+    if (armed != null) el("l", armed).classList.add("armed");
+    chk.disabled = pairs.size !== L.length;
+  };
+  const link = (l, r) => { for (const [a, b] of pairs) if (b === r) pairs.delete(a); pairs.set(l, r); armed = null; redraw(); };
+  box.querySelectorAll(".m-item").forEach(b => {
+    b.onclick = () => {
+      if (chk.dataset.locked) return;
+      const k = +b.dataset.k;
+      if (b.dataset.side === "l") { if (pairs.has(k)) { pairs.delete(k); armed = null; } else armed = armed === k ? null : k; redraw(); }
+      else { for (const [a, x] of pairs) if (x === k && armed == null) { pairs.delete(a); redraw(); return; } if (armed != null) link(armed, k); }
+    };
+  });
+  // drag from a left item onto a right item
+  let drag = null, ghost = null, moved = false;
+  box.querySelectorAll('.m-item[data-side="l"]').forEach(b => {
+    b.addEventListener("pointerdown", e => { if (chk.dataset.locked) return; drag = +b.dataset.k; moved = false; b.setPointerCapture(e.pointerId); });
+    b.addEventListener("pointermove", e => {
+      if (drag == null) return;
+      if (!moved) { moved = true; ghost = document.createElement("div"); ghost.className = "ghost"; ghost.textContent = b.textContent; document.body.appendChild(ghost); }
+      ghost.style.left = e.clientX + 8 + "px"; ghost.style.top = e.clientY + 8 + "px";
+    });
+    b.addEventListener("pointerup", e => {
+      if (ghost) { ghost.remove(); ghost = null; }
+      if (drag != null && moved) {
+        const t = document.elementFromPoint(e.clientX, e.clientY)?.closest('.m-item[data-side="r"]');
+        if (t) link(drag, +t.dataset.k);
+        b.addEventListener("click", ev => ev.stopImmediatePropagation(), { once: true, capture: true });
+      }
+      drag = null;
+    });
+    b.addEventListener("pointercancel", () => { if (ghost) ghost.remove(); ghost = null; drag = null; });
+  });
+  chk.onclick = () => {
+    chk.dataset.locked = 1; let ok = true;
+    for (const [l, r] of pairs) { const good = q.r[l].trim() === q.r[r].trim(); if (!good) ok = false; el("l", l).classList.add(good ? "ok" : "no"); el("r", r).classList.add(good ? "ok" : "no"); }
+    done(ok);
+  };
+}
+
+function order(q, box, chk, done){
+  const items = shuffle(q.items.map((t, k) => ({ t, k }))); const picked = [];
+  box.innerHTML = `<p class="small muted">Tap the steps in the right order. Tap a numbered step to remove it.</p><div class="seq">${items.map(x => `<button class="seq-item" data-k="${x.k}"><span class="pos">·</span><span>${esc(x.t)}</span></button>`).join("")}</div>`;
+  const btns = [...box.querySelectorAll(".seq-item")];
+  const redraw = () => { btns.forEach(b => { const p = picked.indexOf(+b.dataset.k); b.classList.toggle("picked", p >= 0); b.querySelector(".pos").textContent = p >= 0 ? p + 1 : "·"; }); chk.disabled = picked.length !== items.length; };
+  btns.forEach(b => b.onclick = () => { if (chk.dataset.locked) return; const k = +b.dataset.k, p = picked.indexOf(k); if (p >= 0) picked.splice(p, 1); else picked.push(k); redraw(); });
+  chk.onclick = () => { chk.dataset.locked = 1; let ok = true; picked.forEach((k, pos) => { const g = k === pos; if (!g) ok = false; btns.find(b => +b.dataset.k === k).classList.add(g ? "ok" : "no"); }); done(ok); };
+}
+
+function calc(q, box, chk, done){
+  box.innerHTML = `<label class="small muted" for="num">Your answer (${esc(q.unit)})</label><input type="number" id="num" inputmode="decimal" step="any" placeholder="0">`;
+  const inp = box.querySelector("#num");
+  inp.oninput = () => chk.disabled = inp.value === "";
+  inp.onkeydown = e => { if (e.key === "Enter" && !chk.disabled) chk.click(); };
+  chk.onclick = () => {
+    chk.dataset.locked = 1; inp.disabled = true;
+    const v = parseFloat(String(inp.value).replace(",", ".")); const ok = Math.abs(v - q.ans) <= q.tol;
+    inp.style.borderColor = ok ? "var(--good)" : "var(--bad)";
+    q.e = (ok ? "" : `Answer: ${fmt(q.ans)} ${q.unit}. `) + q.e.replace(/^Answer: .*?\. /, "");
+    done(ok);
+  };
+}
+
+boot();
+</script>
+
+</body></html>
