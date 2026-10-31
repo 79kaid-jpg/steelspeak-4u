@@ -212,7 +212,7 @@ async function shPlay(withRec){const L=tlLesson(),s=L.text[L.shadow[SH.i]][0];if
  if(rec){await new Promise(r=>{rec.onstop=r;rec.stop()});stream.getTracks().forEach(t=>t.stop());shDrop();SH.url=URL.createObjectURL(new Blob(chunks,{type:rec.mimeType||'audio/webm'}))}
  SH.busy=false;render()}
 async function shCompare(){if(!SH.url)return;const L=tlLesson(),s=L.text[L.shadow[SH.i]][0];const a=new Audio(SH.url);await new Promise(r=>{a.onended=r;a.onerror=r;a.play().catch(r)});await shWait(400);await shUtter(s,SH.rate)}
-function shNext(){const L=tlLesson();if(SH.i<L.shadow.length-1)shSet('i',SH.i+1);else if(SH.round<3){SH.i=0;shSet('round',SH.round+1);toast('Sang vòng '+(SH.round+1)+': '+SH_ROUNDS[SH.round][0])}else{SH.on=false;toast('Xong 4 vòng shadowing!');render()}}
+function shNext(){const L=tlLesson();if(SH.i<L.shadow.length-1)shSet('i',SH.i+1);else if(SH.round<3){SH.i=0;shSet('round',SH.round+1);toast('Sang vòng '+(SH.round+1)+': '+SH_ROUNDS[SH.round][0])}else{SH.on=false;toast('Xong 4 vòng shadowing!');try{dispatchEvent(new Event('ss-shadow-done'))}catch(e){}render()}}
 function vShadow(L){const si=L.shadow[SH.i],[en,vi]=L.text[si],r=SH.round;
  const shown=r<2?en:r==2?shMask(en):'• • •';
  return `<button class="link" onclick="SH.on=false;try{speechSynthesis.cancel()}catch(e){};render()">‹ Về phần Phát âm</button><h2 style="margin-top:6px">Shadowing</h2>
