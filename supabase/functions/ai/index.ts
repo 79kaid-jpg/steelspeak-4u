@@ -214,6 +214,31 @@ Deno.serve(async (req) => {
       if (env("GROQ_API_KEY")) { try { groq = ((await (await fetch("https://api.groq.com/openai/v1/models", { headers: { Authorization: "Bearer " + env("GROQ_API_KEY") } })).json()).data ?? []).map((m: any) => String(m.id)); } catch (_) { /* bỏ qua */ } }
       return json({ available: Object.keys(PROVIDERS).filter((p) => env(PROVIDERS[p].key)), order: await preferredOrder(admin), groq });
     }
+    if (body.task === "story") {
+      const text = String(body.text ?? "").replace(/\s+/g, " ").trim().slice(0, 2500);
+      if (text.split(" ").length < 40) return json({ error: "Truyện quá ngắn (cần ít nhất 40 từ)" }, 400);
+      const p = `You are an experienced English teacher for Vietnamese adult learners. Build a full lesson from the SHORT STORY below.
+Rules:
+- "text": split the story into sentences exactly as written (do not change words); each item [english, natural Vietnamese translation]. Max 14 sentences; if longer, keep the first 14.
+- "level": CEFR level of the story (A1,A2,B1,B2,C1), judged by vocabulary, grammar and figurative language.
+- "title": short English title; "vi": short Vietnamese subtitle.
+- "vocab": 8-12 most useful words/phrases from the story for that level: {en, ipa (British IPA with slashes), pos (n./v./adj./adv./phr. v.), vi, ex (new short example sentence), exvi}.
+- "fill": 5 items [sentence with ___ , answer] using vocab words (answer must be exactly one of the vocab "en" values).
+- "tf": 4 items [statement about the story, true|false]. Mix true and false.
+- "mcq": 3 items [question, [3 options], index of correct option].
+- "discuss": one speaking question about the learner's own life.
+- "gaps": 6-7 items [sentence index, single word copied EXACTLY from that sentence] for listening gap-fill; choose content words.
+- "gist": [question about the main idea, [3 options], correct index].
+- "dictation": 2 sentence indexes (short sentences).
+- "sounds": 4-5 key sounds Vietnamese learners struggle with in this story: {ipa, tip (Vietnamese), words:[3 words from the story]}.
+- "linking": 3-4 [phrase from story, IPA with ‿ showing the link].
+- "stress": 3 sentences from the story with stressed words in CAPITALS.
+- "shadow": 4 sentence indexes good for shadowing.
+Return JSON only with keys: title, vi, level, text, vocab, fill, tf, mcq, discuss, gaps, gist, dictation, sounds, linking, stress, shadow.
+STORY:
+"""${text}"""`;
+      try { return json(await llmJSON(admin, p, 0.3)); } catch (e) { return json({ error: String((e as Error).message ?? e) }, 502); }
+    }
     if (body.task === "lesson") {
       const n = Math.min(Math.max(Number(body.n) || 12, 4), 20);
       const text = String(body.text ?? "").slice(0, 14000);

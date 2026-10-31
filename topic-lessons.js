@@ -115,7 +115,7 @@ const TL_PARTS=[['vocab','Từ vựng'],['read','Đọc hiểu'],['listen','Nghe
 let TLS={id:null,part:'vocab',a:{}};
 const TLP=(()=>{try{return JSON.parse(localStorage.getItem('sstl')||'{}')}catch(e){return{}}})();TLP.done=TLP.done||{};TLP.best=TLP.best||{};
 function tlSave(){try{localStorage.setItem('sstl',JSON.stringify(TLP))}catch(e){}}
-function tlLesson(){return TOPIC_LESSONS.find(x=>x.id==TLS.id)||TOPIC_LESSONS[0]}
+function tlLesson(){return tlAll().find(x=>x.id==TLS.id)||TOPIC_LESSONS[0]}
 function tlDone(id,p){return !!TLP.done[id+':'+p]}
 function tlMark(p){const L=tlLesson();if(!TLP.done[L.id+':'+p]){TLP.done[L.id+':'+p]=1;tlSave();S.xp+=20;try{tick()}catch(e){}toast('+20 XP · Xong phần '+TL_PARTS.find(x=>x[0]==p)[1])}save();render()}
 function tlOpen(id,p){SH.on=false;TLS={id,part:p||'vocab',a:{}};S.res=null;go('tl')}
@@ -124,12 +124,12 @@ const tlNorm=s=>String(s||'').toLowerCase().replace(/[^a-z' ]/g,' ').replace(/\s
 
 /* Thẻ hiển thị trên trang Học */
 function vTopicHome(){if(typeof tkSlug=='function'&&tkSlug()=='steel')return '';
- return `<div class="sec-h"><h2>Bài học theo chủ đề</h2><span class="mut">${TOPIC_LESSONS.length} bài</span></div><div class="stack">${TOPIC_LESSONS.map(L=>{const n=TL_PARTS.filter(([p])=>tlDone(L.id,p)).length;
- return `<button class="card lesson2" onclick="tlOpen('${L.id}')"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(L.title)}</b><span class="chip">${L.level}</span></div><div class="mut" style="font-size:.84rem">${esc(L.vi)} · ${n}/4 phần xong</div><div class="row" style="gap:6px;margin-top:6px">${TL_PARTS.map(([p,nm])=>`<span class="chip ${tlDone(L.id,p)?'on':''}" style="font-size:.74rem">${tlDone(L.id,p)?'✓ ':''}${nm}</span>`).join('')}</div></button>`}).join('')}</div>`}
+ return `<div class="sec-h"><h2>Bài học theo chủ đề</h2><span class="mut">${tlAll().length} bài</span></div><div class="stack">${tlAll().map(L=>{const n=TL_PARTS.filter(([p])=>tlDone(L.id,p)).length;
+ return `<button class="card lesson2" onclick="tlOpen('${L.id}')"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(L.title)}</b><span class="chip">${L.level}</span></div><div class="mut" style="font-size:.84rem">${L.mine?'Bài của bạn · ':''}${esc(L.vi)} · ${n}/4 phần xong</div><div class="row" style="gap:6px;margin-top:6px">${TL_PARTS.map(([p,nm])=>`<span class="chip ${tlDone(L.id,p)?'on':''}" style="font-size:.74rem">${tlDone(L.id,p)?'✓ ':''}${nm}</span>`).join('')}</div></button>`}).join('')}<button class="btn ghost" onclick="TLN.msg='';TLS={id:'__new',part:'vocab',a:{}};go('tl')">＋ Tạo bài từ truyện ngắn</button></div>`}
 
-function vTopic(){const L=tlLesson();if(typeof CATS!='undefined'&&!CATS.tl)CATS.tl={n:'Bài học chủ đề'};
+function vTopic(){if(TLS.id=='__new')return vStoryForm();const L=tlLesson();if(typeof CATS!='undefined'&&!CATS.tl)CATS.tl={n:'Bài học chủ đề'};
  const tabs=`<div class="chips" style="margin:10px 0;flex-wrap:nowrap;overflow-x:auto">${TL_PARTS.map(([p,n])=>`<button class="chip ${TLS.part==p?'on':''}" onclick="tlPart('${p}')">${tlDone(L.id,p)?'✓ ':''}${n}</button>`).join('')}</div>`;
- const head=`<button class="link" onclick="go('home')">‹ Trang Học</button><h1 style="margin-top:6px">${esc(L.title)}</h1><p class="mut">${esc(L.vi)} · General English ${L.level}</p>${tabs}`;
+ const head=`<div class="row" style="justify-content:space-between"><button class="link" onclick="go('home')">‹ Trang Học</button>${L.mine?`<button class="link" onclick="tlDel('${L.id}')">Xóa bài</button>`:''}</div><h1 style="margin-top:6px">${esc(L.title)}</h1><p class="mut">${esc(L.vi)} · General English ${L.level}</p>${tabs}`;
  const body={vocab:tlVocab,read:tlRead,listen:tlListen,pron:tlPron}[TLS.part](L);
  const i=TL_PARTS.findIndex(x=>x[0]==TLS.part);
  const foot=`<div class="row" style="flex-wrap:nowrap;margin-top:16px">${i>0?`<button class="btn ghost" style="flex:1" onclick="tlPart('${TL_PARTS[i-1][0]}')">‹ ${TL_PARTS[i-1][1]}</button>`:''}${i<3?`<button class="btn" style="flex:1" onclick="tlPart('${TL_PARTS[i+1][0]}')">${TL_PARTS[i+1][1]} ›</button>`:`<button class="btn" style="flex:1" onclick="go('home')">Hoàn thành bài</button>`}</div>`;
@@ -138,7 +138,7 @@ function vTopic(){const L=tlLesson();if(typeof CATS!='undefined'&&!CATS.tl)CATS.
 /* ---- Bài tập chọn đáp án dùng chung ---- */
 function tlChoice(key,opts,right){const a=TLS.a[key];return `<div class="stack" style="margin-top:8px">${opts.map((o,k)=>`<button class="opt ${a!=null?(k===right?'ok':k===a?'no':''):''}" ${a!=null?'disabled':''} onclick="TLS.a['${key}']=${k};render()">${esc(o)}</button>`).join('')}</div>`}
 function tlScore(keys,rights){const got=keys.filter((k,i)=>TLS.a[k]===rights[i]).length;return {got,all:keys.length,done:keys.every(k=>TLS.a[k]!=null)}}
-function tlResult(s,part){if(!s.done)return '';const pass=s.got/s.all>=.7;return `<div class="card" style="margin-top:12px"><b>${s.got}/${s.all} câu đúng</b> · <span class="${pass?'good':'bad'}">${pass?'Đạt':'Cần đúng 70% để qua'}</span>${pass&&!tlDone(tlLesson().id,part)?`<button class="btn" style="width:100%;margin-top:8px" onclick="tlMark('${part}')">Hoàn thành phần này (+20 XP)</button>`:''}${!pass?`<button class="btn ghost" style="width:100%;margin-top:8px" onclick="TLS.a={};render()">Làm lại</button>`:''}</div>`}
+function tlResult(s,part){if(!s.done)return '';const pass=!s.all||s.got/s.all>=.7;return `<div class="card" style="margin-top:12px"><b>${s.got}/${s.all} câu đúng</b> · <span class="${pass?'good':'bad'}">${pass?'Đạt':'Cần đúng 70% để qua'}</span>${pass&&!tlDone(tlLesson().id,part)?`<button class="btn" style="width:100%;margin-top:8px" onclick="tlMark('${part}')">Hoàn thành phần này (+20 XP)</button>`:''}${!pass?`<button class="btn ghost" style="width:100%;margin-top:8px" onclick="TLS.a={};render()">Làm lại</button>`:''}</div>`}
 
 /* ---- 1. Từ vựng ---- */
 function tlTerms(L){return L.vocab.map(v=>({en:v.en,vi:v.vi,ex:v.ex,exvi:v.exvi,cat:'tl'}))}
@@ -170,7 +170,7 @@ function tlListen(L){const all=L.text.map(x=>x[0]).join(' ');
  const dict=L.dictation.map((si,k)=>{const key='d'+k,v=TLS.a[key],chk=TLS.a['dc'+k];const tgt=L.text[si][0];let res='';
   if(chk){const T=tlNorm(tgt).split(' '),H=tlNorm(v).split(' ');const hit=T.filter(w=>H.includes(w)).length;res=`<div style="margin-top:6px">${T.map(w=>`<span class="${H.includes(w)?'good':'bad'}">${esc(w)}</span>`).join(' ')}</div><div class="mut" style="font-size:.84rem">${Math.round(hit/T.length*100)}% từ đúng</div>`}
   return `<div class="card"><div class="row" style="flex-wrap:nowrap"><div style="flex:1">Câu ${k+1}: nghe và chép lại</div>${spk(tgt)}${slow(tgt)}</div><textarea rows="2" oninput="TLS.a['${key}']=this.value" style="width:100%;margin-top:6px" ${chk?'disabled':''}>${esc(v||'')}</textarea>${chk?res:`<button class="btn ghost" style="width:100%;margin-top:6px" onclick="TLS.a['dc${k}']=1;render()">Kiểm tra</button>`}</div>`}).join('');
- const passed=TLS.a.gchk&&gs/L.gaps.length>=.7&&TLS.a.gist===gr;
+ const passed=(!L.gaps.length||TLS.a.gchk&&gs/L.gaps.length>=.7)&&TLS.a.gist===gr;
  return `${play}<div class="sec-h"><h2>Điền từ còn thiếu</h2></div><div class="stack">${gaps}</div>
  ${TLS.a.gchk?`<div class="card" style="margin-top:10px"><b>${gs}/${L.gaps.length} từ đúng</b> <button class="link" onclick="TLS.a.gchk=0;render()">Sửa lại</button></div>`:`<button class="btn" style="width:100%;margin-top:10px" onclick="TLS.a.gchk=1;render()">Kiểm tra</button>`}
  <div class="sec-h"><h2>Ý chính</h2></div><div class="card"><div>${esc(gq)}</div>${tlChoice('gist',go2,gr)}</div>
@@ -230,3 +230,41 @@ function vShadow(L){const si=L.shadow[SH.i],[en,vi]=L.text[si],r=SH.round;
  ${r>0?`<p class="mut" style="font-size:.82rem;margin-top:8px">Mẹo: đeo tai nghe để micro chỉ thu giọng bạn. Nói to, bắt chước cả chỗ nhấn và ngữ điệu, không chỉ từng từ.</p>`:''}
  <div class="row" style="flex-wrap:nowrap;margin-top:12px"><button class="btn ghost" style="flex:1" ${SH.i==0?'disabled':''} onclick="shSet('i',SH.i-1)">‹ Câu trước</button><button class="btn" style="flex:1" onclick="shNext()">${SH.i<L.shadow.length-1?'Câu tiếp ›':SH.round<3?'Vòng tiếp ›':'Hoàn thành'}</button></div>
  <button class="btn ghost" style="width:100%;margin-top:8px" onclick="SH.on=false;tlSpeak(${si})">Chấm điểm AI câu này</button>`}
+
+/* ===================== NGƯỜI HỌC TỰ TẠO BÀI TỪ TRUYỆN NGẮN =====================
+ Dán truyện 40–400 từ → AI (task 'story') soạn đủ 4 phần → kiểm tra, sửa lỗi → lưu trên máy (TLP.mine). */
+TLP.mine=TLP.mine||[];
+function tlAll(){return [...TOPIC_LESSONS,...TLP.mine]}
+const tlArr=(x,n)=>Array.isArray(x)?x.slice(0,n):[];
+function tlClean(r,src){const S2=s=>String(s??'').trim();
+ const text=tlArr(r.text,14).map(x=>Array.isArray(x)?[S2(x[0]),S2(x[1])]:[S2(x.en||x),S2(x.vi)]).filter(x=>x[0].length>2);if(text.length<3)throw new Error('AI chưa tách được câu');
+ const N=text.length,okI=i=>Number.isInteger(+i)&&+i>=0&&+i<N;
+ const vocab=tlArr(r.vocab,12).map(v=>({en:S2(v.en),ipa:S2(v.ipa),pos:S2(v.pos),vi:S2(v.vi),ex:S2(v.ex),exvi:S2(v.exvi)})).filter(v=>v.en&&v.vi);if(vocab.length<4)throw new Error('AI chưa chọn đủ từ vựng');
+ const ens=vocab.map(v=>v.en.toLowerCase());
+ const fill=tlArr(r.fill,6).map(x=>[S2(x[0]),S2(x[1])]).filter(([q,a])=>q.includes('___')&&ens.includes(a.toLowerCase())).map(([q,a])=>[q,vocab[ens.indexOf(a.toLowerCase())].en]);
+ const tf=tlArr(r.tf,5).map(x=>[S2(x[0]),x[1]===true||String(x[1]).toLowerCase()=='true']).filter(x=>x[0]);
+ const mcq=tlArr(r.mcq,4).map(x=>[S2(x[0]),tlArr(x[1],4).map(S2),+x[2]]).filter(x=>x[0]&&x[1].length>=2&&x[2]>=0&&x[2]<x[1].length);
+ const gaps=tlArr(r.gaps,8).map(x=>[+x[0],S2(x[1]).toLowerCase().replace(/[^a-z']/g,'')]).filter(([i,w])=>okI(i)&&w.length>1&&new RegExp('\\b'+w+'\\b').test(text[i][0]));
+ const g=Array.isArray(r.gist)?r.gist:[];const gist=[S2(g[0])||'What is the main idea?',tlArr(g[1],4).map(S2),+g[2]||0];
+ const idx=(a,n,def)=>{const v=[...new Set(tlArr(a,n).map(Number).filter(okI))];return v.length?v:def};
+ const sounds=tlArr(r.sounds,5).map(x=>({ipa:S2(x.ipa),tip:S2(x.tip),words:tlArr(x.words,4).map(S2).filter(Boolean)})).filter(x=>x.ipa&&x.words.length);
+ const linking=tlArr(r.linking,4).map(x=>[S2(x[0]),S2(x[1])]).filter(x=>x[0]);
+ const stress=tlArr(r.stress,3).map(S2).filter(Boolean);
+ const lv=['A1','A2','B1','B2','C1','C2'].includes(S2(r.level).toUpperCase())?S2(r.level).toUpperCase():'B1';
+ return {id:'u'+Date.now(),mine:1,src,level:lv,title:S2(r.title)||'Truyện của tôi',vi:(S2(r.vi)||'Bài tự tạo')+' · AI soạn',text,vocab,fill,tf,mcq,
+  discuss:S2(r.discuss)||'Retell the story in your own words.',gaps,gist:gist[1].length>=2?gist:['What is the main idea?',['—','—'],0],
+  dictation:idx(r.dictation,2,[0]),sounds,linking,stress,shadow:idx(r.shadow,4,[0,1,2].filter(okI))}}
+let TLN={busy:false,msg:''};
+async function tlBuild(){const ta=document.getElementById('tlstory');const txt=(ta&&ta.value||'').replace(/\s+/g,' ').trim();const n=txt.split(' ').length;
+ if(n<40)return TLN.msg='Truyện cần ít nhất 40 từ (hiện có '+n+').',render();if(n>400)return TLN.msg='Truyện tối đa khoảng 400 từ (hiện có '+n+'). Hãy cắt bớt.',render();
+ if(/[À-ỹ]/.test(txt)&&txt.replace(/[^À-ỹ]/g,'').length>20)return TLN.msg='Hãy dán truyện bằng tiếng Anh.',render();
+ TLN.busy=true;TLN.draft=txt;TLN.msg='AI đang soạn bài (khoảng 20–40 giây)…';render();
+ try{const r=await ai('story',{text:txt});if(r&&r.error)throw new Error(r.error);const L=tlClean(r,txt.slice(0,60));TLP.mine.unshift(L);tlSave();TLN={busy:false,msg:''};toast('Đã tạo bài “'+L.title+'”');tlOpen(L.id)}
+ catch(e){TLN.busy=false;TLN.msg=e&&e.code=='login'?'Hãy đăng nhập ở trang Tài khoản để dùng AI.':e&&e.code=='rate_limited'?'AI đang bận, thử lại sau ít phút.':'AI chưa soạn được bài: '+(e.message||e)+'. Bấm tạo lại.';render()}}
+function tlDel(id){if(!confirm('Xóa bài này khỏi máy?'))return;TLP.mine=TLP.mine.filter(x=>x.id!=id);tlSave();go('home')}
+function vStoryForm(){return `<button class="link" onclick="go('home')">‹ Trang Học</button><h1 style="margin-top:6px">Tạo bài từ truyện ngắn</h1>
+ <p class="mut">Dán một truyện hoặc đoạn văn tiếng Anh 40–400 từ. AI soạn đủ 4 phần: Từ vựng, Đọc hiểu, Nghe, Phát âm, kèm Shadowing.</p>
+ <textarea id="tlstory" rows="10" style="width:100%" placeholder="Paste your English story here…" ${TLN.busy?'disabled':''}>${esc(TLN.draft||'')}</textarea>
+ <div class="mut" style="font-size:.84rem;margin:6px 0">${esc(TLN.msg)}</div>
+ <button class="btn" style="width:100%" ${TLN.busy?'disabled':''} onclick="tlBuild()">${TLN.busy?'Đang soạn…':'✨ AI tạo bài học'}</button>
+ <p class="mut" style="font-size:.8rem;margin-top:8px">Bài lưu trên máy này. Câu hỏi và bản dịch do AI soạn, có thể chưa hoàn hảo.</p>`}
