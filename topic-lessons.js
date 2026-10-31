@@ -124,12 +124,12 @@ const tlNorm=s=>String(s||'').toLowerCase().replace(/[^a-z' ]/g,' ').replace(/\s
 
 /* Thẻ hiển thị trên trang Học */
 function vTopicHome(){if(typeof tkSlug=='function'&&tkSlug()=='steel')return '';
- return `<div class="sec-h"><h2>Bài học theo chủ đề</h2><span class="mut">${tlAll().length} bài</span></div><div class="stack">${tlAll().map(L=>{const n=TL_PARTS.filter(([p])=>tlDone(L.id,p)).length;
- return `<button class="card lesson2" onclick="tlOpen('${L.id}')"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(L.title)}</b><span class="chip">${L.level}</span></div><div class="mut" style="font-size:.84rem">${L.mine?'Bài của bạn · ':''}${esc(L.vi)} · ${n}/4 phần xong</div><div class="row" style="gap:6px;margin-top:6px">${TL_PARTS.map(([p,nm])=>`<span class="chip ${tlDone(L.id,p)?'on':''}" style="font-size:.74rem">${tlDone(L.id,p)?'✓ ':''}${nm}</span>`).join('')}</div></button>`}).join('')}<button class="btn ghost" onclick="TLN.msg='';TLS={id:'__new',part:'vocab',a:{}};go('tl')">＋ Tạo bài từ truyện ngắn</button></div>`}
+ return `<div class="sec-h"><h2>Bài học theo chủ đề</h2><span class="mut">${tlAll().filter(x=>String(x.id)[0]!='p').length} bài</span></div><div class="stack">${tlAll().filter(x=>String(x.id)[0]!='p').map(L=>{const n=TL_PARTS.filter(([p])=>tlDone(L.id,p)).length;
+ return `<button class="card lesson2" onclick="tlOpen('${L.id}')"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(L.title)}</b><span class="chip">${L.level}</span></div><div class="mut" style="font-size:.84rem">${L.mine?'Bài của bạn'+(L.shared=='live'?' · ✓ đã chia sẻ':L.shared=='pending'?' · ⏳ chờ duyệt':L.shared=='rejected'?' · ✕ chưa được duyệt':'')+' · ':L.author?'Chia sẻ bởi '+esc(L.author)+' · ':''}${esc(L.vi)} · ${n}/4 phần xong</div><div class="row" style="gap:6px;margin-top:6px">${TL_PARTS.map(([p,nm])=>`<span class="chip ${tlDone(L.id,p)?'on':''}" style="font-size:.74rem">${tlDone(L.id,p)?'✓ ':''}${nm}</span>`).join('')}</div></button>`}).join('')}<button class="btn ghost" onclick="TLN.msg='';TLS={id:'__new',part:'vocab',a:{}};go('tl')">＋ Tạo bài từ truyện ngắn</button></div>`}
 
 function vTopic(){if(TLS.id=='__new')return vStoryForm();const L=tlLesson();if(typeof CATS!='undefined'&&!CATS.tl)CATS.tl={n:'Bài học chủ đề'};
  const tabs=`<div class="chips" style="margin:10px 0;flex-wrap:nowrap;overflow-x:auto">${TL_PARTS.map(([p,n])=>`<button class="chip ${TLS.part==p?'on':''}" onclick="tlPart('${p}')">${tlDone(L.id,p)?'✓ ':''}${n}</button>`).join('')}</div>`;
- const head=`<div class="row" style="justify-content:space-between"><button class="link" onclick="go('home')">‹ Trang Học</button>${L.mine?`<button class="link" onclick="tlDel('${L.id}')">Xóa bài</button>`:''}</div><h1 style="margin-top:6px">${esc(L.title)}</h1><p class="mut">${esc(L.vi)} · General English ${L.level}</p>${tabs}`;
+ const head=`<div class="row" style="justify-content:space-between"><button class="link" onclick="go('home')">‹ Trang Học</button>${L.mine?`<span>${!L.shared||L.shared=='rejected'?`<button class="link" onclick="tlShare('${L.id}')">↗ Chia sẻ cho khóa</button> · `:''}<button class="link" onclick="tlDel('${L.id}')">Xóa</button></span>`:''}</div><h1 style="margin-top:6px">${esc(L.title)}</h1><p class="mut">${esc(L.vi)} · General English ${L.level}</p>${tabs}`;
  const body={vocab:tlVocab,read:tlRead,listen:tlListen,pron:tlPron}[TLS.part](L);
  const i=TL_PARTS.findIndex(x=>x[0]==TLS.part);
  const foot=`<div class="row" style="flex-wrap:nowrap;margin-top:16px">${i>0?`<button class="btn ghost" style="flex:1" onclick="tlPart('${TL_PARTS[i-1][0]}')">‹ ${TL_PARTS[i-1][1]}</button>`:''}${i<3?`<button class="btn" style="flex:1" onclick="tlPart('${TL_PARTS[i+1][0]}')">${TL_PARTS[i+1][1]} ›</button>`:`<button class="btn" style="flex:1" onclick="go('home')">Hoàn thành bài</button>`}</div>`;
@@ -234,7 +234,7 @@ function vShadow(L){const si=L.shadow[SH.i],[en,vi]=L.text[si],r=SH.round;
 /* ===================== NGƯỜI HỌC TỰ TẠO BÀI TỪ TRUYỆN NGẮN =====================
  Dán truyện 40–400 từ → AI (task 'story') soạn đủ 4 phần → kiểm tra, sửa lỗi → lưu trên máy (TLP.mine). */
 TLP.mine=TLP.mine||[];
-function tlAll(){return [...TOPIC_LESSONS,...TLP.mine]}
+function tlAll(){let sh=[];try{sh=tlShared()}catch(e){}return [...TOPIC_LESSONS,...TLP.mine,...sh,...(TLC.preview&&TLC.preview.id==TLS.id?[TLC.preview]:[])]}
 const tlArr=(x,n)=>Array.isArray(x)?x.slice(0,n):[];
 function tlClean(r,src){const S2=s=>String(s??'').trim();
  const text=tlArr(r.text,14).map(x=>Array.isArray(x)?[S2(x[0]),S2(x[1])]:[S2(x.en||x),S2(x.vi)]).filter(x=>x[0].length>2);if(text.length<3)throw new Error('AI chưa tách được câu');
@@ -268,3 +268,30 @@ function vStoryForm(){return `<button class="link" onclick="go('home')">‹ Tran
  <div class="mut" style="font-size:.84rem;margin:6px 0">${esc(TLN.msg)}</div>
  <button class="btn" style="width:100%" ${TLN.busy?'disabled':''} onclick="tlBuild()">${TLN.busy?'Đang soạn…':'✨ AI tạo bài học'}</button>
  <p class="mut" style="font-size:.8rem;margin-top:8px">Bài lưu trên máy này. Câu hỏi và bản dịch do AI soạn, có thể chưa hoàn hảo.</p>`}
+
+/* ===================== CHIA SẺ BÀI TRUYỆN CHO KHÓA (admin duyệt) =====================
+ Bảng supabase/topic_lessons.sql. Bài đã duyệt hiện cho mọi người trong khóa, cạnh các bài có sẵn. */
+let TLC={for:null,list:[],pend:null,pfor:null,err:''};
+const tlStrip=L=>{const o={...L};['mine','shared','sid','id','author','status'].forEach(k=>delete o[k]);return o};
+async function tlcLoad(){const tr=typeof curTrack=='function'&&curTrack();TLC.for=tr?.id||'x';TLC.list=[];if(!tr||typeof SB=='undefined'||!USER)return;
+ const {data,error}=await SB.from('topic_lessons').select('id,title,level,data,author,status,created_by').eq('track_id',tr.id).order('id',{ascending:false}).limit(60);
+ if(error){TLC.err=/topic_lessons/.test(error.message)?'need_sql':error.message;return}
+ TLC.list=(data||[]).map(r=>({...r.data,id:'s'+r.id,sid:r.id,status:r.status,author:r.author,own:r.created_by==USER.id,title:r.title||r.data.title}));
+ /* cập nhật trạng thái bài của mình */let ch=0;for(const L of TLP.mine)if(L.sid){const s=TLC.list.find(x=>x.sid==L.sid);const st=s?s.status:'rejected';if(L.shared!=st){L.shared=st;ch=1}}if(ch)tlSave();render()}
+function tlShared(){const tid=(typeof curTrack=='function'&&curTrack()?.id)||'x';if(TLC.for!==tid)tlcLoad();const mine=new Set(TLP.mine.map(x=>x.sid).filter(Boolean));return TLC.list.filter(x=>x.status=='live'&&!mine.has(x.sid))}
+async function tlShare(id){const L=TLP.mine.find(x=>x.id==id);const tr=curTrack();if(!L||!tr)return;if(!USER)return toast('Hãy đăng nhập để chia sẻ');
+ if(!confirm('Chia sẻ bài “'+L.title+'” cho mọi người trong khóa '+tr.name+'? Admin sẽ xem và duyệt trước khi hiện.'))return;
+ const {data,error}=await SB.from('topic_lessons').insert({track_id:tr.id,title:L.title.slice(0,120),level:L.level,data:tlStrip(L),author:PROF?.full_name||USER.email.split('@')[0]}).select('id').single();
+ if(error)return toast(/topic_lessons/.test(error.message)?'Admin cần chạy supabase/topic_lessons.sql':'Lỗi: '+error.message);
+ L.sid=data.id;L.shared='pending';tlSave();toast('Đã gửi, chờ admin duyệt');render()}
+/* Admin */
+async function tlaLoad(){const tr=curTrack();TLC.pfor=tr?.id;const {data,error}=await SB.from('topic_lessons').select('*').eq('track_id',tr.id).eq('status','pending').order('id');TLC.pend=error?[]:(data||[]);TLC.perr=error&&/topic_lessons/.test(error.message);render()}
+async function tlaSet(id,st){let note='';if(st=='rejected'){note=prompt('Lý do từ chối (không bắt buộc):')||'';}
+ const {error}=await SB.from('topic_lessons').update({status:st,note,reviewed_at:new Date().toISOString()}).eq('id',id);if(error)return toast(error.message);
+ TLC.pend=TLC.pend.filter(x=>x.id!==id);TLC.for=null;toast(st=='live'?'Đã duyệt':'Đã từ chối');render()}
+function tlaPreview(id){const r=TLC.pend.find(x=>x.id==id);if(!r)return;TLS={id:'p'+id,part:'read',a:{}};TLC.preview={...r.data,id:'p'+id,title:r.title,vi:'Xem trước · chờ duyệt'};go('tl')}
+function vTopicAdmin(){const tr=curTrack();if(!tr)return '';if(TLC.pfor!==tr.id){TLC.pend=null;tlaLoad()}const L=TLC.pend||[];
+ if(TLC.perr)return `<h2>Bài truyện chờ duyệt</h2><p class="note">Chạy <b>supabase/topic_lessons.sql</b> trong Supabase → SQL Editor để bật chia sẻ bài truyện.</p>`;
+ return `<h2>Bài truyện chờ duyệt · ${esc(shortName(tr))}</h2>${!L.length?'<p class="mut">Không có bài nào chờ duyệt.</p>':`<div class="stack">${L.map(r=>{const d=r.data||{};return `<div class="card stack" style="gap:6px"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(r.title)}</b><span class="chip">${esc(r.level||'')}</span></div><small class="mut">${esc(r.author||'')} · ${(d.text||[]).length} câu · ${(d.vocab||[]).length} từ · ${(d.tf||[]).length+(d.mcq||[]).length} câu hỏi</small>
+ <details><summary class="link">Xem truyện & từ vựng</summary><div style="margin-top:6px">${(d.text||[]).map(x=>`<p style="margin:4px 0">${esc(x[0])}<br><small class="mut">${esc(x[1])}</small></p>`).join('')}<div class="stack" style="gap:2px;margin-top:6px">${(d.vocab||[]).map(v=>`<small><b>${esc(v.en)}</b> ${esc(v.ipa||'')} · ${esc(v.vi)}</small>`).join('')}</div></div></details>
+ <div class="row"><button class="chip" onclick="tlaPreview(${r.id})">👁 Mở thử bài</button><button class="chip" onclick="tlaSet(${r.id},'live')">✓ Duyệt</button><button class="chip danger" onclick="tlaSet(${r.id},'rejected')">Từ chối</button></div></div>`}).join('')}</div>`}`}
