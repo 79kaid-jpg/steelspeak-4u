@@ -1,27 +1,21 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Khóa kỹ năng</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
 <style>
 /* Layout: one-column mobile course — module list → lesson cards → quiz; sticky top bar with progress */
+/* Dùng chung bộ màu, phông chữ và theme mùa lễ của app SteelSpeak */
 :root{
-  --bg:#f3f4f2; --surface:#ffffff; --ink:#1d2326; --muted:#5d686d; --line:#d8dddb;
-  --accent:#a8322d;           /* painted-coil red */
-  --accent-soft:#f6e4e2; --steel:#46606b; --steel-soft:#e3eaec;
-  --good:#1f7a4a; --good-soft:#e1f2e8; --bad:#b3261e; --bad-soft:#fbe4e2;
-  --f-display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
-  --f-body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
-  --r:12px;
-}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#141819; --surface:#1d2325; --ink:#e7ecec; --muted:#9aa7ab; --line:#33403f;
-  --accent:#e0675f; --accent-soft:#3a2220; --steel:#9cc0cc; --steel-soft:#22313a;
-  --good:#5cc98d; --good-soft:#173326; --bad:#ff8a80; --bad-soft:#3d1d1b; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#141819; --surface:#1d2325; --ink:#e7ecec; --muted:#9aa7ab; --line:#33403f;
-  --accent:#e0675f; --accent-soft:#3a2220; --steel:#9cc0cc; --steel-soft:#22313a;
-  --good:#5cc98d; --good-soft:#173326; --bad:#ff8a80; --bad-soft:#3d1d1b; color-scheme:dark}
+--bg:#eef1f4;--card:#ffffff;--ink:#14212e;--mut:#5b6b7b;--line:#d7dee6;
+--steel:#1f4e79;--steel2:#2f6ea8;--zinc:#a9b7c4;--amber:#e39b1a;--good:#1a7d4d;--bad:#c8433a;--soft:#e4ebf2;--warn:#946014;--onsteel:#ffffff;--brush:rgba(20,33,46,.035);--sheen:rgba(255,255,255,.18);
+--fd:"Barlow Semi Condensed","Arial Narrow",sans-serif;--fb:"Be Vietnam Pro",system-ui,sans-serif;--fm:"JetBrains Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e151c;--card:#16212c;--ink:#e6edf3;--mut:#93a4b5;--line:#253545;--steel:#5d9fdc;--steel2:#7bb6ea;--zinc:#4a5b6b;--amber:#f0b347;--good:#3fbf7f;--bad:#ec6a5f;--soft:#1d2b39;--warn:#f0b347;--onsteel:#0e151c;--brush:rgba(255,255,255,.025);--sheen:rgba(255,255,255,.22);color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e151c;--card:#16212c;--ink:#e6edf3;--mut:#93a4b5;--line:#253545;--steel:#5d9fdc;--steel2:#7bb6ea;--zinc:#4a5b6b;--amber:#f0b347;--good:#3fbf7f;--bad:#ec6a5f;--soft:#1d2b39;--warn:#f0b347;--onsteel:#0e151c;--brush:rgba(255,255,255,.025);--sheen:rgba(255,255,255,.22);color-scheme:dark}
+:root{--surface:var(--card);--muted:var(--mut);--accent:var(--steel);--accent-soft:var(--soft);--steel-soft:var(--soft);
+--good-soft:color-mix(in srgb,var(--good) 14%,var(--card));--bad-soft:color-mix(in srgb,var(--bad) 14%,var(--card));
+--f-display:var(--fd);--f-body:var(--fb);--f-mono:var(--fm);--r:14px}
+button.primary{color:var(--onsteel)}
+html[data-season] .wrap{padding-top:24px}html[data-season] .top{top:calc(env(safe-area-inset-top,0px) + 20px)}
 *{box-sizing:border-box}
 html,body{background:var(--bg);color:var(--ink)}
 body{font:17px/1.55 var(--f-body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
@@ -89,6 +83,8 @@ input[type=number]{font:500 1.1rem var(--f-mono);width:100%;min-height:50px;bord
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
+<meta name="theme-color" content="#1f4e79">
+<script>/* Áp theme mùa ngay khi mở app, tránh nháy giao diện gốc */(function(){try{var p=sessionStorage.getItem('ss-season-preview'),k=p!=null?p:localStorage.getItem('ss-season-cur'),c=localStorage.getItem('ss-season-css');if(k&&c){var s=document.createElement('style');s.id='ss-season-css';s.textContent=c;document.head.appendChild(s);document.documentElement.setAttribute('data-season',k);var m=document.querySelector('meta[name=theme-color]');if(m){m.dataset.orig=m.content;m.content=k=='noel'?'#0f2a1f':k=='tet'?'#c8102e':m.content}}}catch(e){}})()</script>
 </head><body><div class="wrap" id="app"><p class="muted" style="padding:40px 0">Đang tải khóa học…</p></div>
 
 <script src="config.js"></script>
@@ -309,4 +305,5 @@ function calc(q, box, chk, done){
 boot();
 </script>
 
+<script src="season.js" defer></script>
 </body></html>
