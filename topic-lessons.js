@@ -129,7 +129,7 @@ function vTopicHome(){if(typeof tkSlug=='function'&&tkSlug()=='steel')return '';
 
 function vTopic(){if(TLS.id=='__new')return vStoryForm();const L=tlLesson();if(typeof CATS!='undefined'&&!CATS.tl)CATS.tl={n:'Bài học chủ đề'};
  const tabs=`<div class="chips" style="margin:10px 0;flex-wrap:nowrap;overflow-x:auto">${TL_PARTS.map(([p,n])=>`<button class="chip ${TLS.part==p?'on':''}" onclick="tlPart('${p}')">${tlDone(L.id,p)?'✓ ':''}${n}</button>`).join('')}</div>`;
- const head=`<div class="row" style="justify-content:space-between"><button class="link" onclick="go('home')">‹ Trang Học</button>${L.mine?`<span>${!L.shared||L.shared=='rejected'?`<button class="link" onclick="tlShare('${L.id}')">↗ Chia sẻ cho khóa</button> · `:''}<button class="link" onclick="tlDel('${L.id}')">Xóa</button></span>`:''}</div><h1 style="margin-top:6px">${esc(L.title)}</h1><p class="mut">${esc(L.vi)} · General English ${L.level}</p>${tabs}`;
+ const head=`<div class="row" style="justify-content:space-between"><button class="link" onclick="go('home')">‹ Trang Học</button>${L.mine?`<span>${!L.shared||L.shared=='rejected'?`<button class="link" onclick="tlShare('${L.id}')">${PROF?.is_admin?'↗ Đăng cho cả khóa':'↗ Chia sẻ cho khóa'}</button> · `:''}<button class="link" onclick="tlDel('${L.id}')">Xóa</button></span>`:''}</div><h1 style="margin-top:6px">${esc(L.title)}</h1><p class="mut">${esc(L.vi)} · General English ${L.level}</p>${tabs}`;
  const body={vocab:tlVocab,read:tlRead,listen:tlListen,pron:tlPron}[TLS.part](L);
  const i=TL_PARTS.findIndex(x=>x[0]==TLS.part);
  const foot=`<div class="row" style="flex-wrap:nowrap;margin-top:16px">${i>0?`<button class="btn ghost" style="flex:1" onclick="tlPart('${TL_PARTS[i-1][0]}')">‹ ${TL_PARTS[i-1][1]}</button>`:''}${i<3?`<button class="btn" style="flex:1" onclick="tlPart('${TL_PARTS[i+1][0]}')">${TL_PARTS[i+1][1]} ›</button>`:`<button class="btn" style="flex:1" onclick="go('home')">Hoàn thành bài</button>`}</div>`;
@@ -280,10 +280,12 @@ async function tlcLoad(){const tr=typeof curTrack=='function'&&curTrack();TLC.fo
  /* cập nhật trạng thái bài của mình */let ch=0;for(const L of TLP.mine)if(L.sid){const s=TLC.list.find(x=>x.sid==L.sid);const st=s?s.status:'rejected';if(L.shared!=st){L.shared=st;ch=1}}if(ch)tlSave();render()}
 function tlShared(){const tid=(typeof curTrack=='function'&&curTrack()?.id)||'x';if(TLC.for!==tid)tlcLoad();const mine=new Set(TLP.mine.map(x=>x.sid).filter(Boolean));return TLC.list.filter(x=>x.status=='live'&&!mine.has(x.sid))}
 async function tlShare(id){const L=TLP.mine.find(x=>x.id==id);const tr=curTrack();if(!L||!tr)return;if(!USER)return toast('Hãy đăng nhập để chia sẻ');
- if(!confirm('Chia sẻ bài “'+L.title+'” cho mọi người trong khóa '+tr.name+'? Admin sẽ xem và duyệt trước khi hiện.'))return;
+ if(!confirm('Chia sẻ bài “'+L.title+'” cho mọi người trong khóa '+tr.name+'? '+(PROF?.is_admin?'Bạn là admin nên bài sẽ hiện ngay cho cả khóa.':'Admin sẽ xem và duyệt trước khi hiện.')))return;
  const {data,error}=await SB.from('topic_lessons').insert({track_id:tr.id,title:L.title.slice(0,120),level:L.level,data:tlStrip(L),author:PROF?.full_name||USER.email.split('@')[0]}).select('id').single();
  if(error)return toast(/topic_lessons/.test(error.message)?'Admin cần chạy supabase/topic_lessons.sql':'Lỗi: '+error.message);
- L.sid=data.id;L.shared='pending';tlSave();toast('Đã gửi, chờ admin duyệt');render()}
+ L.sid=data.id;L.shared='pending';
+ if(PROF?.is_admin){const {error:e2}=await SB.from('topic_lessons').update({status:'live',note:'admin tự đăng',reviewed_at:new Date().toISOString()}).eq('id',data.id);if(!e2){L.shared='live';TLC.for=null;tlSave();toast('Đã đăng cho cả khóa');return render()}}
+ tlSave();toast('Đã gửi, chờ admin duyệt');render()}
 /* Admin */
 async function tlaLoad(){const tr=curTrack();TLC.pfor=tr?.id;const {data,error}=await SB.from('topic_lessons').select('*').eq('track_id',tr.id).eq('status','pending').order('id');TLC.pend=error?[]:(data||[]);TLC.perr=error&&/topic_lessons/.test(error.message);render()}
 async function tlaSet(id,st){let note='';if(st=='rejected'){note=prompt('Lý do từ chối (không bắt buộc):')||'';}
