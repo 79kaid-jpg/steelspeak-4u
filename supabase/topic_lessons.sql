@@ -6,7 +6,7 @@ create table if not exists public.topic_lessons (
   title text not null,
   level text default '',
   data jsonb not null,
-  status text not null default 'pending' check (status in ('pending','live','rejected')),
+  status text not null default 'pending' check (status in ('private','pending','live','rejected')),
   note text default '',
   created_by uuid default auth.uid() references auth.users(id) on delete set null,
   author text default '',
@@ -18,8 +18,15 @@ alter table public.topic_lessons enable row level security;
 drop policy if exists "tl read" on public.topic_lessons;
 create policy "tl read" on public.topic_lessons for select using (status = 'live' or created_by = auth.uid() or public.is_admin());
 drop policy if exists "tl insert" on public.topic_lessons;
-create policy "tl insert" on public.topic_lessons for insert with check (created_by = auth.uid() and status = 'pending' and pg_column_size(data) < 200000);
+create policy "tl insert" on public.topic_lessons for insert with check (created_by = auth.uid() and status in ('private','pending') and pg_column_size(data) < 200000);
 drop policy if exists "tl admin" on public.topic_lessons;
 create policy "tl admin" on public.topic_lessons for update using (public.is_admin()) with check (public.is_admin());
 drop policy if exists "tl del" on public.topic_lessons;
 create policy "tl del" on public.topic_lessons for delete using (public.is_admin() or created_by = auth.uid());
+
+-- v2: lưu bài riêng của người học lên tài khoản (status 'private'), người học tự gửi duyệt / rút bài của mình.
+alter table public.topic_lessons drop constraint if exists topic_lessons_status_check;
+alter table public.topic_lessons add constraint topic_lessons_status_check check (status in ('private','pending','live','rejected'));
+drop policy if exists "tl own update" on public.topic_lessons;
+create policy "tl own update" on public.topic_lessons for update using (created_by = auth.uid())
+  with check (created_by = auth.uid() and status in ('private','pending') and pg_column_size(data) < 200000);
