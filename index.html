@@ -670,6 +670,7 @@ html,body{max-width:100%;overflow-x:hidden}
 <script src="config.js"></script>
 <script src="saga-core.js"></script>
 <script src="reader.js"></script>
+<script src="topic-lessons.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const CATS = {
@@ -939,7 +940,7 @@ const slow=(t)=>`<button class="ic" aria-label="Nghe chậm" onclick="event.stop
 const TABS=[['home','Học','home'],['vocab','Từ vựng','book'],['saga','Đua level','trophy'],['read','Đọc truyện','story'],['make','Tạo bài','plus'],['me','Tài khoản','user']];
 function go(t){S.tab=t;S.game=null;render();scrollTo(0,0)}
 function render(){document.body.classList.toggle('in-game',!!(S.game&&!S.game.saga));const onMap=S.tab=='saga'&&!S.game&&SG.view!='board'&&SG.view!='friends';document.documentElement.style.background=onMap?mapBottomColor():'';try{musicSync()}catch(e){}$('#nav').innerHTML=TABS.map(([k,n,i])=>`<button class="${S.tab==k?'on':''}" onclick="go('${k}')" style="position:relative">${svg(i)}${n}${k=='me'&&ADMN.total?`<span class="nav-dot" aria-label="${ADMN.total} việc quản trị chờ xử lý"></span>`:''}</button>`).join('');
-const GATED=['vocab','speak','make','saga','contrib'];$('#app').innerHTML=S.game?vGame():(GATED.includes(S.tab)&&!canLearn()?trackBar()+vGate():({home:vHome,vocab:vVocab,speak:vSpeak,make:vMake,spec:vSpec,me:vMe,admin:vAdmin,saga:vSaga,tracks:vTracks,contrib:vContrib,ielts:vIelts,cert:vCert,read:vRead})[S.tab]())}
+const GATED=['vocab','speak','make','saga','contrib'];$('#app').innerHTML=S.game?vGame():(GATED.includes(S.tab)&&!canLearn()?trackBar()+vGate():({home:vHome,vocab:vVocab,speak:vSpeak,make:vMake,spec:vSpec,me:vMe,admin:vAdmin,saga:vSaga,tracks:vTracks,contrib:vContrib,ielts:vIelts,cert:vCert,read:vRead,tl:vTopic})[S.tab]())}
 /* ---- home ---- */
 const PATH_STEEL=[['coat','Cấu trúc thép phủ màu'],['qual','Thử nghiệm & khiếu nại'],['nspe','Quy trình NSPE'],['colr','Pha màu & chạy thử'],['npd','Phát triển sản phẩm mới'],['talk','Họp & email với CFT']];
 function pathList(){const tr=curTrack();if(!tr||tr.slug=='steel')return PATH_STEEL;const used=new Set(TERMS.map(x=>x.cat));return Object.entries(tr.cats||{}).filter(([k])=>used.has(k)).map(([k,v])=>[k,v])}
@@ -969,6 +970,7 @@ function vHomeMain(){const PATH=pathState(),nowP=PATH.find(p=>p[2]=='now'),W=wro
   <button class="btn ghost" style="width:100%" onclick="S.speakItem=daily();go('speak')">${svg('mic')} Đọc thử & chấm điểm AI</button></div>
  <div class="sec-h"><h2>Lộ trình học</h2><span class="mut">${PATH.filter(p=>p[2]=='done').length}/${PATH.length} chặng</span></div>
  <div class="path card" style="padding:4px 14px">${PATH.map(([c,n,s],i)=>`<button class="node ${s}" onclick="start({path:'${c}',cats:['${c}'],mode:'flash',n:8,name:'${esc(n)}'})"><i>${s=='done'?'✓':i+1}</i><div><b>${esc(n)}</b>${CATS[c]&&CATS[c].d?`<div class="mut" style="font-size:.82rem">${esc(CATS[c].d)}</div>`:''}</div><span class="lbl">${s=='done'?'Xong':s=='now'?'Đang học':''}</span></button>`).join('')}</div>
+${vTopicHome()}
  ${vSharedLessons()}<div class="sec-h"><h2>Bài học của bạn</h2></div><div class="stack">${[...S.lessons,...(tkSlug()=='steel'?[EXL]:[])].map((l,i)=>`<button class="card lesson2" onclick="start(${i<S.lessons.length?`S.lessons[${i}]`:'EXL'})"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(l.name)}</b><span class="chip">${modeName(l.mode)}</span></div><div class="mut" style="font-size:.84rem">${l.terms?l.terms.length+' từ · từ tài liệu “'+esc(l.src||'')+'”':l.n+' câu · '+l.cats.map(c=>(CATS[c]||{n:c}).n).join(', ')}${l.ex?' · bài mẫu':''}${l.shared?' · '+(l.shared=='live'?'✓ đã chia sẻ cho khóa':'⏳ chờ admin duyệt'):''}</div>${l.terms&&i<S.lessons.length&&USER&&!l.shared?`<span class="link share-l" role="button" tabindex="0" onclick="event.stopPropagation();shareLesson(${i})">↗ Chia sẻ cho khóa</span>`:''}</button>`).join('')}
  <div class="row" style="flex-wrap:nowrap"><button class="btn ghost" style="flex:1" onclick="go('make')">＋ Tạo bài</button><button class="btn ghost" style="flex:1" onclick="go('make');setTimeout(()=>$('#up').scrollIntoView(),50)">⬆ Từ tài liệu</button></div></div>`}
 function setGoal(){const opts=[20,50,100,150];const cur=S.goal||50;S.goal=opts[(opts.indexOf(cur)+1)%opts.length];save();toast('Mục tiêu ngày: '+S.goal+' XP');render()}
