@@ -58,15 +58,24 @@ function openChat(uid){NT.thread=uid||USER.id;NT.msgs=[];go('msg');loadThread(NT
 function openInbox(){NT.thread=isAdm()?null:USER.id;go('msg');if(isAdm())loadThreads();else loadThread(USER.id)}
 
 /* --- giao diện --- */
+const EMO=['👍','❤️','😂','😍','🥰','😊','👏','🎉','🔥','💪','🌟','🙏','😢','😮','🤗','✅','📚','🏆','☕','🌸'];
+const emojiOnly=s=>{const x=String(s).trim();if(!x||x.length>40)return 0;try{if(!/\p{Extended_Pictographic}/u.test(x)||/[0-9#*]/.test(x))return 0;if(!/^(?:\p{Extended_Pictographic}|\p{Emoji_Component}|\u200d|\ufe0f|\s)+$/u.test(x))return 0;const n=[...new Intl.Segmenter('vi',{granularity:'grapheme'}).segment(x.replace(/\s/g,''))].length;return n<=6?n:0}catch(e){return 0}};
+function addEmo(e){const ta=document.getElementById('msgin');if(!ta){NT.draft=(NT.draft||'')+e;return}const p=ta.selectionStart??ta.value.length;ta.value=ta.value.slice(0,p)+e+ta.value.slice(p);NT.draft=ta.value;ta.focus();try{ta.setSelectionRange(p+e.length,p+e.length)}catch(x){}}
+async function sendEmo(e){NT.draft=e;const ta=document.getElementById('msgin');if(ta)ta.value=e;await send()}
 const ago=t=>{if(!t)return '';const s=(Date.now()-new Date(t))/1000;return s<60?'vừa xong':s<3600?Math.floor(s/60)+' phút trước':s<86400?Math.floor(s/3600)+' giờ trước':new Date(t).toLocaleDateString('vi')};
 const onlineNow=t=>t&&Date.now()-new Date(t)<3*60*1000;
 function vChat(){const adm=isAdm()&&NT.thread!==USER.id;const th=adm&&(NT.threads||[]).find(x=>x.user_id==NT.thread);
  const who=adm?(th?.name||(typeof ADM!='undefined'&&ADM.list||[]).find(u=>u.id==NT.thread)?.full_name||'Học viên'):'Admin SteelSpeak';
- const b=NT.msgs.map(m=>{const mine=adm?m.from_admin:!m.from_admin;return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'}"><div style="max-width:82%;padding:9px 12px;border-radius:16px;${mine?'background:var(--steel);color:var(--onsteel);border-bottom-right-radius:4px':'background:var(--card);border:1px solid var(--line);border-bottom-left-radius:4px'}"><div style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(m.body)}</div><div style="font-size:.7rem;opacity:.7;text-align:right;margin-top:2px">${new Date(m.created_at).toLocaleString('vi',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})}${mine&&m.read_at?' · đã xem':''}</div></div></div>`}).join('');
+ const b=NT.msgs.map(m=>{const mine=adm?m.from_admin:!m.from_admin;const big=emojiOnly(m.body);
+ if(big)return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'}"><div style="text-align:${mine?'right':'left'}"><div style="font-size:${big==1?'4.2rem':big<=3?'3.2rem':'2.4rem'};line-height:1.15;letter-spacing:.04em">${esc(m.body.trim())}</div><div class="mut" style="font-size:.7rem">${new Date(m.created_at).toLocaleString('vi',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})}${mine&&m.read_at?' · đã xem':''}</div></div></div>`;
+ return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'}"><div style="max-width:82%;padding:9px 12px;border-radius:16px;${mine?'background:var(--steel);color:var(--onsteel);border-bottom-right-radius:4px':'background:var(--card);border:1px solid var(--line);border-bottom-left-radius:4px'}"><div style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(m.body)}</div><div style="font-size:.7rem;opacity:.7;text-align:right;margin-top:2px">${new Date(m.created_at).toLocaleString('vi',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})}${mine&&m.read_at?' · đã xem':''}</div></div></div>`}).join('');
  return `<button class="link" onclick="${adm?"NT.thread=null;NTX.threads();go('msg')":"go('me')"}">‹ ${adm?'Tất cả cuộc trò chuyện':'Tài khoản'}</button>
  <h1 style="margin-top:6px">${esc(who)}</h1>${th&&th.last_seen?`<p class="mut" style="font-size:.84rem">${onlineNow(th.last_seen)?'🟢 Đang học: '+esc(th.activity||''):'Học lần cuối '+ago(th.last_seen)}</p>`:adm?'':'<p class="mut" style="font-size:.84rem">Hỏi bài, góp ý hay báo lỗi, admin sẽ trả lời tại đây.</p>'}
  <div class="stack" style="gap:8px;margin-top:12px">${b||'<p class="mut">Chưa có tin nhắn nào. Gửi lời chào đầu tiên nhé!</p>'}<div id="msgend"></div></div>
- <div class="card" style="position:sticky;bottom:84px;margin-top:12px;padding:8px;display:flex;gap:8px;align-items:flex-end"><textarea id="msgin" rows="2" maxlength="2000" placeholder="Nhập tin nhắn…" style="flex:1;resize:none;border:0;background:transparent;color:inherit;font:inherit" oninput="NT.draft=this.value">${esc(NT.draft||'')}</textarea><button class="btn" style="flex:none" ${NT.sending?'disabled':''} onclick="NTX.send()">Gửi</button></div>`}
+ ${adm&&th&&!onlineNow(th.last_seen)?`<p class="mut" style="font-size:.8rem;margin-top:10px">Người này đang không mở app. Cứ gửi, tin nhắn được lưu lại và hiện ngay khi họ mở app (kèm chấm đỏ ở tab Tài khoản).</p>`:''}
+ <div style="position:sticky;bottom:84px;margin-top:12px"><div class="row" style="flex-wrap:nowrap;overflow-x:auto;gap:4px;padding:4px 2px;background:var(--bg)">${EMO.map(e=>`<button style="font-size:1.7rem;min-width:44px;min-height:44px;border-radius:10px" onclick="NTX.sendEmo('${e}')" title="Gửi ${e}" aria-label="Gửi ${e}">${e}</button>`).join('')}</div>
+ <div class="card" style="padding:8px;display:flex;gap:8px;align-items:flex-end"><textarea id="msgin" rows="2" maxlength="2000" placeholder="Nhập tin nhắn…" style="flex:1;resize:none;border:0;background:transparent;color:inherit;font:inherit" oninput="NT.draft=this.value">${esc(NT.draft||'')}</textarea><button class="btn" style="flex:none" ${NT.sending?'disabled':''} onclick="NTX.send()">Gửi</button></div></div>
+ <p class="mut" style="font-size:.76rem;margin-top:6px">Chạm một emoji để gửi ngay thành emoji lớn. Tin chỉ có emoji sẽ hiện cỡ lớn.</p>`}
 function vInbox(){if(!NT.threads){loadThreads();return '<h1>Tin nhắn</h1><p class="mut">Đang tải…</p>'}
  const study=NT.list.filter(n=>n.kind=='study').slice(0,15);
  const perm='Notification' in window?Notification.permission:'na';
@@ -83,7 +92,7 @@ function meCard(){if(!on()||NT.off)return '';const adm=isAdm();const n=adm?NT.un
 function userBtns(u){if(!on()||!isAdm()||u.id==USER.id)return '';const w=NT.watch.has(u.id),nm=esc(JSON.stringify(u.full_name||u.email));
  return `<button class="chip ${w?'on':''}" title="Báo khi người này bắt đầu học" onclick="NTX.toggleWatch('${u.id}',${nm})">${w?'🔔 Đang theo dõi':'🔕 Báo khi học'}</button><button class="chip" onclick="NTX.openChat('${u.id}')">✉ Nhắn</button>`}
 
-window.NTX={send,toggleWatch,askPerm,openChat,openInbox,readNotes,threads:loadThreads,vMsg,meCard,userBtns};
+window.NTX={sendEmo,addEmo,send,toggleWatch,askPerm,openChat,openInbox,readNotes,threads:loadThreads,vMsg,meCard,userBtns};
 window.vMsg=vMsg;
 
 /* --- khởi động / theo dõi đăng nhập --- */
