@@ -3,7 +3,59 @@
  Thêm bài mới: thêm 1 object vào TOPIC_LESSONS theo đúng mẫu bên dưới.
  Tiến độ lưu trên máy (localStorage 'sstl'). */
 const TOPIC_LESSONS=[{
- id:'heavy-heart',level:'B1',title:'Carrying a Heavy Heart',vi:'Mang nỗi buồn mà vẫn bước tiếp',
+ id:'heavy-heart-a2',level:'A2',title:'Sad but Still Strong',vi:'Buồn nhưng vẫn mạnh mẽ (bản dễ của “Carrying a Heavy Heart”)',
+ text:[
+  ['Sometimes you feel sad, but you can still go on.','Đôi khi bạn thấy buồn, nhưng bạn vẫn có thể bước tiếp.'],
+  ['It is OK to feel sad or tired.','Cảm thấy buồn hay mệt cũng không sao.'],
+  ['You can feel sad and still do your work every day.','Bạn có thể buồn mà vẫn làm việc của mình mỗi ngày.'],
+  ['Crying does not mean you are weak.','Khóc không có nghĩa là bạn yếu đuối.'],
+  ['Sad people can be strong people too.','Người đang buồn cũng có thể là người mạnh mẽ.'],
+  ['Think of a bird in the wind.','Hãy nghĩ đến một chú chim trong gió.'],
+  ['Flying is hard, but the bird keeps flying.','Bay rất khó, nhưng chú chim vẫn tiếp tục bay.'],
+  ['You do not need to wait for a happy day to start again.','Bạn không cần đợi một ngày vui mới bắt đầu lại.'],
+  ['Take one small step today.','Hôm nay hãy bước một bước nhỏ.'],
+  ['When you keep going on a sad day, you are very brave.','Khi bạn vẫn bước tiếp vào một ngày buồn, bạn rất dũng cảm.']],
+ vocab:[
+  {en:'sad',ipa:'/sæd/',pos:'adj.',vi:'buồn',ex:'I feel sad today.',exvi:'Hôm nay tôi thấy buồn.'},
+  {en:'tired',ipa:'/ˈtaɪəd/',pos:'adj.',vi:'mệt',ex:'She is tired after work.',exvi:'Cô ấy mệt sau giờ làm.'},
+  {en:'go on',ipa:'/ɡəʊ ɒn/',pos:'phr. v.',vi:'tiếp tục',ex:'Please go on with your story.',exvi:'Bạn kể tiếp câu chuyện đi.'},
+  {en:'keep going',ipa:'/kiːp ˈɡəʊɪŋ/',pos:'v.',vi:'tiếp tục, không dừng lại',ex:'It is hard, but keep going!',exvi:'Khó đấy, nhưng đừng dừng lại!'},
+  {en:'weak',ipa:'/wiːk/',pos:'adj.',vi:'yếu',ex:'I felt weak when I was ill.',exvi:'Tôi thấy yếu khi bị ốm.'},
+  {en:'strong',ipa:'/strɒŋ/',pos:'adj.',vi:'mạnh mẽ',ex:'You are stronger than you think.',exvi:'Bạn mạnh mẽ hơn bạn nghĩ.'},
+  {en:'cry',ipa:'/kraɪ/',pos:'v.',vi:'khóc',ex:'The baby is crying.',exvi:'Em bé đang khóc.'},
+  {en:'wind',ipa:'/wɪnd/',pos:'n.',vi:'gió',ex:'The wind is very strong today.',exvi:'Hôm nay gió rất mạnh.'},
+  {en:'step',ipa:'/step/',pos:'n.',vi:'bước',ex:'Take one step at a time.',exvi:'Đi từng bước một.'},
+  {en:'brave',ipa:'/breɪv/',pos:'adj.',vi:'dũng cảm',ex:'The brave boy helped his friend.',exvi:'Cậu bé dũng cảm đã giúp bạn mình.'}],
+ fill:[
+  ['I am very ___ after a long day.','tired'],
+  ['Don\'t stop. ___!','keep going'],
+  ['The baby started to ___.','cry'],
+  ['The ___ moved the trees.','wind'],
+  ['He saved the cat. He is ___.','brave']],
+ tf:[
+  ['It is OK to feel tired.',true],
+  ['Crying means you are weak.',false],
+  ['The bird stops flying in the wind.',false],
+  ['You must wait for a happy day to start again.',false]],
+ mcq:[
+  ['What can you do on a sad day?',['Stop everything','Take one small step','Wait for a happy day'],1],
+  ['Why does the text talk about a bird?',['To show that hard things can still be done','To teach about animals','To talk about the weather'],0],
+  ['Who is brave in the text?',['People who never cry','People who keep going on a sad day','People who are always happy'],1]],
+ discuss:'What do you do to feel better on a sad day? Say 3 sentences.',
+ gaps:[[0,'sad'],[1,'tired'],[3,'weak'],[4,'strong'],[5,'wind'],[8,'step'],[9,'brave']],
+ gist:['What is the main idea?',['Never feel sad','You can be sad and keep going','Birds like the wind'],1],
+ dictation:[1,8],
+ sounds:[
+  {ipa:'/æ/',tip:'Mở miệng rộng, giữa “a” và “e”.',words:['sad','can','that']},
+  {ipa:'/aɪ/',tip:'Âm đôi trượt từ /a/ sang /ɪ/.',words:['tired','cry','fly']},
+  {ipa:'/iː/',tip:'Âm “i” dài, kéo môi sang hai bên.',words:['weak','keep','need']},
+  {ipa:'/ŋ/',tip:'Âm mũi cuối từ, không bật thêm /g/.',words:['strong','going','flying']},
+  {ipa:'/st/',tip:'Hai phụ âm liền nhau, không chèn “ơ” vào giữa (không đọc “sơ-tép”).',words:['step','strong','still']}],
+ linking:[['feel sad','/fiːl sæd/'],['go on','/ɡəʊ‿wɒn/'],['keep going','/kiːp ˈɡəʊɪŋ/'],['step today','/step‿təˈdeɪ/']],
+ stress:['It is OK to feel SAD or TIRED.','CRYING does NOT mean you are WEAK.','Take ONE SMALL STEP today.'],
+ shadow:[0,3,8,9]
+},{
+ id:'heavy-heart',level:'B1',title:'Carrying a Heavy Heart',vi:'Mang nỗi buồn mà vẫn bước tiếp · từ vựng A2, nghĩa bóng B1',
  text:[
   ['You can carry a heavy heart and still keep moving forward.','Bạn có thể mang nỗi buồn trong lòng mà vẫn tiếp tục bước về phía trước.'],
   ['It is okay to feel sad, tired, or hurt and still show up for your life.','Cảm thấy buồn, mệt hay tổn thương mà vẫn sống trọn cuộc đời mình là điều bình thường.'],
