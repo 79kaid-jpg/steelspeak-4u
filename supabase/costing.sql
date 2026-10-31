@@ -9,7 +9,7 @@ insert into public.tracks(slug,name,kind,description,audience,join_policy,words_
  ('costing','Costing – Coil Cost Academy','skill',
   'Cách tính giá thành 1 tấn thép mạ, sơn: từ CRC, lớp mạ, sơn, chi phí chuyển đổi, hao hụt, thu hồi đến giá bán. 6 module, bài ngắn và câu hỏi thực hành.',
   'Kế toán giá thành, kinh doanh, kế hoạch, sản xuất','approval',30,'{}',3)
-on conflict (slug) do update set name=excluded.name, kind=excluded.kind, description=excluded.description, audience=excluded.audience;
+on conflict (slug) do update set kind='skill';  -- giữ nguyên tên/mô tả admin đã sửa
 
 -- 2. Nội dung khóa kỹ năng: chỉ người đã được duyệt (hoặc admin) mới đọc được
 create table if not exists public.course_modules (

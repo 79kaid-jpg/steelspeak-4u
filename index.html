@@ -1865,7 +1865,7 @@ function vTrackAdmin(){if(TR.legacy||!TR.ready)return '';const e=TA.edit;
  <label class="lbl" for="tn">Tên khóa học</label>${inp('tn',e.name,'VD: Logistics – Kho vận')}
  <label class="lbl" for="tdesc">Mô tả</label>${inp('tdesc',e.description,'Một câu giới thiệu khóa học')}
  <label class="lbl" for="taud">Dành cho</label>${inp('taud',e.audience,'VD: Nhân viên kho, điều phối')}
- <div class="row" style="flex-wrap:nowrap"><div style="flex:1"><label class="lbl" for="tkind">Loại</label><select id="tkind"><option value="specialty" ${e.kind!='cefr'?'selected':''}>Chuyên ngành</option><option value="cefr" ${e.kind=='cefr'?'selected':''}>Chuẩn CEFR</option></select></div>
+ <div class="row" style="flex-wrap:nowrap"><div style="flex:1"><label class="lbl" for="tkind">Loại</label><select id="tkind"><option value="specialty" ${e.kind!='cefr'&&e.kind!='skill'?'selected':''}>Chuyên ngành (từ vựng)</option><option value="cefr" ${e.kind=='cefr'?'selected':''}>Chuẩn CEFR</option><option value="skill" ${e.kind=='skill'?'selected':''}>Khóa kỹ năng (bài giảng)</option></select></div>
  <div style="flex:1"><label class="lbl" for="tjoin">Tham gia</label><select id="tjoin"><option value="approval" ${e.join_policy!='open'?'selected':''}>Cần admin duyệt</option><option value="open" ${e.join_policy=='open'?'selected':''}>Mở</option></select></div></div>
  <div class="row" style="flex-wrap:nowrap"><div style="flex:1.4"><label class="lbl" for="ttheme">Giao diện đua level</label><select id="ttheme">${THEMES.map(([k,n])=>`<option value="${k}" ${themeOf(e)==k?'selected':''}>${n}</option>`).join('')}</select></div>
  <div style="flex:1"><label class="lbl" for="twpl">Số từ / level</label>${inp('twpl',e.words_per_level||30,'30','number')}</div></div>
