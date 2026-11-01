@@ -211,9 +211,46 @@ window.vLucky=vLucky;window.vLuckyAdmin=vLuckyAdmin;
 
 /* ---------- móc vào app ---------- */
 function hook(){
- const h=window.vHome;if(typeof h=='function'&&!h._lk){const w=function(...a){const s=h.apply(this,a);try{const b=s.includes('class="lk-hc')?'':homeCard();if(b){const i=s.indexOf('</div>',s.indexOf('class="topbar"'));if(i>0){const j=s.indexOf('</div>',i+6)+6;return s.slice(0,j)+b+s.slice(j)}return b+s}}catch(e){}return s};Object.assign(w,h);w._lk=1;window.vHome=w}
+ const h=window.vHome;if(typeof h=='function'&&!h._lk){const w=function(...a){const s=h.apply(this,a);try{const b='';if(b){const i=s.indexOf('</div>',s.indexOf('class="topbar"'));if(i>0){const j=s.indexOf('</div>',i+6)+6;return s.slice(0,j)+b+s.slice(j)}return b+s}}catch(e){}return s};Object.assign(w,h);w._lk=1;window.vHome=w}
  const d=window.vDone;if(typeof d=='function'&&!d._lk){const w=function(...a){const s=d.apply(this,a);try{const g=S.game;if(g&&!g.lk&&g.pool&&g.pool.length&&g.ok/g.pool.length>=.7){g.lk=1;grant('lesson')}}catch(e){}return s};Object.assign(w,d);w._lk=1;window.vDone=w}}
 setTimeout(hook,0);setTimeout(hook,1600);
+/* ---------- nút hộp quà nổi (kéo thả được) thay cho thẻ lớn trên trang Học ---------- */
+function fabCss(){if(document.getElementById('lkfabcss'))return;const s=document.createElement('style');s.id='lkfabcss';s.textContent=`
+#lkfab{position:fixed;z-index:60;width:58px;height:58px;padding:0;border:0;border-radius:18px;display:grid;place-items:center;touch-action:none;cursor:grab;
+ background:radial-gradient(circle at 30% 25%,color-mix(in srgb,var(--fa) 70%,#fff),var(--fa) 60%,color-mix(in srgb,var(--fa) 70%,#000));
+ box-shadow:0 0 0 2px #f2c14e,0 8px 20px color-mix(in srgb,var(--fa) 55%,transparent)}
+#lkfab.has{animation:lkfw 2.2s ease-in-out infinite}
+#lkfab .n{position:absolute;top:-7px;right:-7px;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:#f2c14e;color:#3a2600;font:800 .8rem/22px var(--fd);text-align:center;box-shadow:0 0 0 2px var(--bg)}
+#lkfab.has .n{animation:lkfp 1.2s ease-in-out infinite}
+#lkfab .sp{position:absolute;width:10px;height:10px;animation:lkft 1.8s ease-in-out infinite}
+#lkfab:not(.has) .sp{display:none}
+@keyframes lkfw{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg) translateY(-3px)}}
+@keyframes lkfp{50%{transform:scale(1.18)}}
+@keyframes lkft{0%,100%{opacity:0;transform:scale(.3)}50%{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){#lkfab,#lkfab *{animation:none!important}}
+body.in-game #lkfab,body.ch-open #lkfab{display:none}`;document.head.appendChild(s)}
+const FK='ss-lkfab-pos';
+function fab(){let el=document.getElementById('lkfab');const show=on()&&LK.camp&&!(typeof S!='undefined'&&(S.tab=='lucky'||S.tab=='luckyadm'));
+ if(!show){if(el)el.remove();return}
+ fabCss();const S2=SEASON[LK.camp.season]||SEASON.xmas,n=LK.tickets;
+ if(!el){el=document.createElement('button');el.id='lkfab';document.body.appendChild(el);place(el,null);drag(el)}
+ const key=n+'|'+LK.camp.id;if(el.dataset.k!==key){el.dataset.k=key;el.style.setProperty('--fa',S2.a);
+  el.className=n>0?'has':'';el.setAttribute('aria-label',esc(LK.camp.name)+(n>0?': bạn có '+n+' lượt quay':': học thêm để nhận lượt quay'));
+  const st=(x,y,d)=>`<svg class="sp" style="left:${x}px;top:${y}px;animation-delay:${d}s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0l2.6 9.4L24 12l-9.4 2.6L12 24l-2.6-9.4L0 12l9.4-2.6z" fill="#fff8d6"/></svg>`;
+  el.innerHTML=`<svg width="40" height="40" viewBox="0 0 64 64" aria-hidden="true"><rect x="10" y="28" width="44" height="28" rx="4" fill="#fff"/><rect x="7" y="19" width="50" height="12" rx="3" fill="#ffe8a3"/><path d="M32 19v37" stroke="#e03131" stroke-width="7"/><path d="M7 25h50" stroke="#e03131" stroke-width="0"/><path d="M32 19c-5-11-18-11-15-2 1 3 9 2 15 2 6 0 14 1 15-2 3-9-10-9-15 2z" fill="#e03131"/></svg>${n>0?`<span class="n">${n>9?'9+':n}</span>`:''}${st(-4,-4,0)}${st(48,44,.7)}${st(46,-2,1.2)}`}}
+function place(el,p){const w=58,m=8,sb=0;let x,y;try{p=p||JSON.parse(localStorage.getItem(FK)||'null')}catch(e){}
+ if(p){x=p.fx*innerWidth;y=p.fy*innerHeight}else{x=Math.max(16,innerWidth/2-224);y=innerHeight-150-w-80}
+ x=Math.min(Math.max(x,m),innerWidth-w-m);y=Math.min(Math.max(y,m),innerHeight-w-80);el.style.left=x+'px';el.style.top=y+'px';return {x,y}}
+function drag(el){let sx,sy,ox,oy,moved=false,id=null;
+ el.addEventListener('pointerdown',e=>{if(e.button>0)return;id=e.pointerId;moved=false;const r=el.getBoundingClientRect();sx=e.clientX;sy=e.clientY;ox=r.left;oy=r.top;try{el.setPointerCapture(id)}catch(_){}});
+ el.addEventListener('pointermove',e=>{if(e.pointerId!==id)return;const dx=e.clientX-sx,dy=e.clientY-sy;if(!moved&&Math.hypot(dx,dy)<8)return;if(!moved){moved=true;el.style.animation='none';el.style.transform='scale(1.12)'}
+  const p=place(el,{fx:(ox+dx)/innerWidth,fy:(oy+dy)/innerHeight});e.preventDefault()});
+ const end=e=>{if(e.pointerId!==id)return;id=null;if(!moved){go('lucky');return}el.style.animation='';el.style.transform='';const r=el.getBoundingClientRect();try{localStorage.setItem(FK,JSON.stringify({fx:r.left/innerWidth,fy:r.top/innerHeight}))}catch(_){}try{navigator.vibrate&&navigator.vibrate(12)}catch(_){}};
+ el.addEventListener('pointerup',end);el.addEventListener('pointercancel',e=>{id=null});
+ el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go('lucky');return}const s=e.shiftKey?40:12,d={ArrowLeft:[-s,0],ArrowRight:[s,0],ArrowUp:[0,-s],ArrowDown:[0,s]}[e.key];if(!d)return;e.preventDefault();const r=el.getBoundingClientRect();place(el,{fx:(r.left+d[0])/innerWidth,fy:(r.top+d[1])/innerHeight});const q=el.getBoundingClientRect();try{localStorage.setItem(FK,JSON.stringify({fx:q.left/innerWidth,fy:q.top/innerHeight}))}catch(_){}})}
+setInterval(()=>{try{fab()}catch(e){}},1000);
+addEventListener('resize',()=>{const el=document.getElementById('lkfab');if(el)place(el,null)});
+
 addEventListener('ss-kaka-win',()=>grant('kaka'));
 setInterval(()=>{const u=on()?USER.id:null;if(u!==LK.uid){LK.uid=u;LK.camp=undefined;LK.mine=null;if(u)load().then(()=>{try{if((S.streak||0)>=7)grant('streak7')}catch(e){}})}},2000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&on()&&!LK.spinning)load()});
