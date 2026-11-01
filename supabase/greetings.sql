@@ -17,3 +17,6 @@ create policy "greet read" on public.greetings for select using (lower(to_email)
 drop policy if exists "greet admin" on public.greetings;
 create policy "greet admin" on public.greetings for all using (public.is_admin()) with check (public.is_admin());
 alter table public.greetings add column if not exists show_until date;
+
+-- Bật/tắt hiển thị hộp quà của từng lời chúc (admin quản lý trong app)
+alter table public.greetings add column if not exists enabled boolean not null default true;

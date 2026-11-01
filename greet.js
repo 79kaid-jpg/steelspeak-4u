@@ -115,13 +115,13 @@ async function check(){const USER=window.__ss&&window.__ss.USER,SB=window.__ss&&
  const prev=new URLSearchParams(location.search).get('gift');
  let q=SB.from('greetings').select('*');q=prev?q.eq('id',+prev):q.order('show_on',{ascending:false});
  const T=today(),until=x=>x.show_until||x.show_on;
- let {data}=await q.limit(30);data=(data||[]).filter(x=>prev||until(x)>=T);const me=(USER.email||'').toLowerCase();
+ let {data}=await q.limit(30);data=(data||[]).filter(x=>prev||(until(x)>=T&&x.enabled!==false));const me=(USER.email||'').toLowerCase();
  // của mình & đúng ngày; admin xem trước được lời chúc sắp tới của người khác (chỉ hiện nút, không tự mở)
  let g=(data||[]).find(x=>x.to_email.toLowerCase()==me&&x.show_on<=T&&until(x)>=T)||(prev&&data&&data[0]);
  // Admin (người tạo lời chúc) trải nghiệm y như người nhận: tự bật hộp quà, có nút 🎁 và vòng quay
  if(!g&&!window.__ss.PROF&&(check.w=(check.w||0)+1)<8){busy=false;setTimeout(check,1500);return}
- if(!g&&window.__ss.PROF&&window.__ss.PROF.is_admin)g=(data||[]).find(x=>x.to_email.toLowerCase()!=me);
- if(!g){const pv=(data||[]).find(x=>x.to_email.toLowerCase()!=me);if(pv&&!document.querySelector('.gx-replay')){if(!document.getElementById('gx-css')){const st=document.createElement('style');st.id='gx-css';st.textContent=css;document.head.appendChild(st)}const b=document.createElement('button');b.className='gx-replay';b.title='Xem trước quà cho '+pv.to_email;b.setAttribute('aria-label',b.title);b.textContent='🎁';b.onclick=()=>open(pv);document.body.appendChild(b)}return}
+ if(!g&&window.__ss.PROF&&window.__ss.PROF.is_admin){let po=false;try{po=localStorage.getItem('gx-preview-off')=='1'}catch(e){}if(!po)g=(data||[]).find(x=>x.to_email.toLowerCase()!=me&&x.show_on<=T&&until(x)>=T)}
+ if(!g){const pv=(data||[]).find(x=>x.to_email.toLowerCase()!=me&&x.show_on<=T);let po=false;try{po=localStorage.getItem('gx-preview-off')=='1'}catch(e){}if(pv&&!po&&!document.querySelector('.gx-replay')){if(!document.getElementById('gx-css')){const st=document.createElement('style');st.id='gx-css';st.textContent=css;document.head.appendChild(st)}const b=document.createElement('button');b.className='gx-replay';b.title='Xem trước quà cho '+pv.to_email;b.setAttribute('aria-label',b.title);b.textContent='🎁';b.onclick=()=>open(pv);document.body.appendChild(b)}return}
  const k='gx-seen-'+g.id+'-'+T;let seen=false;try{seen=localStorage.getItem(k)}catch(e){}
  if(!document.querySelector('.gx-replay')){const b=document.createElement('button');b.className='gx-replay';b.setAttribute('aria-label','Mở lại quà sinh nhật');b.textContent='🎁';b.onclick=()=>open(g);
   if(!document.getElementById('gx-css')){const st=document.createElement('style');st.id='gx-css';st.textContent=css;document.head.appendChild(st)}document.body.appendChild(b)}
@@ -167,4 +167,47 @@ let tries=0;const t=setInterval(()=>{if(window.__ss&&window.__ss.USER){clearInte
  const scan=()=>document.querySelectorAll('.gx-replay').forEach(arm);
  new MutationObserver(scan).observe(document.body||document.documentElement,{childList:true});scan();
  addEventListener('resize',()=>document.querySelectorAll('.gx-replay').forEach(el=>{if(el.style.left){const r=el.getBoundingClientRect();place(el,r.left,r.top)}}));
+})();
+
+/* ===== Quản trị lời chúc sinh nhật: bật/tắt hộp quà, hiệu lực từ – đến ===== */
+(function(){
+const GA={list:null,ed:null,err:''};window.GA=GA;
+const ss=()=>window.__ss||{};const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const td=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const rr=()=>{try{render()}catch(x){}};
+async function load(){const {data,error}=await ss().SB.from('greetings').select('id,to_email,name,title,message,from_name,show_on,show_until,enabled,created_at').order('show_on',{ascending:false}).limit(100);
+ if(error){GA.err=/enabled/.test(error.message)?'Cần chạy lại supabase/greetings.sql (thêm cột enabled)':error.message;GA.list=[];return rr()}GA.list=data||[];rr()}
+function status(g){const T=td(),u=g.show_until||g.show_on;if(g.enabled===false)return ['Đã tắt','var(--mut)'];if(T<g.show_on)return ['Sắp tới','var(--steel)'];if(T>u)return ['Đã hết hạn','var(--mut)'];return ['Đang hiện','var(--good)']}
+async function toggle(id,v){const {error}=await ss().SB.from('greetings').update({enabled:v}).eq('id',id);if(error)return toast(error.message);const g=GA.list.find(x=>x.id==id);if(g)g.enabled=v;toast(v?'Đã bật hộp quà':'Đã tắt hộp quà');if(!v)document.querySelectorAll('.gx-replay').forEach(x=>x.remove());rr()}
+function edit(id){const g=id?GA.list.find(x=>x.id==id):null;GA.ed=g?{...g}:{to_email:'',name:'',title:'Happy Birthday',message:'',from_name:'SteelSpeak',show_on:td(),show_until:td(),enabled:true};rr();scrollTo(0,0)}
+async function save(){const g=GA.ed,f=k=>document.getElementById('ga_'+k);
+ const row={to_email:f('to').value.trim().toLowerCase(),name:f('name').value.trim(),title:f('title').value.trim()||'Happy Birthday',from_name:f('from').value.trim()||'SteelSpeak',message:f('msg').value.trim(),show_on:f('on').value,show_until:f('until').value||f('on').value,enabled:f('en').checked};
+ if(!/^\S+@\S+\.\S+$/.test(row.to_email))return toast('Nhập email người nhận');if(!row.message)return toast('Nhập lời chúc');if(!row.show_on)return toast('Chọn ngày bắt đầu');if(row.show_until<row.show_on)return toast('Ngày kết thúc phải từ ngày bắt đầu trở đi');
+ const q=g.id?ss().SB.from('greetings').update(row).eq('id',g.id):ss().SB.from('greetings').insert(row);const {error}=await q;if(error)return toast(/enabled/.test(error.message)?'Cần chạy lại supabase/greetings.sql':error.message);
+ toast('Đã lưu lời chúc');GA.ed=null;load()}
+async function del(id){if(!confirm('Xóa lời chúc này?'))return;const {error}=await ss().SB.from('greetings').delete().eq('id',id);if(error)return toast(error.message);GA.ed=null;load()}
+function prevOff(v){try{v?localStorage.setItem('gx-preview-off','1'):localStorage.removeItem('gx-preview-off')}catch(x){}if(v)document.querySelectorAll('.gx-replay').forEach(x=>x.remove());toast(v?'Đã ẩn hộp quà xem trước trên máy này':'Sẽ hiện hộp quà xem trước');rr()}
+function view(){const P=ss().PROF;if(!P||!P.is_admin)return '<h1>Lời chúc sinh nhật</h1><p class="mut">Chỉ admin.</p>';if(!GA.list){load();return '<h1>Lời chúc sinh nhật</h1><p class="mut">Đang tải…</p>'}
+ let po=false;try{po=localStorage.getItem('gx-preview-off')=='1'}catch(x){}
+ if(GA.ed){const g=GA.ed,fld=(l,h)=>`<label class="stack" style="gap:4px;font-size:.84rem;color:var(--mut)">${l}${h}</label>`,inp=(id,v,type='text',ph='')=>`<input id="ga_${id}" type="${type}" value="${e(v)}" placeholder="${e(ph)}" style="min-height:44px;width:100%;box-sizing:border-box">`;
+  return `<button class="link" onclick="GA.ed=null;render()">‹ Danh sách lời chúc</button><h1 style="margin-top:6px">${g.id?'Sửa lời chúc':'Lời chúc mới'}</h1>
+  <div class="card stack" style="margin-top:10px">
+  ${fld('Email người nhận',inp('to',g.to_email,'email','ten@congty.com'))}
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">${fld('Tên hiển thị',inp('name',g.name,'text','VD: Hồng Hạnh'))}${fld('Người gửi',inp('from',g.from_name))}</div>
+  ${fld('Tiêu đề',inp('title',g.title))}
+  ${fld('Lời chúc',`<textarea id="ga_msg" rows="5" style="width:100%;box-sizing:border-box;font:inherit;font-size:16px">${e(g.message)}</textarea>`)}
+  <div class="lbl" style="margin-top:4px">Thời gian hiệu lực</div>
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">${fld('Từ ngày',inp('on',g.show_on,'date'))}${fld('Đến hết ngày',inp('until',g.show_until||g.show_on,'date'))}</div>
+  <p class="mut" style="margin:0;font-size:.8rem">Hộp quà và vòng quay sinh nhật chỉ hiện cho người nhận trong khoảng này.</p>
+  <label class="row" style="min-height:44px;gap:10px"><input id="ga_en" type="checkbox" ${g.enabled!==false?'checked':''} style="width:22px;height:22px"> <b>Hiện hộp quà</b></label></div>
+  <button class="btn" style="width:100%;margin-top:12px" onclick="GAX.save()">Lưu lời chúc</button>
+  ${g.id?`<button class="btn ghost" style="width:100%;margin-top:8px;color:var(--bad)" onclick="GAX.del(${g.id})">Xóa</button>`:''}`}
+ return `<button class="link" onclick="go('admin')">‹ Quản trị</button><h1 style="margin-top:6px">Lời chúc sinh nhật</h1>${GA.err?`<p class="note">${e(GA.err)}</p>`:''}
+ <label class="card row" style="margin-top:10px;flex-wrap:nowrap;gap:10px;min-height:56px"><input type="checkbox" ${po?'checked':''} onchange="GAX.prevOff(this.checked)" style="width:22px;height:22px;flex:none"><span><b>Ẩn hộp quà xem trước của admin</b><small class="mut" style="display:block">Chỉ trên máy này. Người nhận vẫn thấy quà của họ.</small></span></label>
+ <button class="btn" style="width:100%;margin-top:10px" onclick="GAX.edit()">＋ Thêm lời chúc</button>
+ <div class="stack" style="margin-top:12px">${GA.list.map(g=>{const [s,c]=status(g);return `<div class="card stack" style="gap:6px"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${e(g.name||g.to_email)}</b><span class="chip" style="color:${c}">${s}</span></div>
+  <small class="mut">${e(g.to_email)} · ${new Date(g.show_on).toLocaleDateString('vi-VN')}${(g.show_until&&g.show_until!=g.show_on)?' → '+new Date(g.show_until).toLocaleDateString('vi-VN'):''}</small>
+  <div class="row" style="justify-content:space-between;flex-wrap:nowrap"><label class="row" style="gap:8px;min-height:44px"><input type="checkbox" ${g.enabled!==false?'checked':''} onchange="GAX.toggle(${g.id},this.checked)" style="width:22px;height:22px"> Hiện hộp quà</label><button class="chip" onclick="GAX.edit(${g.id})">Sửa</button></div></div>`}).join('')||'<p class="mut">Chưa có lời chúc nào.</p>'}</div>`}
+function card(){const P=ss().PROF;if(!P||!P.is_admin)return '';return `<button class="card login-nudge" onclick="GA.list=null;GA.ed=null;go('greetadm')"><span class="tile2-ic">🎂</span><span style="flex:1;text-align:left"><b>Lời chúc sinh nhật</b><small>Bật/tắt hộp quà, thời gian hiệu lực</small></span><span class="chev">›</span></button>`}
+window.GAX={save,del,edit,toggle,prevOff,card};window.vGreetAdmin=view;
 })();
