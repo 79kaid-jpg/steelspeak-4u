@@ -26,7 +26,26 @@ async function beat(){if(!on()||NT.off||document.visibilityState!=='visible')ret
 async function loadNotes(){const {data,error}=await SB.from('notifications').select('*').eq('to_id',USER.id).order('id',{ascending:false}).limit(40);
  if(error){if(/notifications/.test(error.message))NT.off=true;return}NT.list=data||[];count();
  const bz=NT.list.find(n=>n.kind=='msg'&&!n.read_at&&isBuzz(n.body)&&Date.now()-new Date(n.created_at)<86400000&&!seenBuzz(n.id));if(bz){setTimeout(buzzFx,600);try{toast('📳 '+bz.title+' vừa BUZZ bạn!')}catch(e){}}rr()}
-function count(){NT.unread=NT.list.filter(n=>!n.read_at).length;NT.msgUnread=NT.list.filter(n=>!n.read_at&&n.kind=='msg').length;window.MSGU=NT.unread}
+function count(){NT.unread=NT.list.filter(n=>!n.read_at).length;NT.msgUnread=NT.list.filter(n=>!n.read_at&&n.kind=='msg').length;window.MSGU=NT.unread;try{fab()}catch(e){}}
+/* --- Nút tin nhắn nổi: chỉ hiện khi có tin chưa đọc; rung + chữ BUZZ khi có BUZZ --- */
+function fab(){let el=document.getElementById('msgfab');const L=NT.list.filter(n=>!n.read_at&&n.kind=='msg');
+ const hide=!L.length||(typeof S!='undefined'&&S.tab=='msg');
+ if(hide){if(el)el.remove();return}
+ if(!document.getElementById('fabcss')){const st=document.createElement('style');st.id='fabcss';st.textContent=`
+#msgfab{position:fixed;left:max(16px,calc(50vw - 224px));bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:60;display:flex;align-items:center;gap:8px;min-height:52px;padding:0 16px 0 12px;border-radius:999px;border:0;background:var(--steel);color:var(--onsteel);font:inherit;font-weight:700;box-shadow:0 8px 22px color-mix(in srgb,var(--steel) 45%,transparent);animation:mfin .35s cubic-bezier(.2,1.3,.4,1)}
+#msgfab .n{position:absolute;top:-6px;left:30px;min-width:22px;height:22px;padding:0 6px;border-radius:99px;background:var(--bad);color:#fff;font-size:.78rem;line-height:22px;text-align:center;box-shadow:0 0 0 2px var(--bg)}
+#msgfab.buzz{background:var(--bad);box-shadow:0 8px 22px color-mix(in srgb,var(--bad) 50%,transparent);animation:mfin .35s cubic-bezier(.2,1.3,.4,1),mfbz 1.6s ease-in-out .4s infinite}
+#msgfab.buzz .n{background:var(--amber);color:#1a1205}
+@keyframes mfin{from{transform:scale(.4);opacity:0}}
+@keyframes mfbz{0%,60%,100%{transform:none}64%{transform:translateX(-4px) rotate(-6deg)}68%{transform:translateX(4px) rotate(6deg)}72%{transform:translateX(-4px) rotate(-5deg)}76%{transform:translateX(3px) rotate(4deg)}80%{transform:none}}
+@media (prefers-reduced-motion:reduce){#msgfab,#msgfab.buzz{animation:none}}
+body.ch-open #msgfab,body.in-game #msgfab{display:none}`;document.head.appendChild(st)}
+ const bz=L.some(n=>isBuzz(n.body)),who=[...new Set(L.map(n=>n.title))];
+ if(!el){el=document.createElement('button');el.id='msgfab';el.onclick=()=>{const refs=[...new Set(NT.list.filter(n=>!n.read_at&&n.kind=='msg').map(n=>n.ref))];if(isAdm()&&refs.length!==1)openInbox();else openChat(isAdm()?refs[0]:USER.id)};document.body.appendChild(el)}
+ el.className=bz?'buzz':'';
+ el.setAttribute('aria-label',(bz?'BUZZ! ':'')+L.length+' tin nhắn mới từ '+who.join(', '));
+ el.innerHTML=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${bz?'<rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4 8v8M20 8v8"/>':'<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>'}</svg><span class="n">${L.length>9?'9+':L.length}</span><span>${bz?'BUZZ!':esc(who.length==1?who[0]:'Tin nhắn mới')}</span>`}
+setInterval(()=>{try{fab()}catch(e){}},1500);
 function onNote(n){if(NT.list.some(x=>x.id==n.id))return;NT.list.unshift(n);count();if(n.kind=='msg'&&isBuzz(n.body)&&!seenBuzz(n.id))buzzFx();
  const open=S.tab=='msg'&&n.kind=='msg'&&NT.thread==n.ref;
  if(open){loadThread(n.ref);return}
