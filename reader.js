@@ -29,7 +29,7 @@ const RD_Q=[
  ['C1','The minister\'s remarks were seen as an attempt to ___ public anger.',['assuage','aggravate','articulate'],0],
  ['C1','"Ubiquitous" means ___.',['found everywhere','very rare','extremely old'],0]];
 function rdQuizStart(){const qs=RD_Q.map((q,i)=>{const o=q[2].map((t,j)=>({t,ok:j===q[3]}));for(let k=o.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[o[k],o[j]]=[o[j],o[k]]}return{lv:q[0],s:q[1],o,i}});RD.quiz={qs,i:0,ans:[]};render();scrollTo(0,0)}
-function rdQuizPick(j){const q=RD.quiz;q.ans.push(q.qs[q.i].o[j].ok?1:0);q.i++;if(q.i>=q.qs.length){let lv='Pre-A1';for(const L of ['A1','A2','B1','B2','C1']){const sc=q.qs.reduce((n,x,k)=>n+(x.lv==L?q.ans[k]:0),0);if(sc>=2)lv=L;else break}rdSet('level',lv);rdSet('tested',new Date().toISOString().slice(0,10));RD.quiz=null;RD.filter='for';toast('Trình độ đọc của bạn: '+lv)}render();scrollTo(0,0)}
+function rdQuizPick(j){const q=RD.quiz;q.ans.push(q.qs[q.i].o[j].ok?1:0);q.i++;if(q.i>=q.qs.length){let lv='Pre-A1';for(const L of ['A1','A2','B1','B2','C1']){const sc=q.qs.reduce((n,x,k)=>n+(x.lv==L?q.ans[k]:0),0);if(sc>=2)lv=L;else break}rdSet('level',lv);rdSet('tested',(window.ymdLocal?ymdLocal():new Date().toISOString().slice(0,10)));RD.quiz=null;RD.filter='for';toast('Trình độ đọc của bạn: '+lv)}render();scrollTo(0,0)}
 function vReadQuiz(){const q=RD.quiz,x=q.qs[q.i];return `<div class="stack"><div class="row" style="justify-content:space-between"><span class="lbl">Kiểm tra trình độ đọc · ${q.i+1}/${q.qs.length}</span><button class="chip" onclick="RD.quiz=null;render()">Thoát</button></div>
  <div class="bar"><i style="width:${q.i/q.qs.length*100}%"></i></div>
  <div class="card"><p style="font-size:1.15rem;margin:0">${esc(x.s)}</p></div>

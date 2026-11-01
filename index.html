@@ -711,6 +711,7 @@ html,body{max-width:100%;overflow-x:hidden}
 <script src="update.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
+window.ymdLocal=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const CATS = {
   coat: { n: 'Thép phủ & vật liệu', e: '🧱', d: 'Cấu trúc lớp phủ, vật liệu nền, thuộc tính cơ lý' },
   qual: { n: 'Chất lượng & thử nghiệm', e: '🧪', d: 'Test, khiếu nại, truy xuất nguồn gốc, MTC' },
@@ -939,7 +940,7 @@ function tkBind(){const s=tkSlug();if(S.tkCur===s)return;tkStash();S.tk=S.tk||{}
  TK_KEYS.forEach(k=>S[k]=b[k]||tkEmpty(k));S.tkCur=s}
 try{load(JSON.parse(localStorage.getItem('ss2')||'null'))}catch(e){}
 const SB=supabase.createClient(window.SS_CONFIG.SUPABASE_URL,window.SS_CONFIG.SUPABASE_ANON_KEY);let USER=null,saveT=null;window.__ss={get USER(){return USER},get PROF(){try{return PROF}catch(e){return null}},SB};
-function save(){const today=new Date().toISOString().slice(0,10);if(S.tdate!==today){S.tdate=today;S.txp=0}if(S._lx!=null&&S.xp>S._lx)S.txp=(S.txp||0)+(S.xp-S._lx);S._lx=S.xp;tkStash();const v={xp:S.xp,streak:S.streak,last:S.last,tk:S.tk||{},tdate:S.tdate,txp:S.txp||0,goal:S.goal||50};try{localStorage.setItem('ss2',JSON.stringify(v))}catch(e){}
+function save(){const today=ymdLocal();if(S.tdate!==today){S.tdate=today;S.txp=0}if(S._lx!=null&&S.xp>S._lx)S.txp=(S.txp||0)+(S.xp-S._lx);S._lx=S.xp;tkStash();const v={xp:S.xp,streak:S.streak,last:S.last,tk:S.tk||{},tdate:S.tdate,txp:S.txp||0,goal:S.goal||50};try{localStorage.setItem('ss2',JSON.stringify(v))}catch(e){}
 if(USER){clearTimeout(saveT);saveT=setTimeout(async()=>{const {error}=await SB.from('progress').upsert({user_id:USER.id,data:v,updated_at:new Date().toISOString()});S.sync=error?'err':'cloud'},600)}}
 let PROF=null;const ROLES=['TPL','QA','QC','Khác'];
 // ---- Khởi động: chạy 1 lần cho mỗi user, gọi song song, có cache để hiện ngay ----
@@ -967,7 +968,7 @@ setTimeout(()=>{try{if(sessionStorage.getItem('ss-go-login')){sessionStorage.rem
 async function ai(task,payload){const {data:{session}}=await SB.auth.getSession();if(!session)throw{code:'login'};
 const r=await fetch(window.SS_CONFIG.SUPABASE_URL+'/functions/v1/ai',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token,apikey:window.SS_CONFIG.SUPABASE_ANON_KEY},body:JSON.stringify({task,...payload})});
 const j=await r.json().catch(()=>({}));if(!r.ok)throw{code:r.status==429?'rate_limited':'err',message:j.error};return j}
-function tick(){const d=new Date().toISOString().slice(0,10);if(S.last==d)return;const y=new Date(Date.now()-864e5).toISOString().slice(0,10);S.streak=S.last==y?S.streak+1:1;S.last=d}
+function tick(){const d=ymdLocal();if(S.last==d)return;const y=ymdLocal(new Date(Date.now()-864e5));S.streak=S.last==y?S.streak+1:1;S.last=d}
 function miss(t){const w=S.wrong[t.en]||{n:0,ok:0,cat:t.cat,vi:t.vi,ex:t.ex,exvi:t.exvi};w.n++;w.ok=0;w.at=Date.now();S.wrong[t.en]=w}
 function hit(t){const w=S.wrong[t.en];if(!w)return;w.ok++;if(w.ok>=2)delete S.wrong[t.en]}
 const wrongTerms=()=>Object.entries(S.wrong).sort((a,b)=>b[1].n-a[1].n).map(([en,w])=>({en,cat:w.cat||'talk',vi:w.vi,ex:w.ex,exvi:w.exvi}));
@@ -996,7 +997,7 @@ function doneKey(c){const tr=curTrack();return !tr||tr.slug=='steel'?c:tr.slug+'
 function vHome(){if(!canLearn())return trackBar()+vGate()+(USER?'':`<div style="margin-top:12px">${loginBox()}</div>`);if(curTrack()?.kind=='skill')return trackBar()+vSkillHome();if(!TERMS.length)return trackBar()+vEmptyTrack();return trackBar()+vHomeMain()}
 function vHomeMain(){const PATH=pathState(),nowP=PATH.find(p=>p[2]=='now'),W=wrongTerms();const lv=Math.floor(S.xp/200)+1;
  const h=new Date().getHours(),greet=h<11?'Chào buổi sáng':h<14?'Chào buổi trưa':h<18?'Chào buổi chiều':'Chào buổi tối';
- const goal=S.goal||50,today=new Date().toISOString().slice(0,10),txp=S.tdate===today?(S.txp||0):0,pct=Math.min(1,txp/goal),R=34,C=2*Math.PI*R;
+ const goal=S.goal||50,today=ymdLocal(),txp=S.tdate===today?(S.txp||0):0,pct=Math.min(1,txp/goal),R=34,C=2*Math.PI*R;
  const due=Object.values(S.srs||{}).filter(v=>v.due<=Date.now()).length,nCards=Object.keys(S.srs||{}).length;
  const dp=daily();const unit=curTrack()?.kind=='cefr'?'từ vựng':'thuật ngữ';
  return `<section class="hero2"><div class="hero2-txt"><div class="lbl">${esc(heroLabel())}</div><h1>${greet}${PROF?.full_name?', '+esc(PROF.full_name.split(' ').slice(-1)[0]):''}!</h1>
@@ -1022,7 +1023,7 @@ ${vTopicHome()}
  <div class="row" style="flex-wrap:nowrap"><button class="btn ghost" style="flex:1" onclick="go('make')">＋ Tạo bài</button><button class="btn ghost" style="flex:1" onclick="go('make');setTimeout(()=>$('#up').scrollIntoView(),50)">⬆ Từ tài liệu</button></div></div>`}
 function setGoal(){const opts=[[20,'Nhẹ nhàng','2 câu đúng'],[50,'Đều đặn','5 câu đúng'],[100,'Nghiêm túc','10 câu đúng'],[150,'Chăm chỉ','15 câu đúng'],[200,'Tăng tốc','20 câu đúng'],[300,'Bứt phá','30 câu đúng'],[500,'Chiến binh','50 câu đúng']];const cur=S.goal||50;
  document.querySelectorAll('.saga-modal').forEach(x=>x.remove());const m=document.createElement('div');m.className='saga-modal';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');
- m.innerHTML=`<div class="card stack" style="width:min(420px,100%);max-height:calc(100dvh - 32px);overflow:auto;gap:8px"><div class="lbl">Mục tiêu XP mỗi ngày</div><p class="mut" style="margin:0;font-size:.86rem">Hôm nay bạn đã có ${S.txp||0} XP. Mỗi câu đúng được 10 XP.</p>${opts.map(([v,n,d])=>`<button class="opt ${v==cur?'ok':''}" style="display:flex;justify-content:space-between;align-items:center;min-height:48px" onclick="S.goal=${v};save();this.closest('.saga-modal').remove();toast('Mục tiêu ngày: ${v} XP');render()"><span><b>${v} XP</b> · ${n}</span><small class="mut">${d}${v==cur?' · đang chọn':''}</small></button>`).join('')}<button class="btn ghost" onclick="this.closest('.saga-modal').remove()">Đóng</button></div>`;
+ m.innerHTML=`<div class="card stack" style="width:min(420px,100%);max-height:calc(100dvh - 32px);overflow:auto;gap:8px"><div class="lbl">Mục tiêu XP mỗi ngày</div><p class="mut" style="margin:0;font-size:.86rem">Hôm nay bạn đã có ${S.tdate==ymdLocal()?(S.txp||0):0} XP. Mỗi câu đúng được 10 XP.</p>${opts.map(([v,n,d])=>`<button class="opt ${v==cur?'ok':''}" style="display:flex;justify-content:space-between;align-items:center;min-height:48px" onclick="S.goal=${v};save();this.closest('.saga-modal').remove();toast('Mục tiêu ngày: ${v} XP');render()"><span><b>${v} XP</b> · ${n}</span><small class="mut">${d}${v==cur?' · đang chọn':''}</small></button>`).join('')}<button class="btn ghost" onclick="this.closest('.saga-modal').remove()">Đóng</button></div>`;
  m.onclick=e=>{if(e.target===m)m.remove()};document.body.appendChild(m)}
 function reviewWrong(){const W=wrongTerms();start({name:'Ôn từ sai',mode:'quiz',n:Math.min(W.length,12),terms:W.slice(0,12),review:true})}
 function daily(){const d=new Date().getDate();const t=tkSlug()=='steel'?TERMS.filter(x=>x.cat=='talk'):TERMS.filter(x=>x.ex&&x.ex.length>12);return t[d%t.length]||TERMS[d%Math.max(1,TERMS.length)]||{en:'Welcome',vi:'Chào mừng',ex:'Welcome to SteelSpeak.',exvi:'Chào mừng bạn đến SteelSpeak.',cat:'talk'}}

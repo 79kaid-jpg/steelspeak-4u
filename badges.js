@@ -109,7 +109,7 @@ function evt(type,v){const c=ST.cnt;
 /* ---------- trao huy hiệu ---------- */
 let Q=[],first=true;
 function check(){if(g(()=>typeof S=='undefined'))return;const s=stats();
- const c=ST.cnt,today=new Date().toISOString().slice(0,10);
+ const c=ST.cnt,today=(window.ymdLocal?ymdLocal():new Date().toISOString().slice(0,10));
  if(g(()=>S.goal&&S.tdate==today&&(S.txp||0)>=S.goal)&&c.goalDay!==today){c.goalDay=today;c.goalDays=(c.goalDays||0)+1;s.goalDays=c.goalDays}
  const fresh=[];for(let pass=0;pass<2;pass++)for(const b of B){if(ST.earned[b.id])continue;const val=b.key=='badges'?Object.keys(ST.earned).length:s[b.key];if(val>=b.goal){ST.earned[b.id]=Date.now();fresh.push(b)}}
  if(!fresh.length){saveST();return}
