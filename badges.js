@@ -161,7 +161,7 @@ async function syncDown(){try{if(!USER||!SB||syncedFor===USER.id)return;syncedFo
 setInterval(()=>{try{if(USER&&syncedFor!==USER.id)syncDown()}catch(e){}},3000);
 
 /* ---------- móc vào các sự kiện của app ---------- */
-function wrap(name,after){const f=window[name];if(typeof f!='function'||f._bdg)return false;const w=function(...a){const r=f.apply(this,a);try{after(r,a)}catch(e){}return r};w._bdg=1;window[name]=w;return true}
+function wrap(name,after){const f=window[name];if(typeof f!='function'||f._bdg)return false;const w=function(...a){const r=f.apply(this,a);try{after(r,a)}catch(e){}return r};Object.assign(w,f);w._bdg=1;window[name]=w;return true}
 function hook(){
  wrap('vDone',()=>{const gm=S.game;if(gm&&!gm.bdg&&gm.pool&&gm.pool.length){gm.bdg=1;evt('lesson',Math.round(gm.ok/gm.pool.length*100))}});
  wrap('gradeSpeech',(r,a)=>{if(!a[3]&&r&&r.score!=null)evt('speak',r.score)});

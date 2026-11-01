@@ -37,7 +37,7 @@ function snapshot(){try{const g=S.game;if(!g||g.saga||g.fc||g.ans==null||!g.opts
  return {q:{en:String(t.en),vi:String(t.vi||''),ex:String(t.ex||''),opts,ans,mode:g.l.mode=='listen'?'listen':'quiz'},ok:g.opts[g.ans]===t,ms:g.ms||8000}}catch(e){return null}}
 function hookGame(){const f=window.vGame;if(typeof f!='function'||f._ch)return;const w=function(...a){let h=f.apply(this,a);try{const g=S.game;
   if(g&&!g.saga&&!g.fc&&g.pool&&g.pool[g.i]){if(g._qi!==g.i){g._qi=g.i;g.qt=Date.now();g.ms=null}if(g.ans!=null&&g.ms==null)g.ms=Date.now()-(g.qt||Date.now())}
-  if(on()&&!CH.off&&snapshot()){css();h+=`<button class="ch-btn" onclick="CHX.pick()">${SW} Thách đấu câu này</button>`}}catch(e){}return h};w._ch=1;window.vGame=w}
+  if(on()&&!CH.off&&snapshot()){css();h+=`<button class="ch-btn" onclick="CHX.pick()">${SW} Thách đấu câu này</button>`}}catch(e){}return h};Object.assign(w,f);w._ch=1;window.vGame=w}
 setTimeout(hookGame,0);setTimeout(hookGame,1500);
 
 /* ---------- chọn người để thách ---------- */
@@ -109,7 +109,7 @@ function vDuel(){css();if(!on())return '<h1>Thách đấu</h1><p class="mut">Đ�
 function view(id){const c=(CH.list||[]).find(x=>x.id==id);if(c)showResult(c,c.from_id==USER.id,{from:c.from_name,to:c.to_name})}
 
 window.CHX={pick,send,close,play,answer,view,banner,meCard};window.vDuel=vDuel;
-function hookHome(){const f=window.vHome;if(typeof f!='function'||f._ch)return;const w=function(...a){const h=f.apply(this,a);try{const b=banner();if(b){const i=h.indexOf('</div>',h.indexOf('class="topbar"'));if(i>0){const j=h.indexOf('</div>',i+6)+6;return h.slice(0,j)+b+h.slice(j)}return b+h}}catch(e){}return h};w._ch=1;window.vHome=w}
+function hookHome(){const f=window.vHome;if(typeof f!='function'||f._ch)return;const w=function(...a){const h=f.apply(this,a);try{const b=banner();if(b){const i=h.indexOf('</div>',h.indexOf('class="topbar"'));if(i>0){const j=h.indexOf('</div>',i+6)+6;return h.slice(0,j)+b+h.slice(j)}return b+h}}catch(e){}return h};Object.assign(w,f);w._ch=1;window.vHome=w}
 setTimeout(hookHome,0);setTimeout(hookHome,1500);
 setInterval(()=>{const u=on()?USER.id:null;if(u!==CH.uid){CH.uid=u;CH.targets=null;CH.list=null;CH.pending=0;if(u){loadList();setTimeout(kakaDaily,4000)}}},2000);
 setInterval(()=>{if(on()&&document.visibilityState==='visible')loadList()},45000);

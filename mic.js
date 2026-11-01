@@ -62,6 +62,6 @@ function hook(){
   if(/micro|Micro|Micrô|micrô|cho dùng|không hỗ trợ|ghi âm/.test(tx)&&/Chưa|chưa|không|Không|Lỗi|lỗi/.test(tx)&&!/Đang/.test(tx)){st.dataset.mh=1;st.insertAdjacentHTML('afterend',help)}});
  obs.observe(document.body,{subtree:true,childList:true,characterData:true});
  // lần đầu chạm mic trong trình duyệt của Zalo/Facebook: hướng dẫn mở bằng trình duyệt
- const L=window.listen;if(typeof L=='function'&&!L._mic){const w=function(...a){const e=env();if(e.inapp&&!sessionStorage.getItem('ss-mic-inapp')){sessionStorage.setItem('ss-mic-inapp','1');open();return}return L.apply(this,a)};w._mic=1;window.listen=w}}
+ const L=window.listen;if(typeof L=='function'&&!L._mic){const w=function(...a){const e=env();if(e.inapp&&!sessionStorage.getItem('ss-mic-inapp')){sessionStorage.setItem('ss-mic-inapp','1');open();return}return L.apply(this,a)};Object.assign(w,L);w._mic=1;window.listen=w}}
 setTimeout(hook,0);setTimeout(hook,1500);
 })();

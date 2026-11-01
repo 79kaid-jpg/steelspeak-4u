@@ -210,8 +210,8 @@ window.vLucky=vLucky;window.vLuckyAdmin=vLuckyAdmin;
 
 /* ---------- móc vào app ---------- */
 function hook(){
- const h=window.vHome;if(typeof h=='function'&&!h._lk){const w=function(...a){const s=h.apply(this,a);try{const b=homeCard();if(b){const i=s.indexOf('</div>',s.indexOf('class="topbar"'));if(i>0){const j=s.indexOf('</div>',i+6)+6;return s.slice(0,j)+b+s.slice(j)}return b+s}}catch(e){}return s};w._lk=1;window.vHome=w}
- const d=window.vDone;if(typeof d=='function'&&!d._lk){const w=function(...a){const s=d.apply(this,a);try{const g=S.game;if(g&&!g.lk&&g.pool&&g.pool.length&&g.ok/g.pool.length>=.7){g.lk=1;grant('lesson')}}catch(e){}return s};w._lk=1;window.vDone=w}}
+ const h=window.vHome;if(typeof h=='function'&&!h._lk){const w=function(...a){const s=h.apply(this,a);try{const b=s.includes('class="lk-hc')?'':homeCard();if(b){const i=s.indexOf('</div>',s.indexOf('class="topbar"'));if(i>0){const j=s.indexOf('</div>',i+6)+6;return s.slice(0,j)+b+s.slice(j)}return b+s}}catch(e){}return s};Object.assign(w,h);w._lk=1;window.vHome=w}
+ const d=window.vDone;if(typeof d=='function'&&!d._lk){const w=function(...a){const s=d.apply(this,a);try{const g=S.game;if(g&&!g.lk&&g.pool&&g.pool.length&&g.ok/g.pool.length>=.7){g.lk=1;grant('lesson')}}catch(e){}return s};Object.assign(w,d);w._lk=1;window.vDone=w}}
 setTimeout(hook,0);setTimeout(hook,1600);
 addEventListener('ss-kaka-win',()=>grant('kaka'));
 setInterval(()=>{const u=on()?USER.id:null;if(u!==LK.uid){LK.uid=u;LK.camp=undefined;LK.mine=null;if(u)load().then(()=>{try{if((S.streak||0)>=7)grant('streak7')}catch(e){}})}},2000);
