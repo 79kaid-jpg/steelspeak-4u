@@ -1,0 +1,183 @@
+/* ===================== VÒNG QUAY MAY MẮN THEO MÙA =====================
+ Học viên: nhận lượt khi học (xong bài, chuỗi 7 ngày, thắng Kaka) → quay → quà do máy chủ chọn theo tỉ lệ.
+ Admin: tạo vòng quay, chọn quà từ bộ ảnh theo mùa, đặt tỉ lệ %, số lượng, xem người trúng & đánh dấu đã trao.
+ Máy chủ: supabase/lucky.sql */
+(function(){
+/* ---------- bộ ảnh quà (SVG, khung 64) ---------- */
+const P={
+candy:'<path d="M24 56V24a10 10 0 0 1 20 0v3" fill="none" stroke="#f1d2d2" stroke-width="12" stroke-linecap="round"/><path d="M24 56V24a10 10 0 0 1 20 0v3" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round"/><path d="M24 56V24a10 10 0 0 1 20 0v3" fill="none" stroke="#e03131" stroke-width="9" stroke-dasharray="6 6"/>',
+ginger:'<circle cx="32" cy="16" r="9" fill="#c47a3f"/><path d="M20 28h24l8 8-4 4-6-5v9l6 13-6 3-8-12-8 12-6-3 6-13v-9l-6 5-4-4z" fill="#c47a3f"/><circle cx="29" cy="15" r="1.6" fill="#3b2314"/><circle cx="35" cy="15" r="1.6" fill="#3b2314"/><path d="M28 19q4 3 8 0" stroke="#fff" stroke-width="1.5" fill="none" stroke-linecap="round"/><circle cx="32" cy="33" r="2" fill="#fff"/><circle cx="32" cy="40" r="2" fill="#2f9e44"/>',
+cocoa:'<path d="M14 26h30v18a10 10 0 0 1-10 10h-10a10 10 0 0 1-10-10z" fill="#e03131"/><path d="M44 30h4a6 6 0 0 1 0 12h-4" fill="none" stroke="#e03131" stroke-width="4"/><path d="M14 27h30" stroke="#7a4419" stroke-width="5"/><path d="M22 20c0-4 4-4 4-8M32 20c0-4 4-4 4-8" stroke="#adb5bd" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="29" cy="41" r="4" fill="#fff"/>',
+socks:'<path d="M24 16h16v24l7 5a7 7 0 0 1-4 13H31a9 9 0 0 1-9-9V16z" fill="#e03131"/><rect x="21" y="8" width="22" height="10" rx="3" fill="#fff" stroke="#ced4da" stroke-width="1.5"/><circle cx="34" cy="34" r="3" fill="#fab005"/>',
+bauble:'<circle cx="32" cy="38" r="18" fill="#1c7ed6"/><rect x="27" y="14" width="10" height="7" rx="2" fill="#fab005"/><path d="M14 38h36" stroke="#fff" stroke-width="3" stroke-dasharray="2 4" stroke-linecap="round"/><circle cx="25" cy="31" r="4" fill="#fff" fill-opacity=".45"/>',
+lixi:'<rect x="16" y="8" width="32" height="48" rx="5" fill="#e03131"/><path d="M16 20q16 12 32 0V13a5 5 0 0 0-5-5H21a5 5 0 0 0-5 5z" fill="#c92a2a"/><circle cx="32" cy="27" r="7" fill="#fcc419"/><path d="M29 27h6" stroke="#e03131" stroke-width="2"/>',
+banhchung:'<rect x="12" y="12" width="40" height="40" rx="4" fill="#2b8a3e"/><rect x="16" y="16" width="32" height="32" rx="2" fill="#40c057"/><path d="M12 32h40M32 12v40" stroke="#f1d29a" stroke-width="3"/>',
+mai:'<g fill="#fcc419"><circle cx="32" cy="18" r="9"/><circle cx="45" cy="28" r="9"/><circle cx="40" cy="44" r="9"/><circle cx="24" cy="44" r="9"/><circle cx="19" cy="28" r="9"/></g><circle cx="32" cy="32" r="6" fill="#e8590c"/>',
+mut:'<rect x="10" y="24" width="44" height="28" rx="5" fill="#e03131"/><rect x="8" y="16" width="48" height="11" rx="4" fill="#c92a2a"/><circle cx="32" cy="38" r="8" fill="#fcc419"/><path d="M32 32v12M26 38h12" stroke="#e03131" stroke-width="2"/>',
+cupcake:'<path d="M18 34h28l-4 20H22z" fill="#4dabf7"/><path d="M22 34l2 20M29 34l1 20M36 34l-1 20M42 34l-2 20" stroke="#1c7ed6" stroke-width="1.5"/><path d="M14 35a18 14 0 0 1 36 0z" fill="#f783ac"/><circle cx="32" cy="16" r="4" fill="#e03131"/><path d="M22 27h2M30 23h2M38 28h2" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>',
+cake:'<path d="M12 32h40v18a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4z" fill="#f783ac"/><path d="M12 39q5 4 10 0t10 0 10 0 10 0" fill="none" stroke="#fff" stroke-width="3"/><rect x="29" y="18" width="6" height="14" rx="2" fill="#4dabf7"/><path d="M32 7c3 3 3 7 0 9-3-2-3-6 0-9z" fill="#fab005"/>',
+milktea:'<path d="M18 20h28l-3 34H21z" fill="#e9c9a0"/><path d="M18 20h28" stroke="#495057" stroke-width="3" stroke-linecap="round"/><path d="M36 20l6-14" stroke="#e8590c" stroke-width="3" stroke-linecap="round"/><g fill="#3b2314"><circle cx="26" cy="47" r="2.6"/><circle cx="32" cy="49" r="2.6"/><circle cx="38" cy="46" r="2.6"/><circle cx="29" cy="42" r="2.6"/><circle cx="35" cy="41" r="2.6"/></g>',
+balloon:'<ellipse cx="30" cy="26" rx="15" ry="18" fill="#e64980"/><path d="M27 44l3-3 3 3z" fill="#c2255c"/><path d="M30 46c-4 6 4 8 0 14" stroke="#868e96" stroke-width="1.5" fill="none"/><ellipse cx="24" cy="19" rx="4" ry="6" fill="#fff" fill-opacity=".4"/>',
+xp200:'<circle cx="32" cy="32" r="24" fill="#fab005"/><circle cx="32" cy="32" r="18" fill="#ffd43b"/><path d="M34 18 24 34h8l-2 12 10-16h-8z" fill="#e8590c"/>',
+frame:'<circle cx="32" cy="36" r="20" fill="#ede7ff"/><circle cx="32" cy="36" r="20" fill="none" stroke="#7048e8" stroke-width="5"/><circle cx="32" cy="32" r="6" fill="#7048e8"/><path d="M22 48a10 10 0 0 1 20 0" fill="#7048e8"/><path d="M22 10l5 5 5-8 5 8 5-5-2 9H24z" fill="#fab005"/>',
+sticker:'<path d="M32 6l7.6 15.4 17 2.5-12.3 12 2.9 16.9L32 44.8l-15.2 8 2.9-16.9-12.3-12 17-2.5z" fill="#fab005" stroke="#e67700" stroke-width="2" stroke-linejoin="round"/><circle cx="27" cy="29" r="2" fill="#3b2314"/><circle cx="37" cy="29" r="2" fill="#3b2314"/><path d="M27 35q5 4 10 0" stroke="#3b2314" stroke-width="2" fill="none" stroke-linecap="round"/>',
+notebook:'<rect x="16" y="8" width="34" height="48" rx="4" fill="#4263eb"/><rect x="16" y="8" width="8" height="48" rx="2" fill="#364fc7"/><rect x="29" y="16" width="16" height="8" rx="2" fill="#fff"/><path d="M44 8v14l-3-2-3 2V8" fill="#fab005"/>',
+highlighter:'<path d="M10 54h26" stroke="#ffe066" stroke-width="7" stroke-linecap="round"/><g transform="rotate(35 32 30)"><rect x="25" y="4" width="14" height="32" rx="3" fill="#fab005"/><rect x="25" y="34" width="14" height="8" fill="#495057"/><path d="M27 42h10l-3 10h-4z" fill="#fcc419"/></g>',
+bookmark:'<path d="M20 6h24v52L32 48 20 58z" fill="#12b886"/><circle cx="32" cy="22" r="6" fill="#fff"/>',
+coffee:'<path d="M16 24h28v20a10 10 0 0 1-10 10h-8a10 10 0 0 1-10-10z" fill="#fff" stroke="#7a4419" stroke-width="3"/><path d="M44 28h3a6 6 0 0 1 0 12h-3" fill="none" stroke="#7a4419" stroke-width="3"/><path d="M18 31h24" stroke="#7a4419" stroke-width="6" stroke-opacity=".6"/><path d="M24 18c0-3 3-3 3-6M33 18c0-3 3-3 3-6" stroke="#adb5bd" stroke-width="3" fill="none" stroke-linecap="round"/>',
+snack:'<path d="M18 10h28l-3 6 3 6v22l-3 6 3 6H18l3-6-3-6V22l3-6z" fill="#fab005"/><circle cx="32" cy="32" r="8" fill="#e8590c"/>',
+none:'<g fill="#40c057"><circle cx="25" cy="25" r="9"/><circle cx="39" cy="25" r="9"/><circle cx="25" cy="39" r="9"/><circle cx="39" cy="39" r="9"/></g><path d="M32 34c2 10 6 16 10 20" stroke="#2b8a3e" stroke-width="3" fill="none" stroke-linecap="round"/>',
+custom:'<rect x="10" y="26" width="44" height="28" rx="4" fill="#e64980"/><rect x="7" y="18" width="50" height="11" rx="3" fill="#f06595"/><path d="M32 18v36" stroke="#fcc419" stroke-width="6"/><path d="M32 18c-4-10-16-10-14-2 1 3 8 2 14 2 6 0 13 1 14-2 2-8-10-8-14 2z" fill="#fcc419"/>'};
+const PACK=[
+ ['xmas','Giáng sinh',[['candy','Kẹo gậy Noel',10000],['ginger','Bánh quy gừng',20000],['cocoa','Voucher ca cao',30000],['socks','Tất Noel',35000],['bauble','Quả châu',15000]]],
+ ['tet','Tết Nguyên đán',[['lixi','Lì xì 20.000đ',20000],['banhchung','Bánh chưng mini',25000],['mai','Cành mai mini',40000],['mut','Hộp mứt Tết',45000]]],
+ ['bday','Sinh nhật',[['cupcake','Cupcake',25000],['cake','Bánh sinh nhật mini',50000],['milktea','Voucher trà sữa',30000],['balloon','Bóng bay',5000]]],
+ ['star','Ngôi sao học tập',[['xp200','+200 XP',0],['frame','Khung avatar vàng 7 ngày',0],['sticker','Bộ sticker',20000],['notebook','Sổ tay',30000],['highlighter','Bút highlight',15000],['bookmark','Bookmark',10000]]],
+ ['daily','Hằng ngày',[['coffee','Voucher cà phê',25000],['snack','Gói snack',15000],['none','Chúc may mắn lần sau',0],['custom','Quà khác',0]]]];
+const SEASON={xmas:{n:'Giáng sinh',a:'#c8102e',b:'#0f2a1f',c:['#c8102e','#fff4e6','#1f6f43','#fff4e6']},tet:{n:'Tết',a:'#d6336c',b:'#7a0e1c',c:['#e03131','#fff3bf','#f59f00','#fff3bf']},bday:{n:'Sinh nhật',a:'#d6336c',b:'#3b1d5e',c:['#e64980','#fff0f6','#7048e8','#fff0f6']},star:{n:'Ngôi sao học tập',a:'#1f4e79',b:'#14304d',c:['#1f4e79','#e7f5ff','#e39b1a','#e7f5ff']},daily:{n:'Hằng ngày',a:'#1a7d4d',b:'#123d2a',c:['#1a7d4d','#ebfbee','#1c7ed6','#ebfbee']}};
+const gsvg=(k,s=40)=>`<svg width="${s}" height="${s}" viewBox="0 0 64 64" aria-hidden="true">${P[k]||P.custom}</svg>`;
+const money=n=>(+n||0).toLocaleString('vi-VN')+'đ';
+const on=()=>{try{return typeof USER!='undefined'&&USER&&typeof SB!='undefined'}catch(e){return false}};
+const rr=()=>{try{render()}catch(e){}};
+const adm=()=>{try{return !!PROF?.is_admin}catch(e){return false}};
+const needSql=e=>/lucky|function|does not exist/i.test(e?.message||'');
+
+/* ---------- dữ liệu học viên ---------- */
+const LK={camp:undefined,prizes:[],tickets:0,mine:null,rot:0,spinning:false,res:null,off:false,uid:null};window.LK=LK;
+async function load(){if(!on())return;const {data:c,error}=await SB.rpc('lucky_current');if(error){if(needSql(error))LK.off=true;LK.camp=null;return rr()}
+ LK.camp=c&&c.id?c:null;if(!LK.camp){LK.prizes=[];LK.tickets=0;return rr()}
+ const [{data:p},{data:w}]=await Promise.all([SB.from('lucky_prizes').select('*').eq('campaign_id',c.id).order('sort').order('id'),SB.from('lucky_wallet').select('tickets').eq('campaign_id',c.id).eq('user_id',USER.id).maybeSingle()]);
+ LK.prizes=(p||[]).filter(x=>+x.rate>0);LK.tickets=w?.tickets||0;rr()}
+async function loadMine(){const {data}=await SB.from('lucky_spins').select('*').eq('user_id',USER.id).order('id',{ascending:false}).limit(40);LK.mine=data||[];rr()}
+async function grant(why){if(!on()||LK.off||!LK.camp)return;const {data,error}=await SB.rpc('lucky_grant',{why});if(error){if(needSql(error))LK.off=true;return}
+ if(data>0){LK.tickets+=data;try{toast('🎡 +'+data+' lượt quay '+LK.camp.name)}catch(e){}rr()}}
+
+/* ---------- vòng quay ---------- */
+function wheel(){const L=LK.prizes,n=L.length||1,seg=360/n,S2=SEASON[LK.camp.season]||SEASON.xmas;
+ const stops=L.map((p,i)=>`${S2.c[i%4]} ${i*seg}deg ${(i+1)*seg}deg`).join(',');
+ const icons=L.map((p,i)=>`<span style="position:absolute;left:calc(50% - 22px);top:calc(50% - 22px);width:44px;height:44px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.18);transform:rotate(${i*seg+seg/2}deg) translateY(-104px)">${gsvg(p.gift,32)}</span>`).join('');
+ return `<div style="position:relative;width:300px;height:318px;margin:4px auto 0">
+ <svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true" style="position:absolute;left:133px;top:0;z-index:2"><path d="M3 3h28L17 27z" fill="#f2c14e" stroke="#7d5a05" stroke-width="2" stroke-linejoin="round"/></svg>
+ <div style="position:absolute;left:0;top:18px;width:300px;height:300px;border-radius:50%;box-shadow:0 10px 28px rgba(0,0,0,.3),0 0 0 8px ${S2.b},0 0 0 11px #f2c14e"></div>
+ <div id="lkw" style="position:absolute;left:0;top:18px;width:300px;height:300px;border-radius:50%;background:conic-gradient(${stops});transform:rotate(${LK.rot}deg);transition:transform 4.2s cubic-bezier(.15,.7,.12,1)">${icons}</div>
+ <div style="position:absolute;left:118px;top:136px;width:64px;height:64px;border-radius:50%;background:${S2.b};border:4px solid #f2c14e;box-sizing:border-box;display:grid;place-items:center">${gsvg('custom',34)}</div></div>`}
+async function spin(){if(LK.spinning||LK.tickets<=0)return;LK.spinning=true;LK.res=null;rr();
+ const {data,error}=await SB.rpc('lucky_spin');if(error){LK.spinning=false;toast(error.message);return load()}
+ const i=Math.max(0,LK.prizes.findIndex(p=>p.id==data.prize_id)),seg=360/LK.prizes.length;
+ LK.rot=LK.rot-(LK.rot%360)+360*6+(360-(i*seg+seg/2));LK.tickets=data.tickets??Math.max(0,LK.tickets-1);
+ const w=document.getElementById('lkw');if(w)w.style.transform=`rotate(${LK.rot}deg)`;else rr();
+ if(matchMedia('(prefers-reduced-motion:reduce)').matches&&w)w.style.transition='none';
+ setTimeout(()=>{LK.spinning=false;LK.res=data;LK.mine=null;if(data.gift=='xp200'){try{S.xp=(S.xp||0)+200;save()}catch(e){}}
+  try{navigator.vibrate&&navigator.vibrate(data.code?[60,40,140]:30)}catch(e){}rr();resultSheet(data)},matchMedia('(prefers-reduced-motion:reduce)').matches?300:4400)}
+function resultSheet(d){document.querySelectorAll('.lk-ov').forEach(x=>x.remove());const none=d.gift=='none';const ov=document.createElement('div');ov.className='lk-ov';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');
+ ov.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(8,14,20,.66);display:flex;align-items:center;justify-content:center;padding:20px';
+ ov.innerHTML=`<div class="card stack" style="width:min(380px,100%);text-align:center;align-items:center;gap:8px;padding:24px 20px 18px;border-radius:22px">
+ <div class="lbl" style="color:var(--warn)">${none?'Lần này chưa trúng':'Chúc mừng bạn!'}</div>
+ <div style="width:132px;height:132px;border-radius:50%;background:var(--soft);display:grid;place-items:center">${gsvg(d.gift,96)}</div>
+ <h2 style="margin:4px 0 0;font-size:1.8rem">${esc(d.name)}</h2>
+ <p class="mut" style="margin:0">${none?'Học thêm một bài để có lượt quay mới nhé.':d.gift=='xp200'?'Đã cộng 200 XP vào tài khoản của bạn.':d.code?'Admin đã được báo và sẽ nhắn tin hẹn trao quà'+(d.pickup?' · '+esc(d.pickup):'')+'.':'Quà đã được lưu.'}</p>
+ ${d.code?`<div style="width:100%;box-sizing:border-box;border:1.5px dashed var(--bad);border-radius:14px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center"><span class="mut" style="font-size:.8rem;text-align:left">Mã nhận quà<br><b class="mono" style="font-size:1.1rem;color:var(--bad);letter-spacing:.06em">${esc(d.code)}</b></span><button class="chip" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(d.code)}');toast('Đã chép mã')">Sao chép</button></div>`:''}
+ <div class="stack" style="width:100%;margin-top:6px">${LK.tickets>0?`<button class="btn" onclick="this.closest('.lk-ov').remove();LKX.spin()">Quay tiếp · còn ${LK.tickets} lượt</button>`:''}<button class="btn ghost" onclick="this.closest('.lk-ov').remove()">Đóng</button></div></div>`;
+ ov.onclick=e=>{if(e.target===ov)ov.remove()};document.body.appendChild(ov)}
+
+function vLucky(){if(!on())return '<h1>Vòng quay may mắn</h1><p class="mut">Đăng nhập để tham gia.</p>';
+ if(LK.camp===undefined){load();return '<h1>Vòng quay may mắn</h1><p class="mut">Đang tải…</p>'}
+ const back=`<button class="link" onclick="go('home')">‹ Trang Học</button>`;
+ if(!LK.camp)return back+`<h1 style="margin-top:6px">Vòng quay may mắn</h1><div class="card" style="margin-top:12px"><p class="mut" style="margin:0">Hiện chưa có vòng quay nào. Admin sẽ mở vào các dịp lễ, sinh nhật hay thử thách học tập.</p></div>${mineList()}`;
+ const c=LK.camp,S2=SEASON[c.season]||SEASON.xmas,e=c.earn||{};
+ const earn=[['lesson','Xong 1 bài học'],['streak7','Chuỗi 7 ngày học'],['kaka','Thắng Kaka']].filter(([k])=>+e[k]>0);
+ return back+`<div style="border-radius:18px;padding:16px;color:#fff;background:${S2.b};display:flex;gap:12px;align-items:center;margin-top:8px">
+ <div style="flex:1;min-width:0"><div class="lbl" style="color:#f2c14e">Đến hết ${new Date(c.ends_on).toLocaleDateString('vi-VN')}</div><h1 style="margin:2px 0;font-size:1.7rem;color:#fff">${esc(c.name)}</h1><small style="color:#e6eef0">Tối đa ${c.daily_max} lượt mỗi ngày</small></div>
+ <div style="flex:none;width:72px;height:72px;border-radius:16px;background:${S2.a};display:flex;flex-direction:column;align-items:center;justify-content:center"><b style="font-family:var(--fd);font-size:1.9rem;line-height:1">${LK.tickets}</b><small style="font-size:.7rem">lượt quay</small></div></div>
+ ${earn.length?`<div style="display:grid;grid-template-columns:repeat(${earn.length},minmax(0,1fr));gap:8px;margin-top:10px">${earn.map(([k,n])=>`<div class="card" style="padding:8px"><b style="color:var(--good);font-size:.86rem">+${e[k]} lượt</b><div class="mut" style="font-size:.76rem;line-height:1.3">${n}</div></div>`).join('')}</div>`:''}
+ ${LK.prizes.length?wheel():'<p class="note">Vòng quay chưa có quà.</p>'}
+ <button class="btn" style="width:100%;min-height:54px;margin-top:12px;background:${S2.a};font-family:var(--fd);font-size:1.3rem;letter-spacing:.05em" ${LK.spinning||LK.tickets<=0||!LK.prizes.length?'disabled':''} onclick="LKX.spin()">${LK.spinning?'ĐANG QUAY…':LK.tickets>0?'QUAY NGAY':'HẾT LƯỢT · HỌC THÊM ĐỂ NHẬN'}</button>
+ <div class="card" style="margin-top:12px;padding:10px 12px"><div class="row" style="justify-content:space-between"><b style="font-size:.88rem">Tỉ lệ trúng</b><small class="mut">Admin công bố</small></div>
+ <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:14px;row-gap:2px;font-size:.8rem;margin-top:4px">${LK.prizes.map(p=>`<span>${esc(p.name)} · ${+p.rate}%${p.stock!=null&&p.given>=p.stock?' (hết)':''}</span>`).join('')}</div></div>${mineList()}`}
+function mineList(){if(!LK.mine){loadMine();return ''}const L=LK.mine.filter(x=>x.gift!='none');if(!L.length)return '';
+ return `<div class="sec-h"><h2>Quà của tôi</h2><span class="mut">${L.length}</span></div><div class="stack">${L.map(s=>`<div class="card row" style="flex-wrap:nowrap;gap:10px;padding:10px 12px">${gsvg(s.gift,40)}<div style="flex:1;min-width:0"><b>${esc(s.name)}</b><div class="mut" style="font-size:.8rem">${new Date(s.created_at).toLocaleDateString('vi-VN')}${s.code?' · Mã <b class="mono">'+esc(s.code)+'</b>':''}</div></div>${s.code?`<span class="chip ${s.delivered?'on':''}">${s.delivered?'Đã nhận':'Chờ trao'}</span>`:''}</div>`).join('')}</div>`}
+function homeCard(){if(!on()||!LK.camp)return '';const S2=SEASON[LK.camp.season]||SEASON.xmas;
+ return `<button class="card login-nudge" style="margin-top:12px;background:${S2.b};color:#fff;border:0" onclick="go('lucky')"><span class="tile2-ic" style="background:#fff">${gsvg(LK.prizes[0]?.gift||'custom',30)}</span><span style="flex:1;text-align:left"><b>${esc(LK.camp.name)}</b><small style="color:#e6eef0">${LK.tickets>0?'Bạn có '+LK.tickets+' lượt quay · chạm để quay':'Học 1 bài để nhận lượt quay'}</small></span><span class="chev" style="color:#fff">›</span></button>`}
+
+/* ---------- admin ---------- */
+const LA={list:null,ed:null,win:null,pick:null};window.LA=LA;
+async function aLoad(){const {data,error}=await SB.from('lucky_campaigns').select('*').order('id',{ascending:false});if(error){LA.err=needSql(error)?'Cần chạy supabase/lucky.sql trên Supabase':error.message;LA.list=[];return rr()}LA.list=data||[];rr()}
+async function aEdit(id){if(!id){const s='xmas';LA.ed={c:{name:'Vòng quay '+SEASON[s].n,season:s,starts_on:new Date().toISOString().slice(0,10),ends_on:new Date(Date.now()+30*864e5).toISOString().slice(0,10),active:false,earn:{lesson:1,streak7:2,kaka:1},daily_max:3,pickup:''},p:[],del:[]};LA.win=null;return rr()}
+ const c=LA.list.find(x=>x.id==id);const {data}=await SB.from('lucky_prizes').select('*').eq('campaign_id',id).order('sort').order('id');LA.ed={c:{...c},p:(data||[]).map(x=>({...x})),del:[]};LA.win=null;rr();loadWin(id)}
+async function loadWin(id){const {data}=await SB.rpc('lucky_winners',{cid:id});LA.win=data||[];rr()}
+function totals(){const p=LA.ed.p,sum=Math.round(p.reduce((a,x)=>a+(+x.rate||0),0)*100)/100,cost=Math.round(p.reduce((a,x)=>a+(+x.rate||0)/100*(+x.value||0),0)/100)*100;return {sum,cost,ok:Math.abs(sum-100)<.01}}
+function paintTot(){const t=totals(),el=document.getElementById('latot');if(!el)return;const c=t.ok?'var(--good)':'var(--bad)';
+ el.innerHTML=`<div style="height:10px;border-radius:99px;background:var(--line);overflow:hidden"><i style="display:block;height:100%;width:${Math.min(t.sum,100)}%;background:${c}"></i></div><div class="row" style="justify-content:space-between;font-size:.86rem;margin-top:4px"><b style="color:${c}">Tổng ${t.sum}%</b><b style="color:${c}">${t.ok?'Hợp lệ':t.sum<100?'Thiếu '+(Math.round((100-t.sum)*100)/100)+'%':'Thừa '+(Math.round((t.sum-100)*100)/100)+'%'}</b></div><p class="mut" style="margin:6px 0 0;font-size:.82rem">Chi phí ước tính ~${money(t.cost)} / lượt quay · 200 lượt ≈ ${money(t.cost*200)}</p>`;
+ const sv=document.getElementById('lasave');if(sv)sv.disabled=!t.ok}
+function setC(k,v){LA.ed.c[k]=v}
+function setE(k,v){LA.ed.c.earn={...(LA.ed.c.earn||{}),[k]:Math.max(0,parseInt(v,10)||0)}}
+function setP(i,k,v){const p=LA.ed.p[i];if(k=='rate')p.rate=Math.max(0,Math.min(100,parseFloat(String(v).replace(',','.'))||0));else if(k=='value')p.value=Math.max(0,parseInt(String(v).replace(/\D/g,''),10)||0);else if(k=='stock')p.stock=v===''?null:Math.max(0,parseInt(v,10)||0);else p[k]=v;paintTot()}
+function delP(i){const p=LA.ed.p.splice(i,1)[0];if(p&&p.id)LA.ed.del.push(p.id);rr()}
+function season(s){LA.ed.c.season=s;rr()}
+function packOpen(i){LA.pick={i,sel:new Set()};packSheet()}
+function packSheet(){document.querySelectorAll('.lk-ov').forEach(x=>x.remove());const pk=LA.pick,single=pk.i!=null;const ov=document.createElement('div');ov.className='lk-ov';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');
+ ov.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(8,14,20,.6);display:flex;align-items:flex-end;justify-content:center;padding:10px';
+ const cur=LA.ed.c.season,order=[...PACK].sort((a,b)=>(b[0]==cur)-(a[0]==cur));
+ ov.innerHTML=`<div class="card" style="width:min(480px,100%);max-height:calc(100dvh - 20px);overflow:auto;border-radius:20px;padding:14px">
+ <div class="row" style="justify-content:space-between"><h2 style="margin:0">${single?'Đổi ảnh quà':'Bộ quà theo mùa'}</h2><button class="chip" onclick="this.closest('.lk-ov').remove()" aria-label="Đóng">✕</button></div>
+ <p class="mut" style="margin:4px 0 0;font-size:.84rem">${single?'Chạm để chọn ảnh.':'Chạm để chọn nhiều quà, giá chỉ là gợi ý.'}</p>
+ ${order.map(([k,n,L])=>`<h3 style="margin:14px 0 6px">${n}</h3><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">${L.map(([g,nm,v])=>`<button data-g="${g}" onclick="LKX.pk('${g}',this)" aria-pressed="${pk.sel.has(g)}" style="min-height:116px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:14px;background:var(--card);border:${pk.sel.has(g)?'2px solid var(--steel)':'1px solid var(--line)'}">${gsvg(g,50)}<b style="font-size:.78rem;line-height:1.2">${esc(nm)}</b><small class="mut" style="font-size:.72rem">${v?'~'+money(v):g=='none'?'Ô trống':'Miễn phí'}</small></button>`).join('')}</div>`).join('')}
+ ${single?'':`<button class="btn" id="lkadd" style="width:100%;margin-top:14px;position:sticky;bottom:0" onclick="LKX.pkAdd()">Thêm quà đã chọn</button>`}</div>`;
+ ov.onclick=e=>{if(e.target===ov)ov.remove()};document.body.appendChild(ov)}
+function pk(g,btn){const pk=LA.pick;if(pk.i!=null){const p=LA.ed.p[pk.i];const it=PACK.flatMap(x=>x[2]).find(x=>x[0]==g);p.gift=g;if(!p.name||p.name=='Quà mới')p.name=it[1];document.querySelectorAll('.lk-ov').forEach(x=>x.remove());return rr()}
+ pk.sel.has(g)?pk.sel.delete(g):pk.sel.add(g);btn.style.border=pk.sel.has(g)?'2px solid var(--steel)':'1px solid var(--line)';btn.setAttribute('aria-pressed',pk.sel.has(g));const a=document.getElementById('lkadd');if(a)a.textContent=pk.sel.size?'Thêm '+pk.sel.size+' quà':'Thêm quà đã chọn'}
+function pkAdd(){const all=PACK.flatMap(x=>x[2]);for(const g of LA.pick.sel){const it=all.find(x=>x[0]==g);LA.ed.p.push({gift:g,name:it[1],value:it[2],rate:0,stock:g=='none'||g=='xp200'||g=='frame'?null:20,given:0})}document.querySelectorAll('.lk-ov').forEach(x=>x.remove());rr()}
+async function aSave(){const t=totals();if(!t.ok)return toast('Tổng tỉ lệ phải bằng 100%');const c={...LA.ed.c};delete c.created_at;
+ if(!c.name.trim())return toast('Nhập tên vòng quay');if(c.ends_on<c.starts_on)return toast('Ngày kết thúc phải sau ngày bắt đầu');
+ const {data:cc,error}=c.id?await SB.from('lucky_campaigns').update(c).eq('id',c.id).select().single():await SB.from('lucky_campaigns').insert(c).select().single();
+ if(error)return toast(needSql(error)?'Cần chạy supabase/lucky.sql':error.message);
+ if(LA.ed.del.length)await SB.from('lucky_prizes').delete().in('id',LA.ed.del);
+ const rows=LA.ed.p.map((p,i)=>({...(p.id?{id:p.id}:{}),campaign_id:cc.id,gift:p.gift,name:p.name||'Quà',value:+p.value||0,rate:+p.rate||0,stock:p.stock,sort:i}));
+ const ins=rows.filter(r=>!r.id),upd=rows.filter(r=>r.id);
+ for(const r of upd){const {error:e}=await SB.from('lucky_prizes').update(r).eq('id',r.id);if(e)return toast(e.message)}
+ if(ins.length){const {error:e}=await SB.from('lucky_prizes').insert(ins);if(e)return toast(e.message)}
+ toast('Đã lưu vòng quay');LA.list=null;LK.camp=undefined;await aLoad();aEdit(cc.id)}
+async function deliver(id,v){const {error}=await SB.from('lucky_spins').update({delivered:v}).eq('id',id);if(error)return toast(error.message);const w=LA.win.find(x=>x.id==id);if(w)w.delivered=v;rr()}
+function vLuckyAdmin(){if(!adm())return '<h1>Vòng quay may mắn</h1><p class="mut">Chỉ admin.</p>';if(!LA.list){aLoad();return '<h1>Vòng quay may mắn</h1><p class="mut">Đang tải…</p>'}
+ if(!LA.ed)return `<button class="link" onclick="go('admin')">‹ Quản trị</button><h1 style="margin-top:6px">Vòng quay may mắn</h1>${LA.err?`<p class="note">${esc(LA.err)}</p>`:''}
+ <button class="btn" style="width:100%;margin-top:10px" onclick="LKX.aEdit()">＋ Tạo vòng quay mới</button>
+ <div class="stack" style="margin-top:12px">${LA.list.map(c=>{const live=c.active&&new Date().toISOString().slice(0,10)>=c.starts_on&&new Date().toISOString().slice(0,10)<=c.ends_on;return `<button class="card lesson2" onclick="LKX.aEdit(${c.id})"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(c.name)}</b><span class="chip ${live?'on':''}">${live?'Đang chạy':c.active?'Đã bật · ngoài thời gian':'Tắt'}</span></div><div class="mut" style="font-size:.84rem">${(SEASON[c.season]||{}).n||''} · ${new Date(c.starts_on).toLocaleDateString('vi-VN')} – ${new Date(c.ends_on).toLocaleDateString('vi-VN')}</div></button>`}).join('')||'<p class="mut">Chưa có vòng quay nào.</p>'}</div>`;
+ const c=LA.ed.c,e=c.earn||{},fld=(lab,html)=>`<label class="stack" style="gap:4px;font-size:.84rem;color:var(--mut)">${lab}${html}</label>`;
+ const inp=(v,on,type='text',extra='')=>`<input type="${type}" value="${esc(v??'')}" oninput="${on}" ${extra} style="min-height:44px;width:100%;box-sizing:border-box">`;
+ setTimeout(paintTot,0);
+ return `<button class="link" onclick="LA.ed=null;render()">‹ Danh sách vòng quay</button><h1 style="margin-top:6px">${c.id?'Sửa vòng quay':'Vòng quay mới'}</h1>
+ <div class="card stack" style="margin-top:10px"><div class="lbl">Chiến dịch</div>
+ ${fld('Tên vòng quay',inp(c.name,"LKX.setC('name',this.value)"))}
+ <div class="stack" style="gap:6px"><span style="font-size:.84rem;color:var(--mut)">Chủ đề mùa</span><div class="row" style="gap:6px">${Object.entries(SEASON).map(([k,s])=>`<button class="chip ${c.season==k?'on':''}" onclick="LKX.season('${k}')">${s.n}</button>`).join('')}</div></div>
+ <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">${fld('Bắt đầu',inp(c.starts_on,"LKX.setC('starts_on',this.value)",'date'))}${fld('Kết thúc',inp(c.ends_on,"LKX.setC('ends_on',this.value)",'date'))}</div>
+ ${fld('Nơi / cách nhận quà',inp(c.pickup,"LKX.setC('pickup',this.value)",'text','placeholder="VD: Phòng HR, tầng 3"'))}
+ <label class="row" style="min-height:44px;gap:10px"><input type="checkbox" ${c.active?'checked':''} onchange="LKX.setC('active',this.checked)" style="width:22px;height:22px"> <b>Bật vòng quay</b> <small class="mut">(chỉ chạy trong thời gian trên)</small></label></div>
+ <div class="card stack" style="margin-top:10px"><div class="lbl">Cách nhận lượt quay</div>
+ ${[['lesson','Xong 1 bài học'],['streak7','Chuỗi 7 ngày học'],['kaka','Thắng thách đấu Kaka']].map(([k,n])=>`<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span>${n}</span><input type="number" min="0" max="5" aria-label="${n}" value="${+e[k]||0}" oninput="LKX.setE('${k}',this.value)" style="width:70px;min-height:44px;text-align:right"></div>`).join('')}
+ <div class="row" style="justify-content:space-between;flex-wrap:nowrap;border-top:1px solid var(--line);padding-top:8px"><span>Tối đa mỗi người / ngày</span><input type="number" min="1" max="20" aria-label="Tối đa mỗi ngày" value="${c.daily_max}" oninput="LKX.setC('daily_max',Math.max(1,Math.min(20,parseInt(this.value,10)||1)))" style="width:70px;min-height:44px;text-align:right"></div></div>
+ <div class="card stack" style="margin-top:10px;gap:6px"><div class="row" style="justify-content:space-between"><div class="lbl">Quà &amp; tỉ lệ trúng</div><small class="mut">${LA.ed.p.length} ô · nên 4–10</small></div>
+ ${LA.ed.p.map((p,i)=>`<div style="border-bottom:1px solid var(--line);padding:8px 0;display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:8px;align-items:center">
+  <button onclick="LKX.packOpen(${i})" aria-label="Đổi ảnh quà" style="width:52px;height:52px;border-radius:12px;background:var(--soft);display:grid;place-items:center">${gsvg(p.gift,38)}</button>
+  <div class="stack" style="gap:4px"><input value="${esc(p.name)}" aria-label="Tên quà" oninput="LKX.setP(${i},'name',this.value)" style="min-height:40px;width:100%;box-sizing:border-box">
+  <div class="row" style="gap:6px;flex-wrap:nowrap"><input inputmode="numeric" aria-label="Giá trị (đồng)" value="${p.value||0}" oninput="LKX.setP(${i},'value',this.value)" style="min-height:36px;width:50%;box-sizing:border-box" placeholder="Giá trị"><input type="number" min="0" aria-label="Số lượng (trống = không giới hạn)" value="${p.stock??''}" placeholder="∞" oninput="LKX.setP(${i},'stock',this.value)" style="min-height:36px;width:50%;box-sizing:border-box"></div>
+  <small class="mut" style="font-size:.72rem">Giá trị (đ) · Số lượng${p.id&&p.stock!=null?' · đã trao '+p.given:''}</small></div>
+  <div class="stack" style="gap:4px;align-items:flex-end"><label class="row" style="gap:2px;flex-wrap:nowrap;font-weight:600"><input type="number" min="0" max="100" step="0.5" aria-label="Tỉ lệ %" value="${+p.rate||0}" oninput="LKX.setP(${i},'rate',this.value)" style="width:64px;min-height:44px;text-align:right">%</label><button class="link" style="color:var(--bad);min-height:32px" onclick="LKX.delP(${i})">Xóa</button></div></div>`).join('')||'<p class="mut">Chưa có quà. Thêm từ bộ quà bên dưới.</p>'}
+ <div id="latot" style="margin-top:6px"></div>
+ <button class="btn ghost" style="width:100%;border-style:dashed" onclick="LKX.packOpen(null)">＋ Thêm quà từ bộ quà</button>
+ <p class="mut" style="margin:0;font-size:.78rem">Quà hết số lượng: tỉ lệ của nó tự chuyển sang ô “Chúc may mắn lần sau”.</p></div>
+ <button class="btn" id="lasave" style="width:100%;margin-top:12px" onclick="LKX.aSave()">Lưu vòng quay</button>
+ ${c.id?`<div class="sec-h"><h2>Người trúng quà</h2><span class="mut">${LA.win?LA.win.filter(w=>!w.delivered).length+' chờ trao':''}</span></div><div class="stack">${(LA.win||[]).map(w=>`<div class="card row" style="flex-wrap:wrap;gap:10px;padding:10px 12px">${gsvg(w.gift,36)}<div style="flex:1 1 180px;min-width:0"><b>${esc(w.who)}</b> · ${esc(w.name)}<div class="mut" style="font-size:.78rem">Mã <b class="mono">${esc(w.code)}</b> · ${new Date(w.created_at).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div></div><button class="chip ${w.delivered?'on':''}" onclick="LKX.deliver(${w.id},${!w.delivered})">${w.delivered?'✓ Đã trao':'Đánh dấu đã trao'}</button><button class="chip" aria-label="Nhắn tin" onclick="window.NTX&&NTX.openChat('${w.user_id}')">✉</button></div>`).join('')||(LA.win?'<p class="mut">Chưa có ai trúng quà.</p>':'<p class="mut">Đang tải…</p>')}</div>`:''}`}
+function adminCard(){if(!adm())return '';return `<button class="card login-nudge" onclick="LA.ed=null;LA.list=null;go('luckyadm')"><span class="tile2-ic" style="background:#fff">${gsvg('custom',28)}</span><span style="flex:1;text-align:left"><b>Vòng quay may mắn</b><small>Tạo vòng quay theo mùa, quà &amp; tỉ lệ, người trúng</small></span><span class="chev">›</span></button>`}
+
+window.LKX={spin,load,grant,aEdit,setC,setE,setP,delP,season,packOpen,pk,pkAdd,aSave,deliver,homeCard,adminCard,gsvg};
+window.vLucky=vLucky;window.vLuckyAdmin=vLuckyAdmin;
+
+/* ---------- móc vào app ---------- */
+function hook(){
+ const h=window.vHome;if(typeof h=='function'&&!h._lk){const w=function(...a){const s=h.apply(this,a);try{const b=homeCard();if(b){const i=s.indexOf('</div>',s.indexOf('class="topbar"'));if(i>0){const j=s.indexOf('</div>',i+6)+6;return s.slice(0,j)+b+s.slice(j)}return b+s}}catch(e){}return s};w._lk=1;window.vHome=w}
+ const d=window.vDone;if(typeof d=='function'&&!d._lk){const w=function(...a){const s=d.apply(this,a);try{const g=S.game;if(g&&!g.lk&&g.pool&&g.pool.length&&g.ok/g.pool.length>=.7){g.lk=1;grant('lesson')}}catch(e){}return s};w._lk=1;window.vDone=w}}
+setTimeout(hook,0);setTimeout(hook,1600);
+addEventListener('ss-kaka-win',()=>grant('kaka'));
+setInterval(()=>{const u=on()?USER.id:null;if(u!==LK.uid){LK.uid=u;LK.camp=undefined;LK.mine=null;if(u)load().then(()=>{try{if((S.streak||0)>=7)grant('streak7')}catch(e){}})}},2000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&on()&&!LK.spinning)load()});
+})();

@@ -66,7 +66,7 @@ function showResult(c,meFrom,names){const v=verdict(c,meFrom);const me={name:'B�
  <div class="card" style="padding:10px 12px"><b>${esc(c.q.en)}</b><div class="mut" style="font-size:.88rem">Đáp án: ${esc(c.q.opts[c.q.ans]||c.q.vi)}</div></div>
  ${!op.id&&v!='win'?'<p class="mut" style="font-size:.84rem;text-align:center;margin:8px 0 0">Kaka trả lời đúng khoảng 7/10 câu. Thử câu khác để phục thù!</p>':''}
  <div class="stack" style="margin-top:12px"><button class="btn" onclick="CHX.close()">Tiếp tục học</button><button class="btn ghost" onclick="CHX.close();go('duel')">Lịch sử thách đấu</button></div>`);
- if(v=='win'){try{navigator.vibrate&&navigator.vibrate([40,30,80])}catch(e){}}}
+ if(v=='win'){try{navigator.vibrate&&navigator.vibrate([40,30,80])}catch(e){}if(!op.id){try{dispatchEvent(new Event('ss-kaka-win'))}catch(e){}}}}
 
 /* ---------- nhận & trả lời thách đấu ---------- */
 async function loadList(){if(!on())return;const {data,error}=await SB.rpc('my_challenges');if(error){if(needSql(error))CH.off=true;CH.list=[];return}
