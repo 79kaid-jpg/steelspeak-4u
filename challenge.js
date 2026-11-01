@@ -1,7 +1,7 @@
 /* ===================== THÁCH ĐẤU TỪNG CÂU HỎI =====================
  - Trong bài trắc nghiệm / nghe, trả lời xong một câu → "⚔ Thách đấu": gửi đúng câu đó cho Kaka (luôn có),
    Admin (luôn có trong danh sách) hoặc bạn bè. Kaka trả lời ngay; người thật nhận thông báo và trả lời sau.
- - Kaka cũng chủ động thách đấu mỗi người tối đa 1 câu / 20 giờ.
+ - Kaka cũng chủ động thách đấu mỗi người tối đa 4 câu / ngày, cách nhau ít nhất 2 giờ.
  - Thắng: trả lời đúng; nếu cả hai cùng đúng (hoặc cùng sai) thì ai nhanh hơn thắng.
  Máy chủ: supabase/challenges.sql */
 (function(){
@@ -82,7 +82,7 @@ async function answer(k){const cur=CH.cur;if(!cur||cur.done)return;cur.done=true
  setTimeout(()=>{showResult(data,false,{from:cur.c.from_name});CH.list=null;loadList()},650)}
 
 /* ---------- Kaka chủ động thách đấu ---------- */
-async function kakaDaily(){try{if(!on()||CH.off)return;const k='ss-kaka-ch-'+USER.id,last=+localStorage.getItem(k)||0;if(Date.now()-last<20*3600e3)return;
+async function kakaDaily(){try{if(!on()||CH.off)return;const k='ss-kaka-ch-'+USER.id,last=+localStorage.getItem(k)||0;if(Date.now()-last<2*3600e3)return;
  const pool=(typeof TERMS!='undefined'&&TERMS||[]).filter(t=>t&&t.en&&t.vi);if(pool.length<4)return;
  const t=pool[Math.floor(Math.random()*pool.length)];const opts=[t,...pool.filter(x=>x.vi!==t.vi).sort(()=>Math.random()-.5).slice(0,3)].sort(()=>Math.random()-.5);
  let trk='';try{trk=curTrack()?.name||''}catch(e){}
@@ -111,5 +111,6 @@ function hookHome(){const f=window.vHome;if(typeof f!='function'||f._ch)return;c
 setTimeout(hookHome,0);setTimeout(hookHome,1500);
 setInterval(()=>{const u=on()?USER.id:null;if(u!==CH.uid){CH.uid=u;CH.targets=null;CH.list=null;CH.pending=0;if(u){loadList();setTimeout(kakaDaily,4000)}}},2000);
 setInterval(()=>{if(on()&&document.visibilityState==='visible')loadList()},45000);
+setInterval(()=>{if(on()&&document.visibilityState==='visible')kakaDaily()},10*60e3);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&on())loadList()});
 })();

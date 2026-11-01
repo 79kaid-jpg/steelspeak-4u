@@ -88,13 +88,15 @@ begin
   return r;
 end $$;
 
--- Kaka chủ động thách đấu: tối đa 1 lần mỗi 20 giờ cho mỗi người (câu hỏi do app chọn từ khóa đang học)
+-- Kaka chủ động thách đấu: tối đa 4 lần / ngày (cách nhau ≥ 2 giờ) cho mỗi người (câu hỏi do app chọn từ khóa đang học)
 create or replace function public.kaka_challenge(q jsonb, trk text default '')
 returns public.challenges language plpgsql security definer set search_path = public as $$
 declare r challenges; k jsonb;
 begin
   if auth.uid() is null then return null; end if;
-  if exists(select 1 from challenges where from_id is null and to_id = auth.uid() and created_at > now() - interval '20 hours') then return null; end if;
+  -- tối đa 4 câu / 24 giờ, cách nhau ít nhất 2 giờ
+  if (select count(*) from challenges where from_id is null and to_id = auth.uid() and created_at > now() - interval '24 hours') >= 4
+     or exists(select 1 from challenges where from_id is null and to_id = auth.uid() and created_at > now() - interval '2 hours') then return null; end if;
   q := ch_q(q); k := kaka_play();
   insert into challenges(from_id, to_id, track, q, from_ok, from_ms) values (null, auth.uid(), left(trk,60), q, (k->>'ok')::boolean, (k->>'ms')::int) returning * into r;
   insert into notifications(to_id, kind, title, body, ref) values (auth.uid(), 'challenge', '⚔ Kaka thách đấu bạn!', q->>'en', null);
