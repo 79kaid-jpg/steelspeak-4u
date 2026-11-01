@@ -96,8 +96,44 @@ function vLucky(){if(!on())return '<h1>Vòng quay may mắn</h1><p class="mut">�
  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:14px;row-gap:2px;font-size:.8rem;margin-top:4px">${LK.prizes.map(p=>`<span>${esc(p.name)} · ${+p.rate}%${p.stock!=null&&p.given>=p.stock?' (hết)':''}</span>`).join('')}</div></div>${mineList()}`}
 function mineList(){if(!LK.mine){loadMine();return ''}const L=LK.mine.filter(x=>x.gift!='none');if(!L.length)return '';
  return `<div class="sec-h"><h2>Quà của tôi</h2><span class="mut">${L.length}</span></div><div class="stack">${L.map(s=>`<div class="card row" style="flex-wrap:nowrap;gap:10px;padding:10px 12px">${gsvg(s.gift,40)}<div style="flex:1;min-width:0"><b>${esc(s.name)}</b><div class="mut" style="font-size:.8rem">${new Date(s.created_at).toLocaleDateString('vi-VN')}${s.code?' · Mã <b class="mono">'+esc(s.code)+'</b>':''}</div></div>${s.code?`<span class="chip ${s.delivered?'on':''}">${s.delivered?'Đã nhận':'Chờ trao'}</span>`:''}</div>`).join('')}</div>`}
-function homeCard(){if(!on()||!LK.camp)return '';const S2=SEASON[LK.camp.season]||SEASON.xmas;
- return `<button class="card login-nudge" style="margin-top:12px;background:${S2.b};color:#fff;border:0" onclick="go('lucky')"><span class="tile2-ic" style="background:#fff">${gsvg(LK.prizes[0]?.gift||'custom',30)}</span><span style="flex:1;text-align:left"><b>${esc(LK.camp.name)}</b><small style="color:#e6eef0">${LK.tickets>0?'Bạn có '+LK.tickets+' lượt quay · chạm để quay':'Học 1 bài để nhận lượt quay'}</small></span><span class="chev" style="color:#fff">›</span></button>`}
+function hcCss(){if(document.getElementById('lkhc'))return;const s=document.createElement('style');s.id='lkhc';s.textContent=`
+.lk-hc{position:relative;display:flex;align-items:center;gap:12px;width:100%;margin-top:12px;padding:14px 14px 14px 12px;border-radius:18px;border:0;color:#fff;text-align:left;overflow:hidden;cursor:pointer;
+ background:radial-gradient(120% 140% at 0% 0%,color-mix(in srgb,var(--hca) 55%,transparent),transparent 60%),linear-gradient(135deg,var(--hcb),color-mix(in srgb,var(--hcb) 70%,#000));
+ box-shadow:0 0 0 2px color-mix(in srgb,#f2c14e 70%,transparent),0 10px 26px color-mix(in srgb,var(--hca) 45%,transparent);animation:lkglow 2.4s ease-in-out infinite}
+.lk-hc:active{transform:scale(.98)}
+.lk-hc::after{content:"";position:absolute;inset:-40% auto -40% -60%;width:45%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.38),transparent);transform:skewX(-18deg);animation:lkshine 3.2s ease-in-out infinite;pointer-events:none}
+.lk-hc .bulbs{position:absolute;left:10px;right:10px;top:4px;display:flex;justify-content:space-between;pointer-events:none}
+.lk-hc .bulbs i{width:6px;height:6px;border-radius:50%;background:var(--c);box-shadow:0 0 6px var(--c),0 0 12px var(--c);animation:lkbulb 1.2s steps(1) infinite;animation-delay:var(--d)}
+.lk-hc .wh{position:relative;flex:none;width:58px;height:58px}
+.lk-hc .wh svg.w{animation:lkspin 6s linear infinite;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))}
+.lk-hc .wh .pin{position:absolute;left:24px;top:-5px}
+.lk-hc .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;position:relative;z-index:1}
+.lk-hc .tx b{font-family:var(--fd);font-size:1.18rem;line-height:1.1}
+.lk-hc .tx small{color:#f3efe6;font-size:.82rem}
+.lk-hc .go{position:relative;z-index:1;flex:none;display:flex;flex-direction:column;align-items:center;gap:3px}
+.lk-hc .tk{min-width:48px;padding:5px 10px;border-radius:12px;background:#f2c14e;color:#3a2600;font:800 1.05rem/1 var(--fd);text-align:center;animation:lkpop 1.2s ease-in-out infinite}
+.lk-hc .tk small{display:block;font:700 .62rem var(--fb);letter-spacing:.04em;margin-top:2px}
+.lk-hc .cta{font:800 .72rem var(--fd);letter-spacing:.12em;color:#fff;animation:lkblink 1s steps(1) infinite}
+.lk-hc .sp{position:absolute;width:12px;height:12px;pointer-events:none;animation:lktw 1.8s ease-in-out infinite;animation-delay:var(--d)}
+.lk-hc.empty{animation:none;box-shadow:0 0 0 1px color-mix(in srgb,#f2c14e 45%,transparent)}.lk-hc.empty .tk,.lk-hc.empty .cta,.lk-hc.empty .bulbs i{animation:none}.lk-hc.empty .tk{background:rgba(255,255,255,.2);color:#fff}
+@keyframes lkglow{0%,100%{box-shadow:0 0 0 2px color-mix(in srgb,#f2c14e 55%,transparent),0 8px 20px color-mix(in srgb,var(--hca) 35%,transparent)}50%{box-shadow:0 0 0 3px #f2c14e,0 10px 32px color-mix(in srgb,var(--hca) 75%,transparent)}}
+@keyframes lkshine{0%,55%{left:-60%}100%{left:130%}}
+@keyframes lkbulb{0%{opacity:1}50%{opacity:.25}}
+@keyframes lkspin{to{transform:rotate(360deg)}}
+@keyframes lkpop{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+@keyframes lkblink{0%{opacity:1}50%{opacity:.35}}
+@keyframes lktw{0%,100%{transform:scale(.2) rotate(0);opacity:0}50%{transform:scale(1) rotate(90deg);opacity:1}}
+@media (prefers-reduced-motion:reduce){.lk-hc,.lk-hc::after,.lk-hc *{animation:none!important}}`;document.head.appendChild(s)}
+function homeCard(){if(!on()||!LK.camp)return '';hcCss();const S2=SEASON[LK.camp.season]||SEASON.xmas,n=LK.tickets,cols=['#ff6b6b','#ffd43b','#69db7c','#4dabf7','#f783ac'];
+ const L=LK.prizes.length?LK.prizes:[{gift:'custom'}],seg=360/L.length;
+ const wheel=`<svg class="w" width="58" height="58" viewBox="0 0 58 58" aria-hidden="true"><circle cx="29" cy="29" r="28" fill="#f2c14e"/>${L.map((p,i)=>{const a0=(i*seg-90)*Math.PI/180,a1=((i+1)*seg-90)*Math.PI/180,r=25;return `<path d="M29 29L${(29+r*Math.cos(a0)).toFixed(2)} ${(29+r*Math.sin(a0)).toFixed(2)}A${r} ${r} 0 ${seg>180?1:0} 1 ${(29+r*Math.cos(a1)).toFixed(2)} ${(29+r*Math.sin(a1)).toFixed(2)}Z" fill="${S2.c[i%4]}"/>`}).join('')}<circle cx="29" cy="29" r="7" fill="${S2.b}" stroke="#f2c14e" stroke-width="2.5"/></svg><svg class="pin" width="10" height="12" viewBox="0 0 10 12" aria-hidden="true"><path d="M1 1h8L5 11z" fill="#fff" stroke="#7d5a05" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+ const star=(x,y,d,s=12)=>`<svg class="sp" style="left:${x};top:${y};width:${s}px;height:${s}px;--d:${d}s" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0l2.6 9.4L24 12l-9.4 2.6L12 24l-2.6-9.4L0 12l9.4-2.6z" fill="#fff8d6"/></svg>`;
+ return `<button class="lk-hc ${n>0?'':'empty'}" style="--hca:${S2.a};--hcb:${S2.b}" onclick="go('lucky')" aria-label="${esc(LK.camp.name)}: ${n>0?'bạn có '+n+' lượt quay':'học 1 bài để nhận lượt quay'}">
+ <span class="bulbs" aria-hidden="true">${Array.from({length:14},(_,k)=>`<i style="--c:${cols[k%5]};--d:${(k%2)*.6}s"></i>`).join('')}</span>
+ ${n>0?star('46%','14%',0)+star('62%','62%',.6,10)+star('8%','70%',1.1,9)+star('80%','12%',.9,8):''}
+ <span class="wh">${wheel}</span>
+ <span class="tx"><b>${esc(LK.camp.name)}</b><small>${n>0?'Quà đang chờ bạn! Chạm để quay ngay':'Học 1 bài để nhận lượt quay'}</small></span>
+ <span class="go"><span class="tk">${n}<small>LƯỢT</small></span>${n>0?'<span class="cta">QUAY NGAY</span>':''}</span></button>`}
 
 /* ---------- admin ---------- */
 const LA={list:null,ed:null,win:null,pick:null};window.LA=LA;
