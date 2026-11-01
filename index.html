@@ -695,6 +695,7 @@ html,body{max-width:100%;overflow-x:hidden}
 <script src="badges.js"></script>
 <script src="challenge.js"></script>
 <script src="lucky.js"></script>
+<script src="mic.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const CATS = {
@@ -1026,7 +1027,7 @@ function vSpeak(){const t=S.speakItem||TERMS.find(x=>x.en=='Mill Test Certificat
 return `<h1>Luyện phát âm AI</h1><p class="mut">Nghe mẫu giọng Mỹ, rồi bấm mic và đọc lại. AI chấm từng từ.</p>
 <div class="chips" style="margin:10px 0"><button class="chip ${mode=='term'?'on':''}" onclick="S.spMode='term';S.res=null;render()">Thuật ngữ</button><button class="chip ${mode=='sent'?'on':''}" onclick="S.spMode='sent';S.res=null;render()">Câu ví dụ</button><button class="chip" onclick="S.speakItem=TERMS[Math.floor(Math.random()*TERMS.length)];S.res=null;render()">Đổi từ ngẫu nhiên</button></div>
 <div class="card flash" style="min-height:180px"><div class="lbl">${CATS[t.cat].n}</div><div class="big" style="font-size:${mode=='term'?'1.8rem':'1.25rem'}">${esc(target)}</div><div class="mut">${esc(mode=='term'?t.vi:t.exvi)}</div><div class="row">${spk(target)}${slow(target)}</div></div>
-<button class="mic" id="micb" aria-label="Bắt đầu ghi âm" onclick="listen()">${svg('mic')}</button><p class="mut" style="text-align:center;font-size:.84rem" id="mst">${SR?'Chạm để đọc':'Trình duyệt này không mở được micro. Đang dùng chế độ mô phỏng để xem kết quả mẫu.'}</p>
+<button class="mic" id="micb" aria-label="Bắt đầu ghi âm" onclick="listen()">${svg('mic')}</button><p class="mut" style="text-align:center;font-size:.84rem" id="mst">${SR?'Chạm để đọc':'Trình duyệt này không mở được micro. Đang dùng chế độ mô phỏng để xem kết quả mẫu.'}</p><button class="link" style="display:block;margin:2px auto 8px;min-height:36px;font-size:.84rem" onclick="MIC.open()">Kiểm tra micro</button>
 ${S.res?vRes(S.res):''}`}
 function vRes(r){return `<div class="card stack"><div class="lbl">Kết quả</div>${r.aiTip?`<p class="note">💡 ${esc(r.aiTip)}</p>`:''}<div class="score" style="color:${r.score>=80?'var(--good)':r.score>=60?'var(--warn)':'var(--bad)'}">${r.score}<span style="font-size:1.2rem">/100</span></div>
 <div class="gauge"><div><b>${r.acc}</b><span class="mut" style="font-size:.75rem">Chính xác</span></div><div><b>${r.flu}</b><span class="mut" style="font-size:.75rem">Trôi chảy</span></div><div><b>${r.comp}</b><span class="mut" style="font-size:.75rem">Đầy đủ</span></div></div>
@@ -1050,7 +1051,7 @@ r.onerror=e=>{err=e.error;const M={'not-allowed':'Trình duyệt chưa cho dùng
 
 let REC=null;
 async function recListen(t,b,st){if(REC){REC.stop();return}
- let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){st.textContent='Chưa được dùng micro. Vào Cài đặt → Safari → Micrô → Cho phép, rồi tải lại trang.';return}
+ let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){st.textContent='Chưa được dùng micro trên máy này.';if(window.MIC)MIC.open('App chưa được dùng micro. Làm theo hướng dẫn rồi kiểm tra lại.');return}
  const mt=['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(x=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(x))||'';
  const mr=new MediaRecorder(stream,mt?{mimeType:mt}:{});const parts=[];REC=mr;b.classList.add('rec');st.textContent='Đang ghi âm… đọc xong chạm mic lần nữa';
  const lim=setTimeout(()=>{if(mr.state!='inactive')mr.stop()},Math.min(15000,4000+t.length*120));
@@ -1157,7 +1158,7 @@ const inp=(id,v,ph,type='text')=>`<input type="${type}" id="${id}" value="${esc(
 const roleSel=(id,v)=>`<select id="${id}">${ROLES.map(r=>`<option ${r==v?'selected':''}>${r}</option>`).join('')}</select>`;
 function vMe(){if(!USER)return `<h1>Tài khoản</h1><div style="margin-top:12px">${loginBox()}</div><button class="btn ghost" style="width:100%;margin-top:14px" onclick="go('spec')">Xem bản thiết kế ứng dụng</button>`;
 const p=PROF||{};const ini=(p.full_name||USER.email).trim().split(/\s+/).map(w=>w[0]).slice(-2).join('').toUpperCase();
-return `${window.NTX?NTX.meCard():''}${window.CHX?CHX.meCard():''}<div class="coil row" style="flex-wrap:nowrap;margin-top:12px"><div style="width:56px;height:56px;flex:none;border-radius:50%;background:var(--amber);color:#1a1205;display:grid;place-items:center;font-family:var(--fd);font-weight:700;font-size:1.3rem">${esc(ini)}</div><div style="min-width:0"><h1 style="font-size:1.4rem">${esc(p.full_name||'Chưa đặt tên')}</h1><div style="color:#d4e3f2;font-size:.86rem">${[esc(USER.email),esc(p.role||''),p.is_admin?'Admin':''].filter(Boolean).join(' · ')}</div></div></div>
+return `${window.NTX?NTX.meCard():''}${window.CHX?CHX.meCard():''}<button class="card login-nudge" style="margin-top:12px" onclick="MIC.open()"><span class="tile2-ic">🎙</span><span style="flex:1;text-align:left"><b>Kiểm tra micro</b><small>Cho phép micro và nói thử để luyện phát âm</small></span><span class="chev">›</span></button><div class="coil row" style="flex-wrap:nowrap;margin-top:12px"><div style="width:56px;height:56px;flex:none;border-radius:50%;background:var(--amber);color:#1a1205;display:grid;place-items:center;font-family:var(--fd);font-weight:700;font-size:1.3rem">${esc(ini)}</div><div style="min-width:0"><h1 style="font-size:1.4rem">${esc(p.full_name||'Chưa đặt tên')}</h1><div style="color:#d4e3f2;font-size:.86rem">${[esc(USER.email),esc(p.role||''),p.is_admin?'Admin':''].filter(Boolean).join(' · ')}</div></div></div>
 ${S.recover?'<p class="note" style="margin-top:12px">Bạn đang đặt lại mật khẩu. Nhập mật khẩu mới ở mục bên dưới.</p>':''}
 ${window.BDG?BDG.meRow():vBadges()}${vCerts()}<h2>Ảnh đại diện</h2><div class="card row" style="margin-top:8px;flex-wrap:nowrap;gap:14px"><div class="av-prev">${avatarHTML(p.avatar,USER.id,84)}</div><div class="stack" style="flex:1;gap:8px"><label class="btn ghost" for="avf" style="display:block">Tải ảnh lên</label><input type="file" id="avf" accept="image/*" hidden onchange="avUpload(this.files[0])"><button class="btn ghost" onclick="avShuffle()">Đổi nhân vật</button></div></div>
 <details class="set"><summary>Hồ sơ cá nhân<span class="chev">›</span></summary><div class="stack"><label class="lbl" for="pn">Họ tên</label>${inp('pn',p.full_name,'Nguyễn Văn A')}<label class="lbl" for="pr">Vai trò</label>${roleSel('pr',p.role)}<label class="lbl" for="pd">Phòng ban / Nhà máy</label>${inp('pd',p.department,'VD: Product Management – Phú Mỹ')}<button class="btn" onclick="saveProfile()">Lưu hồ sơ</button></div></details>
