@@ -12,21 +12,23 @@ const KAKA_IMG='<img src="assets/kaka_m.png" alt="" style="width:100%;height:100
 const SW='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6M16 16l4 4M19 21l2-2"/><path d="M14.5 6.5 18 3h3v3l-3.5 3.5"/><path d="m5 14 4 4M7 17l-3 3M3 19l2 2"/></svg>';
 const sec=ms=>(ms/1000).toFixed(1).replace('.',',')+' giây';
 function css(){if(document.getElementById('chcss'))return;const s=document.createElement('style');s.id='chcss';s.textContent=`
-.ch-ov{position:fixed;inset:0;z-index:2147483646;background:rgba(8,14,20,.62);display:flex;align-items:flex-end;justify-content:center;padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));animation:chf .2s ease-out}
-.ch-sheet{width:min(460px,100%);max-height:86vh;overflow:auto;background:var(--card);color:var(--ink);border-radius:22px;padding:18px 16px 16px;box-shadow:0 18px 50px #0006;animation:chu .28s cubic-bezier(.2,.9,.3,1)}
+.ch-ov{position:fixed;inset:0;z-index:2147483647;background:rgba(8,14,20,.62);display:flex;align-items:flex-end;justify-content:center;padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));animation:chf .2s ease-out}
+.ch-sheet{width:min(460px,100%);max-height:calc(100vh - 40px);max-height:calc(100dvh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--card);color:var(--ink);border-radius:22px;padding:18px 16px 16px;box-shadow:0 18px 50px #0006;animation:chu .28s cubic-bezier(.2,.9,.3,1)}
 .ch-row{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:8px 10px;border-radius:14px;text-align:left}
 .ch-row:active{background:var(--soft)}.ch-av{width:42px;height:42px;flex:none;border-radius:50%;overflow:hidden;display:grid;place-items:center;background:var(--soft);font-family:var(--fd);font-weight:700}
 .ch-vs{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;text-align:center;margin:14px 0}
 .ch-vs .p{display:flex;flex-direction:column;align-items:center;gap:4px}.ch-vs .p .ch-av{width:64px;height:64px}
 .ch-vs .win .ch-av{box-shadow:0 0 0 3px var(--amber)}.ch-x{font-family:var(--fd);font-weight:800;font-size:1.4rem;color:var(--bad)}
 .ch-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;margin-top:10px;border-radius:14px;border:1.5px dashed var(--bad);color:var(--bad);font-weight:700;background:color-mix(in srgb,var(--bad) 7%,var(--card))}
+.ch-sheet .flash{min-height:0!important;padding:14px!important}.ch-sheet .flash .big{font-size:1.7rem}.ch-sheet .opt{min-height:48px;padding:10px 14px}
+body.ch-open nav{visibility:hidden}
 @keyframes chf{from{opacity:0}}@keyframes chu{from{transform:translateY(30px);opacity:0}}
 @media (prefers-reduced-motion:reduce){.ch-ov,.ch-sheet{animation:none}}`;document.head.appendChild(s)}
 function avatar(id,name,av){if(!id)return `<span class="ch-av">${KAKA_IMG}</span>`;try{if(typeof avatarHTML=='function')return `<span class="ch-av">${avatarHTML(av,id,42)}</span>`}catch(e){}return `<span class="ch-av">${esc((name||'?').trim()[0]||'?')}</span>`}
-function sheet(html){css();document.querySelectorAll('.ch-ov').forEach(x=>x.remove());const ov=document.createElement('div');ov.className='ch-ov';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');
- ov.innerHTML=`<div class="ch-sheet">${html}</div>`;ov.onclick=e=>{if(e.target===ov)close()};document.body.appendChild(ov);
+function sheet(html){css();document.querySelectorAll('.ch-ov').forEach(x=>{document.removeEventListener('keydown',x._kd);x.remove()});const ov=document.createElement('div');ov.className='ch-ov';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');
+ ov.innerHTML=`<div class="ch-sheet">${html}</div>`;document.body.classList.add('ch-open');ov.onclick=e=>{if(e.target===ov)close()};document.body.appendChild(ov);
  const kd=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',kd);ov._kd=kd;setTimeout(()=>{const f=ov.querySelector('button');f&&f.focus()},40);return ov}
-function close(){document.querySelectorAll('.ch-ov').forEach(x=>{document.removeEventListener('keydown',x._kd);x.remove()})}
+function close(){document.querySelectorAll('.ch-ov').forEach(x=>{document.removeEventListener('keydown',x._kd);x.remove()});document.body.classList.remove('ch-open')}
 function needSql(e){return /challenge|function|does not exist/i.test(e?.message||'')}
 
 /* ---------- bắt câu hỏi đang làm trong bài ---------- */
@@ -72,7 +74,7 @@ async function loadList(){if(!on())return;const {data,error}=await SB.rpc('my_ch
 function play(id){const c=(CH.list||[]).find(x=>x.id==id);if(!c)return;CH.cur={c,t0:Date.now(),done:false};const q=c.q;
  const say1=`say(${esc(JSON.stringify(q.en))})`;
  sheet(`<div class="row" style="justify-content:space-between;flex-wrap:nowrap">${avatar(c.from_id,c.from_name)}<div style="flex:1;min-width:0"><div class="lbl">${esc(c.from_name)} thách đấu bạn</div><small class="mut">${c.from_id?'':'Kaka đúng khoảng 7/10 câu. '}Chọn nghĩa đúng, càng nhanh càng tốt</small></div></div>
- ${q.mode=='listen'?`<div class="card flash" style="min-height:120px;margin-top:12px"><div class="mut">Nghe và chọn nghĩa đúng</div><button class="mic" style="background:var(--steel)" onclick="${say1}" aria-label="Nghe">${typeof svg=='function'?svg('spk'):'🔊'}</button></div>`:`<div class="card flash" style="min-height:110px;margin-top:12px"><div class="big">${esc(q.en)}</div><button class="ic" onclick="${say1}" aria-label="Nghe">${typeof svg=='function'?svg('spk'):'🔊'}</button></div>`}
+ ${q.mode=='listen'?`<div class="card flash" style="margin-top:12px"><div class="mut">Nghe và chọn nghĩa đúng</div><button class="mic" style="background:var(--steel)" onclick="${say1}" aria-label="Nghe">${typeof svg=='function'?svg('spk'):'🔊'}</button></div>`:`<div class="card flash" style="margin-top:12px"><div class="big">${esc(q.en)}</div><button class="ic" onclick="${say1}" aria-label="Nghe">${typeof svg=='function'?svg('spk'):'🔊'}</button></div>`}
  <div class="stack" style="margin-top:10px" id="chopts">${q.opts.map((o,k)=>`<button class="opt" onclick="CHX.answer(${k})">${esc(o)}</button>`).join('')}</div>`);
  if(q.mode=='listen')setTimeout(()=>{try{say(q.en)}catch(e){}},300)}
 async function answer(k){const cur=CH.cur;if(!cur||cur.done)return;cur.done=true;const ms=Date.now()-cur.t0,ok=k===cur.c.q.ans;
