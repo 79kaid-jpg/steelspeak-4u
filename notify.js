@@ -95,20 +95,65 @@ function addEmo(e){const ta=document.getElementById('msgin');if(!ta){NT.draft=(N
 async function sendEmo(e){NT.draft=e;const ta=document.getElementById('msgin');if(ta)ta.value=e;await send()}
 const ago=t=>{if(!t)return '';const s=(Date.now()-new Date(t))/1000;return s<60?'vừa xong':s<3600?Math.floor(s/60)+' phút trước':s<86400?Math.floor(s/3600)+' giờ trước':new Date(t).toLocaleDateString('vi')};
 const onlineNow=t=>t&&Date.now()-new Date(t)<3*60*1000;
-function vChat(){const adm=isAdm()&&NT.thread!==USER.id;const th=adm&&(NT.threads||[]).find(x=>x.user_id==NT.thread);
+function chatCss(){if(document.getElementById('chatcss'))return;const s=document.createElement('style');s.id='chatcss';s.textContent=`
+.cx-head{position:sticky;top:0;z-index:4;display:flex;align-items:center;gap:10px;margin:-12px -16px 0;padding:10px 16px;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.cx-back{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--steel);background:var(--soft)}
+.cx-av{position:relative;flex:none;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font:700 1rem var(--fd);color:#fff;background:linear-gradient(135deg,var(--steel),var(--steel2))}
+.cx-av.on::after{content:"";position:absolute;right:0;bottom:0;width:11px;height:11px;border-radius:50%;background:#2fb344;box-shadow:0 0 0 2px var(--bg)}
+.cx-name{font:700 1.05rem/1.2 var(--fd)}.cx-sub{font-size:.76rem;color:var(--mut)}
+.cx-list{display:flex;flex-direction:column;gap:3px;padding:14px 0 10px}
+.cx-day{align-self:center;margin:10px 0 6px;padding:3px 12px;border-radius:99px;font-size:.72rem;color:var(--mut);background:color-mix(in srgb,var(--card) 85%,transparent);border:1px solid var(--line)}
+.cx-row{display:flex;align-items:flex-end;gap:6px}.cx-row.me{justify-content:flex-end}
+.cx-row .mini{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:700 .72rem var(--fd);color:#fff;background:linear-gradient(135deg,var(--steel),var(--steel2))}
+.cx-row .ph{flex:none;width:28px}
+.cx-b{position:relative;max-width:76%;padding:9px 13px 7px;border-radius:20px;line-height:1.42;white-space:pre-wrap;overflow-wrap:anywhere;animation:cxin .28s cubic-bezier(.2,.9,.3,1.2) both}
+.cx-b.me{color:#fff;background:linear-gradient(135deg,var(--steel2),var(--steel) 70%);box-shadow:0 6px 16px color-mix(in srgb,var(--steel) 30%,transparent)}
+.cx-b.them{background:color-mix(in srgb,var(--card) 92%,transparent);border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.cx-row.me.last .cx-b{border-bottom-right-radius:6px}.cx-row.them.last .cx-b{border-bottom-left-radius:6px}
+.cx-t{display:flex;justify-content:flex-end;align-items:center;gap:4px;margin-top:2px;font-size:.66rem;opacity:.75}
+.cx-big{font-size:3.2rem;line-height:1.1;animation:cxpop .45s cubic-bezier(.2,1.5,.4,1) both}
+.cx-buzz{align-self:center;margin:6px 0;padding:6px 14px;border-radius:99px;background:color-mix(in srgb,var(--bad) 14%,var(--card));color:var(--bad);font:700 .86rem var(--fd);letter-spacing:.06em}
+.cx-dock{position:sticky;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:3;margin:0 -16px;padding:8px 12px 10px;background:linear-gradient(to top,var(--bg) 70%,color-mix(in srgb,var(--bg) 0%,transparent))}
+.cx-emo{display:flex;gap:2px;overflow-x:auto;padding:0 2px 6px;scrollbar-width:none}.cx-emo::-webkit-scrollbar{display:none}
+.cx-emo button{flex:none;width:42px;height:42px;border-radius:50%;font-size:1.45rem;transition:transform .15s}.cx-emo button:active{transform:scale(1.25)}
+.cx-bar{display:flex;align-items:flex-end;gap:8px;padding:6px;border-radius:26px;background:var(--card);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.cx-bar:focus-within{border-color:color-mix(in srgb,var(--steel) 60%,var(--line));box-shadow:0 0 0 3px color-mix(in srgb,var(--steel) 18%,transparent),0 8px 24px rgba(0,0,0,.12)}
+.cx-bar textarea{flex:1;min-width:0;min-height:40px;max-height:38vh;padding:9px 6px;border:0;outline:0;resize:none;background:transparent;color:inherit;font:inherit;font-size:16px;line-height:1.4}
+.cx-ib{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center}
+.cx-buzzb{color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent)}
+.cx-send{color:#fff;background:linear-gradient(135deg,var(--steel2),var(--steel));box-shadow:0 6px 14px color-mix(in srgb,var(--steel) 40%,transparent);transition:transform .15s}
+.cx-send:active{transform:scale(.9)}.cx-send:disabled{opacity:.5}
+.cx-note{margin:8px 0 0;font-size:.74rem;color:var(--mut);text-align:center}
+@keyframes cxin{from{opacity:0;transform:translateY(8px) scale(.97)}}
+@keyframes cxpop{from{opacity:0;transform:scale(.3)}}
+@media (prefers-reduced-motion:reduce){.cx-b,.cx-big{animation:none}}
+html[data-season="noel"] .cx-b.me,html[data-season="tet"] .cx-b.me{background:linear-gradient(135deg,#d42a45,#9f0f28)!important;color:#fff!important}
+html[data-season="noel"] .cx-send,html[data-season="tet"] .cx-send{background:linear-gradient(135deg,#d42a45,#9f0f28)!important;color:#fff!important}
+html[data-season="noel"] .cx-av,html[data-season="noel"] .cx-row .mini{background:linear-gradient(135deg,#1f6f43,#0f3d27)}
+html[data-season="noel"] .cx-head,html[data-season="tet"] .cx-head{padding-top:30px}
+html[data-season="noel"] .cx-bar{box-shadow:0 0 0 1px color-mix(in srgb,#f2c14e 30%,transparent),0 8px 24px rgba(0,0,0,.25)}`;document.head.appendChild(s)}
+const ini=n=>String(n||'?').trim().split(/\s+/).map(w=>w[0]).slice(-2).join('').toUpperCase();
+const hm=d=>new Date(d).toLocaleTimeString('vi',{hour:'2-digit',minute:'2-digit'});
+const dayLbl=d=>{const x=new Date(d),t=new Date();const y=new Date(t-864e5);return x.toDateString()==t.toDateString()?'Hôm nay':x.toDateString()==y.toDateString()?'Hôm qua':x.toLocaleDateString('vi',{weekday:'long',day:'2-digit',month:'2-digit'})};
+function vChat(){chatCss();const adm=isAdm()&&NT.thread!==USER.id;const th=adm&&(NT.threads||[]).find(x=>x.user_id==NT.thread);
  const who=adm?(th?.name||(typeof ADM!='undefined'&&ADM.list||[]).find(u=>u.id==NT.thread)?.full_name||'Học viên'):'Admin SteelSpeak';
- const b=NT.msgs.map(m=>{const mine=adm?m.from_admin:!m.from_admin;
- if(isBuzz(m.body))return `<div style="text-align:center;margin:4px 0"><span style="display:inline-block;padding:6px 14px;border-radius:99px;background:color-mix(in srgb,var(--bad) 14%,var(--card));color:var(--bad);font-family:var(--fd);font-weight:700;letter-spacing:.06em">📳 ${mine?'Bạn đã BUZZ':esc(adm?'Học viên':'Admin')+' đã BUZZ bạn'}!!!</span><div class="mut" style="font-size:.7rem">${new Date(m.created_at).toLocaleString('vi',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})}</div></div>`;
- const big=emojiOnly(m.body);
- if(big)return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'}"><div style="text-align:${mine?'right':'left'}"><div style="font-size:${big==1?'4.2rem':big<=3?'3.2rem':'2.4rem'};line-height:1.15;letter-spacing:.04em">${esc(m.body.trim())}</div><div class="mut" style="font-size:.7rem">${new Date(m.created_at).toLocaleString('vi',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})}${mine&&m.read_at?' · đã xem':''}</div></div></div>`;
- return `<div style="display:flex;justify-content:${mine?'flex-end':'flex-start'}"><div style="max-width:82%;padding:9px 12px;border-radius:16px;${mine?'background:var(--steel);color:var(--onsteel);border-bottom-right-radius:4px':'background:var(--card);border:1px solid var(--line);border-bottom-left-radius:4px'}"><div style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(m.body)}</div><div style="font-size:.7rem;opacity:.7;text-align:right;margin-top:2px">${new Date(m.created_at).toLocaleString('vi',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'})}${mine&&m.read_at?' · đã xem':''}</div></div></div>`}).join('');
- return `<button class="link" onclick="${adm?"NT.thread=null;NTX.threads();go('msg')":"go('me')"}">‹ ${adm?'Tất cả cuộc trò chuyện':'Tài khoản'}</button>
- <h1 style="margin-top:6px">${esc(who)}</h1>${th&&th.last_seen?`<p class="mut" style="font-size:.84rem">${onlineNow(th.last_seen)?'🟢 Đang học: '+esc(th.activity||''):'Học lần cuối '+ago(th.last_seen)}</p>`:adm?'':'<p class="mut" style="font-size:.84rem">Hỏi bài, góp ý hay báo lỗi, admin sẽ trả lời tại đây.</p>'}
- <div class="stack" style="gap:8px;margin-top:12px">${b||'<p class="mut">Chưa có tin nhắn nào. Gửi lời chào đầu tiên nhé!</p>'}<div id="msgend"></div></div>
- ${adm&&th&&!onlineNow(th.last_seen)?`<p class="mut" style="font-size:.8rem;margin-top:10px">Người này đang không mở app. Cứ gửi, tin nhắn được lưu lại và hiện ngay khi họ mở app (kèm chấm đỏ ở tab Tài khoản).</p>`:''}
- <div style="position:sticky;bottom:84px;margin-top:12px"><div class="row" style="flex-wrap:nowrap;overflow-x:auto;gap:4px;padding:4px 2px;background:var(--bg)">${EMO.map(e=>`<button style="font-size:1.7rem;min-width:44px;min-height:44px;border-radius:10px" onclick="NTX.sendEmo('${e}')" title="Gửi ${e}" aria-label="Gửi ${e}">${e}</button>`).join('')}</div>
- <div class="card" style="padding:10px;display:flex;flex-direction:column;gap:8px;scroll-margin-bottom:100px"><textarea id="msgin" rows="3" maxlength="2000" placeholder="Nhập tin nhắn…" style="width:100%;min-height:84px;max-height:45vh;resize:none;border:0;background:transparent;color:inherit;font:inherit;font-size:16px;line-height:1.45;overflow-y:auto" oninput="NT.draft=this.value;this.style.height='auto';this.style.height=Math.min(this.scrollHeight,innerHeight*.45)+'px';this.closest('.card').scrollIntoView({block:'end'})" onfocus="setTimeout(()=>this.closest('.card').scrollIntoView({block:'end',behavior:'smooth'}),250)">${esc(NT.draft||'')}</textarea><div class="row" style="flex-wrap:nowrap;justify-content:space-between"><button class="btn ghost" style="flex:none;padding:0 14px;font-weight:700;color:var(--bad)" title="Rung màn hình người nhận" onclick="NTX.buzz()">📳 BUZZ</button><button class="btn" style="flex:none;min-width:96px" ${NT.sending?'disabled':''} onclick="NTX.send()">Gửi ➤</button></div></div></div>
- <p class="mut" style="font-size:.76rem;margin-top:6px">Chạm một emoji để gửi ngay thành emoji lớn. Tin chỉ có emoji sẽ hiện cỡ lớn.</p>`}
+ const live=th&&onlineNow(th.last_seen),M=NT.msgs;let lastDay='',out='';
+ M.forEach((m,k)=>{const mine=adm?m.from_admin:!m.from_admin,dl=dayLbl(m.created_at);if(dl!==lastDay){out+=`<div class="cx-day">${dl}</div>`;lastDay=dl}
+  if(isBuzz(m.body)){out+=`<div class="cx-buzz">📳 ${mine?'Bạn đã BUZZ':esc(adm?who:'Admin')+' đã BUZZ bạn'}!!! · ${hm(m.created_at)}</div>`;return}
+  const nx=M[k+1],nxMine=nx&&(adm?nx.from_admin:!nx.from_admin),last=!nx||nxMine!==mine||isBuzz(nx.body)||dayLbl(nx.created_at)!==dl;
+  const seen=mine&&m.read_at?'<svg width="14" height="10" viewBox="0 0 16 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-label="đã xem" role="img"><path d="m1 5 3 3 6-7M7 8l1 1 6-8"/></svg>':'';
+  const av=mine?'':last?`<span class="mini" aria-hidden="true">${esc(ini(who))}</span>`:'<span class="ph"></span>';
+  const big=emojiOnly(m.body);
+  out+=`<div class="cx-row ${mine?'me':'them'} ${last?'last':''}" style="${last?'margin-bottom:6px':''}">${av}${big?`<div style="text-align:${mine?'right':'left'}"><div class="cx-big" style="font-size:${big==1?'4rem':big<=3?'3rem':'2.3rem'}">${esc(m.body.trim())}</div>${last?`<div class="cx-t" style="justify-content:${mine?'flex-end':'flex-start'};color:var(--mut)">${hm(m.created_at)} ${seen}</div>`:''}</div>`:`<div class="cx-b ${mine?'me':'them'}">${esc(m.body)}${last?`<div class="cx-t">${hm(m.created_at)} ${seen}</div>`:''}</div>`}</div>`});
+ const sub=adm?(th&&th.last_seen?(live?'Đang học: '+esc(th.activity||''):'Học lần cuối '+ago(th.last_seen)):'Học viên'):'Thường trả lời trong ngày';
+ return `<div class="cx-head"><button class="cx-back" aria-label="Quay lại" onclick="${adm?"NT.thread=null;NTX.threads();go('msg')":"go('me')"}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+ <span class="cx-av ${live?'on':''}" aria-hidden="true">${esc(ini(who))}</span><div style="min-width:0"><div class="cx-name">${esc(who)}</div><div class="cx-sub">${sub}</div></div></div>
+ <div class="cx-list">${out||'<p class="mut" style="text-align:center;margin:40px 0">Chưa có tin nhắn nào. Gửi lời chào đầu tiên nhé! 👋</p>'}<div id="msgend"></div></div>
+ ${adm&&th&&!live?`<p class="cx-note">Người này đang không mở app. Tin nhắn vẫn được lưu và hiện khi họ mở app.</p>`:''}
+ <div class="cx-dock"><div class="cx-emo" aria-label="Gửi nhanh emoji">${EMO.map(e=>`<button onclick="NTX.sendEmo('${e}')" aria-label="Gửi ${e}">${e}</button>`).join('')}</div>
+ <div class="cx-bar"><button class="cx-ib cx-buzzb" aria-label="BUZZ: rung màn hình người nhận" title="BUZZ" onclick="NTX.buzz()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4 8v8M20 8v8M1.5 10v4M22.5 10v4"/></svg></button>
+ <textarea id="msgin" rows="1" maxlength="2000" placeholder="Nhắn tin…" aria-label="Nội dung tin nhắn" oninput="NT.draft=this.value;this.style.height='auto';this.style.height=Math.min(this.scrollHeight,innerHeight*.38)+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!('ontouchstart' in window)){event.preventDefault();NTX.send()}" onfocus="setTimeout(()=>document.getElementById('msgend')?.scrollIntoView({block:'end',behavior:'smooth'}),300)">${esc(NT.draft||'')}</textarea>
+ <button class="cx-ib cx-send" aria-label="Gửi" ${NT.sending?'disabled':''} onclick="NTX.send()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button></div></div>`}
 function vInbox(){if(!NT.threads){loadThreads();return '<h1>Tin nhắn</h1><p class="mut">Đang tải…</p>'}
  const study=NT.list.filter(n=>n.kind=='study').slice(0,15);
  const perm='Notification' in window?Notification.permission:'na';
