@@ -230,7 +230,7 @@ function fabCss(){if(document.getElementById('lkfabcss'))return;const s=document
 @media (prefers-reduced-motion:reduce){#lkfab,#lkfab *{animation:none!important}}
 body.in-game #lkfab,body.ch-open #lkfab{display:none}`;document.head.appendChild(s)}
 const FK='ss-lkfab-pos';
-function fab(){let el=document.getElementById('lkfab');const show=on()&&LK.camp&&!(typeof S!='undefined'&&(S.tab=='lucky'||S.tab=='luckyadm'));
+function fab(){let el=document.getElementById('lkfab');const show=on()&&LK.camp&&LK.tickets>0&&!(typeof S!='undefined'&&(S.tab=='lucky'||S.tab=='luckyadm'));
  if(!show){if(el)el.remove();return}
  fabCss();const S2=SEASON[LK.camp.season]||SEASON.xmas,n=LK.tickets;
  if(!el){el=document.createElement('button');el.id='lkfab';document.body.appendChild(el);place(el,null);drag(el)}
