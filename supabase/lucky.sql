@@ -81,6 +81,7 @@ declare c lucky_campaigns; n int; today_n int; t int;
 begin
   if auth.uid() is null then return null; end if;
   select * into c from lucky_current(); if c.id is null then return null; end if;
+  if why not in ('lesson','streak7','kaka') then return null; end if;
   n := coalesce((c.earn->>why)::int, 0); if n <= 0 then return null; end if;
   if exists(select 1 from lucky_grants g where g.user_id = auth.uid() and g.campaign_id = c.id and g.created_at > now() - interval '20 seconds') then return null; end if;
   if why = 'streak7' and exists(select 1 from lucky_grants g where g.user_id = auth.uid() and g.campaign_id = c.id and g.reason = 'streak7' and g.day > current_date - 7) then return null; end if;
