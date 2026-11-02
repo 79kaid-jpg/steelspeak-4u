@@ -20,6 +20,8 @@ const DAO=`<svg viewBox="0 0 120 90" aria-hidden="true"><path d="M120 14 C90 20 
 const CSS=`
 /* chung */
 .ss-deco{position:fixed;left:0;right:0;top:0;height:0;z-index:4;pointer-events:none}
+.ss-deco::before{content:"";position:absolute;left:0;right:0;top:0;height:calc(env(safe-area-inset-top,0px) + 34px);background:linear-gradient(var(--bg) 62%,color-mix(in srgb,var(--bg) 0%,transparent))}
+body:has(.ss-deco) #app{padding-top:calc(30px + env(safe-area-inset-top,0px))}
 .ss-fx{position:fixed;inset:0;z-index:3;pointer-events:none;transition:opacity .6s}
 body.in-game .ss-fx{opacity:.18}body.in-game .ss-deco{opacity:.35}
 .ss-gift{position:fixed;left:14px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:50;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-size:28px;border:2px solid #fff;box-shadow:0 8px 22px #0006;animation:ssbob 2.2s ease-in-out infinite}
