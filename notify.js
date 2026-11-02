@@ -78,7 +78,7 @@ function openChat(uid){NT.thread=uid||USER.id;NT.msgs=[];go('msg');loadThread(NT
 function openInbox(){NT.thread=isAdm()?null:USER.id;go('msg');if(isAdm())loadThreads();else loadThread(USER.id)}
 
 /* --- BUZZ (rung màn hình như Yahoo Messenger) --- */
-const BZ='[[buzz]]';const isBuzz=s=>String(s||'').startsWith(BZ);const disp=s=>isBuzz(s)?'📳 BUZZ!!!':String(s||'');
+const BZ='[[buzz]]';const isBuzz=s=>String(s||'').startsWith(BZ);const IMG='[[img]]';const isImg=s=>String(s||'').startsWith(IMG);const disp=s=>isBuzz(s)?'📳 BUZZ!!!':isImg(s)?'🖼️ Hình ảnh':String(s||'');
 function buzzFx(){try{if(!document.getElementById('bzcss')){const st=document.createElement('style');st.id='bzcss';st.textContent='@keyframes bz{0%,100%{transform:translate(0,0)}10%{transform:translate(-14px,6px) rotate(-1deg)}20%{transform:translate(12px,-8px) rotate(1deg)}30%{transform:translate(-10px,-6px)}40%{transform:translate(14px,8px) rotate(1deg)}50%{transform:translate(-12px,4px) rotate(-1deg)}60%{transform:translate(10px,-6px)}70%{transform:translate(-8px,6px)}80%{transform:translate(6px,-4px)}90%{transform:translate(-4px,2px)}}.bzz{animation:bz .7s ease-in-out 2}@media (prefers-reduced-motion:reduce){.bzz{animation:none;outline:6px solid var(--amber);outline-offset:-6px}}';document.head.appendChild(st)}
  const el=document.getElementById('app')||document.body;el.classList.remove('bzz');void el.offsetWidth;el.classList.add('bzz');setTimeout(()=>el.classList.remove('bzz'),1500)}catch(e){}
  try{navigator.vibrate&&navigator.vibrate([200,80,200,80,400])}catch(e){}
@@ -89,8 +89,23 @@ async function buzz(){if(Date.now()-(NT.lastBuzz||0)<30000)return toast('Đợi 
  if(error)return toast('Chưa BUZZ được: '+error.message);buzzFx();await loadThread(NT.thread)}
 
 /* --- giao diện --- */
-const EMO=['👍','❤️','😂','😍','🥰','😊','👏','🎉','🔥','💪','🌟','🙏','😢','😮','🤗','✅','📚','🏆','☕','🌸'];
+const SEAS=()=>document.documentElement.dataset.season||'';
+const SEMO={noel:['🎄','🎅','🤶','⛄','❄️','🦌','🎁','🔔','🍪','🧦','🕯️','🌟','🧣','🍫'],tet:['🧧','🌼','🌸','🏮','🎆','🐉','🍊','🎋','🥮','💰','🐱','🎇']};
+const FAV={noel:['⛄','👸','🎅','🤶','🦌','❄️','🧝','🐧','🍪','🎄','🐻‍❄️','🌟'],tet:['🐉','🧧','🏮','🌸','🐱','🦁','🍊','🎆','🐲','🧨'],'':['🦊','🐼','🐨','🦁','🐯','🐸','🦄','🐵','🐰','🐻']};
+const funAv=id=>{const L=FAV[SEAS()]||FAV[''];let h=0;for(const c of String(id||'x'))h=(h*31+c.charCodeAt(0))>>>0;return L[h%L.length]};
+const EMO0=['👍','❤️','😂','😍','🥰','😊','👏','🎉','🔥','💪','🌟','🙏','😢','😮','🤗','✅','📚','🏆','☕','🌸'];const emoList=()=>[...(SEMO[SEAS()]||[]),...EMO0];
 const emojiOnly=s=>{const x=String(s).trim();if(!x||x.length>40)return 0;try{if(!/\p{Extended_Pictographic}/u.test(x)||/[0-9#*]/.test(x))return 0;if(!/^(?:\p{Extended_Pictographic}|\p{Emoji_Component}|\u200d|\ufe0f|\s)+$/u.test(x))return 0;const n=[...new Intl.Segmenter('vi',{granularity:'grapheme'}).segment(x.replace(/\s/g,''))].length;return n<=6?n:0}catch(e){return 0}};
+async function upImg(file){if(!file||!/^image\//.test(file.type))return toast('Chỉ gửi được hình ảnh');if(NT.sending)return;NT.sending=true;rr();
+ try{let blob=file,ext=(file.type.split('/')[1]||'png').replace('jpeg','jpg');
+  if(file.type!=='image/gif'){const bm=await createImageBitmap(file);const k=Math.min(1,1024/Math.max(bm.width,bm.height));const c=document.createElement('canvas');c.width=Math.round(bm.width*k);c.height=Math.round(bm.height*k);c.getContext('2d').drawImage(bm,0,0,c.width,c.height);
+   const b=await new Promise(r=>c.toBlob(r,'image/webp',.85));if(b&&b.type=='image/webp'){blob=b;ext='webp'}else{blob=await new Promise(r=>c.toBlob(r,'image/png'));ext='png'}}
+  if(blob.size>5242880)throw new Error('Hình quá lớn (tối đa 5MB)');
+  const path=NT.thread+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,10)+'.'+ext;
+  const up=await SB.storage.from('chat-images').upload(path,blob,{contentType:blob.type||'image/'+ext,upsert:false});if(up.error)throw new Error(/bucket|not found/i.test(up.error.message)?'Admin cần chạy supabase/chat_images.sql':up.error.message);
+  const url=SB.storage.from('chat-images').getPublicUrl(path).data.publicUrl;const adm=isAdm()&&NT.thread!==USER.id;
+  const {error}=await SB.from('messages').insert({user_id:NT.thread,from_admin:adm,body:IMG+url});if(error)throw error;NT.sending=false;await loadThread(NT.thread)}
+ catch(e){NT.sending=false;rr();toast('Chưa gửi được hình: '+(e.message||e))}}
+function pasteImg(ev){const it=[...(ev.clipboardData?.items||[])].find(i=>i.kind=='file'&&/^image\//.test(i.type));if(!it)return;ev.preventDefault();upImg(it.getAsFile())}
 function addEmo(e){const ta=document.getElementById('msgin');if(!ta){NT.draft=(NT.draft||'')+e;return}const p=ta.selectionStart??ta.value.length;ta.value=ta.value.slice(0,p)+e+ta.value.slice(p);NT.draft=ta.value;ta.focus();try{ta.setSelectionRange(p+e.length,p+e.length)}catch(x){}}
 async function sendEmo(e){NT.draft=e;const ta=document.getElementById('msgin');if(ta)ta.value=e;await send()}
 const ago=t=>{if(!t)return '';const s=(Date.now()-new Date(t))/1000;return s<60?'vừa xong':s<3600?Math.floor(s/60)+' phút trước':s<86400?Math.floor(s/3600)+' giờ trước':new Date(t).toLocaleDateString('vi')};
@@ -123,15 +138,37 @@ function chatCss(){if(document.getElementById('chatcss'))return;const s=document
 .cx-buzzb{color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent)}
 .cx-send{color:#fff;background:linear-gradient(135deg,var(--steel2),var(--steel));box-shadow:0 6px 14px color-mix(in srgb,var(--steel) 40%,transparent);transition:transform .15s}
 .cx-send:active{transform:scale(.9)}.cx-send:disabled{opacity:.5}
+.cx-av.fun{font-size:1.6rem;background:var(--soft)!important;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--steel) 40%,transparent)}.cx-row .mini.fun{font-size:1.05rem;background:var(--soft)!important}
+.cx-img{display:block;max-width:min(62vw,240px);max-height:280px;border-radius:18px;box-shadow:0 4px 14px rgba(0,0,0,.18);animation:cxpop .35s both}
+.cx-imgb{color:var(--steel);background:color-mix(in srgb,var(--steel) 10%,transparent);cursor:pointer}
+.cx-scene{display:none}
 .cx-note{margin:8px 0 0;font-size:.74rem;color:var(--mut);text-align:center}
 @keyframes cxin{from{opacity:0;transform:translateY(8px) scale(.97)}}
 @keyframes cxpop{from{opacity:0;transform:scale(.3)}}
 @media (prefers-reduced-motion:reduce){.cx-b,.cx-big{animation:none}}
-html[data-season="noel"] .cx-b.me,html[data-season="tet"] .cx-b.me{background:linear-gradient(135deg,#d42a45,#9f0f28)!important;color:#fff!important}
-html[data-season="noel"] .cx-send,html[data-season="tet"] .cx-send{background:linear-gradient(135deg,#d42a45,#9f0f28)!important;color:#fff!important}
+html:is([data-season="noel"],[data-season="tet"]) body:has(.cx-scene){background:radial-gradient(120% 70% at 50% 35%,#d11f2b,#a3111b 55%,#6e0911) fixed!important}
+html[data-season="tet"] body:has(.cx-scene){background:radial-gradient(120% 70% at 50% 35%,#e0302a,#b0141c 55%,#6a0a10) fixed!important}
+html:is([data-season="noel"],[data-season="tet"]) .cx-scene{display:block;position:fixed;left:0;right:0;top:0;height:300px;z-index:0;pointer-events:none}.cx-scene svg{width:100%;height:100%}
+html:is([data-season="noel"],[data-season="tet"]) :is(.cx-head,.cx-list,.cx-dock,.cx-note){position:relative;z-index:1}
+html:is([data-season="noel"],[data-season="tet"]) .cx-head{position:sticky;top:0;background:rgba(120,8,16,.35);border-bottom:2px solid rgba(255,140,140,.5);color:#fff}
+html:is([data-season="noel"],[data-season="tet"]) .cx-head .cx-sub{color:#ffe1d6}html:is([data-season="noel"],[data-season="tet"]) .cx-back{background:rgba(255,255,255,.15);color:#fff}
+html:is([data-season="noel"],[data-season="tet"]) .cx-list{margin:12px -6px 0;padding:14px 10px;border-radius:30px;border:2px solid rgba(255,120,120,.55);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02))}
+html[data-season="tet"] .cx-list,html[data-season="tet"] .cx-head{border-color:rgba(255,210,87,.6)!important}
+html:is([data-season="noel"],[data-season="tet"]) .cx-b.them{background:#f4eeea;border:0;color:#b3122e;font-weight:700;font-family:'Poppins',var(--fd),sans-serif;border-radius:24px}
+html[data-season="noel"] .cx-b.me{background:#0f5a32!important;color:#fff!important;font-weight:600;border-radius:24px}
+html[data-season="tet"] .cx-b.me{background:linear-gradient(135deg,#ffd257,#f2a900)!important;color:#7a0a10!important;font-weight:700;border-radius:24px}
+html:is([data-season="noel"],[data-season="tet"]) :is(.cx-day,.cx-note,.cx-t[style*="--mut"]){color:#ffe7dc!important}html:is([data-season="noel"],[data-season="tet"]) .cx-day{background:rgba(0,0,0,.2);border:0}
+html:is([data-season="noel"],[data-season="tet"]) .cx-dock{background:linear-gradient(to top,#6e0911 60%,transparent)}
+html:is([data-season="noel"],[data-season="tet"]) .cx-emo button{background:rgba(255,255,255,.12)}
+html:is([data-season="noel"],[data-season="tet"]) .cx-bar{background:#f4eeea;color:#3a0a0a;border:0}
+html:is([data-season="noel"],[data-season="tet"]) .cx-list>p.mut{color:#ffe7dc}
+html[data-season="tet"] .cx-send{background:linear-gradient(135deg,#ffd257,#f2a900)!important;color:#7a0a10!important}
+html[data-season="noel"] .cx-send{background:linear-gradient(135deg,#d42a45,#9f0f28)!important;color:#fff!important}
 html[data-season="noel"] .cx-av,html[data-season="noel"] .cx-row .mini{background:linear-gradient(135deg,#1f6f43,#0f3d27)}
 html[data-season="noel"] .cx-head,html[data-season="tet"] .cx-head{padding-top:30px}
 html[data-season="noel"] .cx-bar{box-shadow:0 0 0 1px color-mix(in srgb,#f2c14e 30%,transparent),0 8px 24px rgba(0,0,0,.25)}`;document.head.appendChild(s)}
+function scene(){const se=SEAS();if(se=='noel')return `<div class="cx-scene" aria-hidden="true"><svg viewBox="0 0 390 300" preserveAspectRatio="xMidYMin slice"><g stroke="#0f3d22" stroke-width="7" stroke-linecap="round" fill="none"><path d="M-10 40 C 60 20 120 60 170 30"/><path d="M400 30 C 330 14 270 56 220 26"/></g><g stroke="#2f7d46" stroke-width="3" stroke-linecap="round">${[20,45,70,95,120,145].map(x=>`<path d="M${x} ${38-x/9} l-8 -14 M${x} ${38-x/9} l10 -12 M${x} ${38-x/9} l-6 14 M${x} ${38-x/9} l9 12"/>`).join('')}${[370,345,320,295,270,245].map(x=>`<path d="M${x} ${30-(390-x)/12} l-8 -14 M${x} ${30-(390-x)/12} l10 -12 M${x} ${30-(390-x)/12} l-6 14 M${x} ${30-(390-x)/12} l9 12"/>`).join('')}</g><circle cx="62" cy="58" r="11" fill="#e8b23a"/><circle cx="130" cy="52" r="9" fill="#c8102e" stroke="#f6d27a" stroke-width="2"/><circle cx="300" cy="50" r="11" fill="#c8102e" stroke="#f6d27a" stroke-width="2"/><circle cx="350" cy="56" r="8" fill="#e8b23a"/><ellipse cx="200" cy="40" rx="8" ry="12" fill="#7a4a24"/></svg></div>`;
+ if(se=='tet')return `<div class="cx-scene" aria-hidden="true"><svg viewBox="0 0 390 300" preserveAspectRatio="xMidYMin slice"><g stroke="#5a2d14" stroke-width="3" fill="none" stroke-linecap="round"><path d="M-10 50 C 40 40 80 70 140 50"/><path d="M400 40 C 350 36 310 66 250 52"/></g>${[[30,46],[110,54],[80,80],[360,42],[280,56],[310,82]].map(([x,y])=>`<g fill="#ffcf2e"><circle cx="${x}" cy="${y-7}" r="6"/><circle cx="${x+7}" cy="${y}" r="6"/><circle cx="${x}" cy="${y+7}" r="6"/><circle cx="${x-7}" cy="${y}" r="6"/></g><circle cx="${x}" cy="${y}" r="3.5" fill="#e8590c"/>`).join('')}<path d="M195 0v18" stroke="#ffd257" stroke-width="2"/><ellipse cx="195" cy="42" rx="22" ry="24" fill="#ff3b30"/><path d="M176 42h38" stroke="#ffd257" stroke-width="2"/><rect x="186" y="16" width="18" height="6" rx="2" fill="#ffd257"/><rect x="186" y="62" width="18" height="6" rx="2" fill="#ffd257"/></svg></div>`;return ''}
 const ini=n=>String(n||'?').trim().split(/\s+/).map(w=>w[0]).slice(-2).join('').toUpperCase();
 const hm=d=>new Date(d).toLocaleTimeString('vi',{hour:'2-digit',minute:'2-digit'});
 const dayLbl=d=>{const x=new Date(d),t=new Date();const y=new Date(t-864e5);return x.toDateString()==t.toDateString()?'Hôm nay':x.toDateString()==y.toDateString()?'Hôm qua':x.toLocaleDateString('vi',{weekday:'long',day:'2-digit',month:'2-digit'})};
@@ -142,17 +179,19 @@ function vChat(){chatCss();const adm=isAdm()&&NT.thread!==USER.id;const th=adm&&
   if(isBuzz(m.body)){out+=`<div class="cx-buzz">📳 ${mine?'Bạn đã BUZZ':esc(adm?who:'Admin')+' đã BUZZ bạn'}!!! · ${hm(m.created_at)}</div>`;return}
   const nx=M[k+1],nxMine=nx&&(adm?nx.from_admin:!nx.from_admin),last=!nx||nxMine!==mine||isBuzz(nx.body)||dayLbl(nx.created_at)!==dl;
   const seen=mine&&m.read_at?'<svg width="14" height="10" viewBox="0 0 16 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-label="đã xem" role="img"><path d="m1 5 3 3 6-7M7 8l1 1 6-8"/></svg>':'';
-  const av=mine?'':last?`<span class="mini" aria-hidden="true">${esc(ini(who))}</span>`:'<span class="ph"></span>';
+  const av=mine?'':last?`<span class="mini fun" aria-hidden="true">${funAv(adm?NT.thread:'admin')}</span>`:'<span class="ph"></span>';
+  if(isImg(m.body)){const u=m.body.slice(IMG.length);out+=`<div class="cx-row ${mine?'me':'them'} ${last?'last':''}" style="${last?'margin-bottom:6px':''}">${av}<div style="text-align:${mine?'right':'left'}"><a href="${esc(u)}" target="_blank" rel="noopener"><img class="cx-img" src="${esc(u)}" alt="Hình ảnh" loading="lazy"></a>${last?`<div class="cx-t" style="justify-content:${mine?'flex-end':'flex-start'};color:var(--mut)">${hm(m.created_at)} ${seen}</div>`:''}</div></div>`;return}
   const big=emojiOnly(m.body);
   out+=`<div class="cx-row ${mine?'me':'them'} ${last?'last':''}" style="${last?'margin-bottom:6px':''}">${av}${big?`<div style="text-align:${mine?'right':'left'}"><div class="cx-big" style="font-size:${big==1?'4rem':big<=3?'3rem':'2.3rem'}">${esc(m.body.trim())}</div>${last?`<div class="cx-t" style="justify-content:${mine?'flex-end':'flex-start'};color:var(--mut)">${hm(m.created_at)} ${seen}</div>`:''}</div>`:`<div class="cx-b ${mine?'me':'them'}">${esc(m.body)}${last?`<div class="cx-t">${hm(m.created_at)} ${seen}</div>`:''}</div>`}</div>`});
  const sub=adm?(th&&th.last_seen?(live?'Đang học: '+esc(th.activity||''):'Học lần cuối '+ago(th.last_seen)):'Học viên'):'Thường trả lời trong ngày';
- return `<div class="cx-head"><button class="cx-back" aria-label="Quay lại" onclick="${adm?"NT.thread=null;NTX.threads();go('msg')":"go('me')"}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
- <span class="cx-av ${live?'on':''}" aria-hidden="true">${esc(ini(who))}</span><div style="min-width:0"><div class="cx-name">${esc(who)}</div><div class="cx-sub">${sub}</div></div></div>
+ return `${scene()}<div class="cx-head"><button class="cx-back" aria-label="Quay lại" onclick="${adm?"NT.thread=null;NTX.threads();go('msg')":"go('me')"}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+ <span class="cx-av fun ${live?'on':''}" aria-hidden="true">${funAv(adm?NT.thread:'admin')}</span><div style="min-width:0"><div class="cx-name">${esc(who)}</div><div class="cx-sub">${sub}</div></div></div>
  <div class="cx-list">${out||'<p class="mut" style="text-align:center;margin:40px 0">Chưa có tin nhắn nào. Gửi lời chào đầu tiên nhé! 👋</p>'}<div id="msgend"></div></div>
  ${adm&&th&&!live?`<p class="cx-note">Người này đang không mở app. Tin nhắn vẫn được lưu và hiện khi họ mở app.</p>`:''}
- <div class="cx-dock"><div class="cx-emo" aria-label="Gửi nhanh emoji">${EMO.map(e=>`<button onclick="NTX.sendEmo('${e}')" aria-label="Gửi ${e}">${e}</button>`).join('')}</div>
+ <div class="cx-dock"><div class="cx-emo" aria-label="Gửi nhanh emoji">${emoList().map(e=>`<button onclick="NTX.sendEmo('${e}')" aria-label="Gửi ${e}">${e}</button>`).join('')}</div>
  <div class="cx-bar"><button class="cx-ib cx-buzzb" aria-label="BUZZ: rung màn hình người nhận" title="BUZZ" onclick="NTX.buzz()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4 8v8M20 8v8M1.5 10v4M22.5 10v4"/></svg></button>
- <textarea id="msgin" rows="1" maxlength="2000" placeholder="Nhắn tin…" aria-label="Nội dung tin nhắn" oninput="NT.draft=this.value;this.style.height='auto';this.style.height=Math.min(this.scrollHeight,innerHeight*.38)+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!('ontouchstart' in window)){event.preventDefault();NTX.send()}" onfocus="setTimeout(()=>document.getElementById('msgend')?.scrollIntoView({block:'end',behavior:'smooth'}),300)">${esc(NT.draft||'')}</textarea>
+ <label class="cx-ib cx-imgb" aria-label="Gửi hình hoặc sticker" title="Gửi hình"><input type="file" accept="image/*" hidden onchange="NTX.upImg(this.files[0]);this.value=''"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></label>
+ <textarea id="msgin" rows="1" maxlength="2000" placeholder="Nhắn tin…" aria-label="Nội dung tin nhắn" oninput="NT.draft=this.value;this.style.height='auto';this.style.height=Math.min(this.scrollHeight,innerHeight*.38)+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!('ontouchstart' in window)){event.preventDefault();NTX.send()}" onpaste="NTX.pasteImg(event)" onfocus="setTimeout(()=>document.getElementById('msgend')?.scrollIntoView({block:'end',behavior:'smooth'}),300)">${esc(NT.draft||'')}</textarea>
  <button class="cx-ib cx-send" aria-label="Gửi" ${NT.sending?'disabled':''} onclick="NTX.send()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button></div></div>`}
 function vInbox(){if(!NT.threads){loadThreads();return '<h1>Tin nhắn</h1><p class="mut">Đang tải…</p>'}
  const study=NT.list.filter(n=>n.kind=='study').slice(0,15);
@@ -170,7 +209,7 @@ function meCard(){if(!on()||NT.off)return '';const adm=isAdm();const n=adm?NT.un
 function userBtns(u){if(!on()||!isAdm()||u.id==USER.id)return '';const w=NT.watch.has(u.id),nm=esc(JSON.stringify(u.full_name||u.email));
  return `<button class="chip ${w?'on':''}" title="Báo khi người này bắt đầu học" onclick="NTX.toggleWatch('${u.id}',${nm})">${w?'🔔 Đang theo dõi':'🔕 Báo khi học'}</button><button class="chip" onclick="NTX.openChat('${u.id}')">✉ Nhắn</button>`}
 
-window.NTX={buzz,sendEmo,addEmo,send,toggleWatch,askPerm,openChat,openInbox,readNotes,threads:loadThreads,vMsg,meCard,userBtns};
+window.NTX={upImg,pasteImg,buzz,sendEmo,addEmo,send,toggleWatch,askPerm,openChat,openInbox,readNotes,threads:loadThreads,vMsg,meCard,userBtns};
 window.vMsg=vMsg;
 
 /* --- khởi động / theo dõi đăng nhập --- */
