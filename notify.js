@@ -48,7 +48,7 @@ body.ch-open #msgfab,body.in-game #msgfab{display:none}`;document.head.appendChi
 setInterval(()=>{try{fab()}catch(e){}},1500);
 function onNote(n){if(NT.list.some(x=>x.id==n.id))return;NT.list.unshift(n);count();if(n.kind=='msg'&&isBuzz(n.body)&&!seenBuzz(n.id))buzzFx();
  const open=S.tab=='msg'&&n.kind=='msg'&&NT.thread==n.ref;
- if(open){loadThread(n.ref);return}
+ if(open){loadThread(n.ref,1);return}
  try{toast((n.kind=='study'?'📚 ':'✉ ')+n.title+(n.body?': '+disp(n.body):''))}catch(e){}
  if(document.visibilityState!=='visible'&&'Notification' in window&&Notification.permission=='granted'){try{const x=new Notification(n.title,{body:disp(n.body),vibrate:[200,80,200],icon:'icon.svg',tag:'ss'+n.id});x.onclick=()=>{window.focus();NT.thread=n.kind=='msg'?n.ref:null;go('msg')}}catch(e){}}
  if(n.kind=='msg'&&S.tab=='msg'&&!NT.thread&&isAdm())loadThreads();rr()}
@@ -58,12 +58,12 @@ async function readNotes(kind,ref){const ids=NT.list.filter(n=>!n.read_at&&(!kin
  NT.list.forEach(n=>{if(ids.includes(n.id))n.read_at=new Date().toISOString()});count();await SB.from('notifications').update({read_at:new Date().toISOString()}).in('id',ids)}
 
 /* --- tin nhắn --- */
-async function loadThread(uid){NT.thread=uid;const {data}=await SB.from('messages').select('*').eq('user_id',uid).order('id').limit(300);NT.msgs=data||[];
+async function loadThread(uid,inc){NT.thread=uid;const near=innerHeight+scrollY>=document.documentElement.scrollHeight-220,y=scrollY;const {data}=await SB.from('messages').select('*').eq('user_id',uid).order('id').limit(300);NT.msgs=data||[];
  await SB.rpc('msg_read',{thread:uid});NT.list.forEach(n=>{if(n.kind=='msg'&&n.ref==uid)n.read_at=n.read_at||new Date().toISOString()});count();rr();
- setTimeout(()=>{fitDock();toEnd()},30)}
+ if(inc&&!near){NT.newPill=(NT.newPill||0)+1;rr();setTimeout(()=>{fitDock();scrollTo(0,y)},30)}else{NT.newPill=0;setTimeout(()=>{fitDock();toEnd()},30)}}
 function fitDock(){const d=document.querySelector('.cx-dock'),n=document.querySelector('nav'),sp=document.getElementById('cxsp');if(!d)return;if(n&&n.offsetHeight)d.style.bottom=n.offsetHeight+'px';if(sp)sp.style.height=(d.offsetHeight+8)+'px'}
-function toEnd(sm){fitDock();window.scrollTo({top:document.documentElement.scrollHeight,behavior:sm?'smooth':'auto'})}
-addEventListener('resize',()=>fitDock());
+function toEnd(sm){if(NT.newPill){NT.newPill=0;document.querySelector('.cx-new')?.remove()}fitDock();window.scrollTo({top:document.documentElement.scrollHeight,behavior:sm?'smooth':'auto'})}
+addEventListener('resize',()=>fitDock());addEventListener('scroll',()=>{if(NT.newPill&&innerHeight+scrollY>=document.documentElement.scrollHeight-60){NT.newPill=0;document.querySelector('.cx-new')?.remove()}},{passive:true});
 async function loadThreads(){const {data,error}=await SB.rpc('admin_threads');NT.threads=error?[]:(data||[]);NT.terr=error&&error.message;rr()}
 async function send(){const ta=document.getElementById('msgin');const body=(ta?(ta.innerText??ta.value):'').replace(/\u00a0/g,' ').trim();if(!body||NT.sending)return;if(body.length>2000)return toast('Tin nhắn tối đa 2000 ký tự');
  NT.sending=true;const adm=isAdm()&&NT.thread!==USER.id;
@@ -98,7 +98,7 @@ const FAV={noel:['⛄','👸','🎅','🤶','🦌','❄️','🧝','🐧','🍪'
 const funAv=id=>{const L=FAV[SEAS()]||FAV[''];let h=0;for(const c of String(id||'x'))h=(h*31+c.charCodeAt(0))>>>0;return L[h%L.length]};
 const EMO0=['👍','❤️','😂','😍','🥰','😊','👏','🎉','🔥','💪','🌟','🙏','😢','😮','🤗','✅','📚','🏆','☕','🌸'];const emoList=()=>[...(SEMO[SEAS()]||[]),...EMO0];
 const emojiOnly=s=>{const x=String(s).trim();if(!x||x.length>40)return 0;try{if(!/\p{Extended_Pictographic}/u.test(x)||/[0-9#*]/.test(x))return 0;if(!/^(?:\p{Extended_Pictographic}|\p{Emoji_Component}|\u200d|\ufe0f|\s)+$/u.test(x))return 0;const n=[...new Intl.Segmenter('vi',{granularity:'grapheme'}).segment(x.replace(/\s/g,''))].length;return n<=6?n:0}catch(e){return 0}};
-async function upImg(file){if(!file||!/^image\//.test(file.type))return toast('Chỉ gửi được hình ảnh');if(NT.sending)return;NT.sending=true;rr();
+async function upImg(file){if(!file||!/^image\//.test(file.type))return toast('Chỉ gửi được hình ảnh');if(NT.sending)return;NT.sending=true;NT.pend=URL.createObjectURL(file);rr();setTimeout(()=>toEnd(1),40);
  try{let blob=file,ext=(file.type.split('/')[1]||'png').replace('jpeg','jpg');
   if(file.type!=='image/gif'){const bm=await createImageBitmap(file);const k=Math.min(1,1024/Math.max(bm.width,bm.height));const c=document.createElement('canvas');c.width=Math.round(bm.width*k);c.height=Math.round(bm.height*k);c.getContext('2d').drawImage(bm,0,0,c.width,c.height);
    const b=await new Promise(r=>c.toBlob(r,'image/webp',.85));if(b&&b.type=='image/webp'){blob=b;ext='webp'}else{blob=await new Promise(r=>c.toBlob(r,'image/png'));ext='png'}}
@@ -106,8 +106,9 @@ async function upImg(file){if(!file||!/^image\//.test(file.type))return toast('C
   const path=NT.thread+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,10)+'.'+ext;
   const up=await SB.storage.from('chat-images').upload(path,blob,{contentType:blob.type||'image/'+ext,upsert:false});if(up.error)throw new Error(/bucket|not found/i.test(up.error.message)?'Admin cần chạy supabase/chat_images.sql':up.error.message);
   const url=SB.storage.from('chat-images').getPublicUrl(path).data.publicUrl;const adm=isAdm()&&NT.thread!==USER.id;
-  const {error}=await SB.from('messages').insert({user_id:NT.thread,from_admin:adm,body:IMG+url});if(error)throw error;NT.sending=false;await loadThread(NT.thread)}
- catch(e){NT.sending=false;rr();toast('Chưa gửi được hình: '+(e.message||e))}}
+  const {error}=await SB.from('messages').insert({user_id:NT.thread,from_admin:adm,body:IMG+url});if(error)throw error;NT.sending=false;await loadThread(NT.thread);clearPend()}
+ catch(e){NT.sending=false;clearPend();toast('Chưa gửi được hình: '+(e.message||e))}}
+function clearPend(){if(NT.pend){try{URL.revokeObjectURL(NT.pend)}catch(e){}NT.pend=null;rr()}}
 function pasteImg(ev){const cd=ev.clipboardData;ev.preventDefault();const it=[...(cd?.items||[])].find(i=>i.kind=='file'&&/^image\//.test(i.type));if(it)return upImg(it.getAsFile());
  const h=cd?.getData('text/html')||'',m=h.match(/<img[^>]+src="([^"]+)"/i);if(m)return imgFromSrc(m[1]);const t=cd?.getData('text/plain')||'';if(t)document.execCommand('insertText',false,t)}
 async function imgFromSrc(src){try{const b=await (await fetch(src)).blob();await upImg(new File([b],'sticker',{type:b.type||'image/png'}))}catch(e){toast('Không đọc được sticker này')}}
@@ -150,6 +151,10 @@ function chatCss(){if(document.getElementById('chatcss'))return;const s=document
 .cx-img{display:block;max-width:min(46vw,170px);max-height:200px;border-radius:14px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.28));animation:cxpop .35s both}
 .cx-imgb{color:var(--steel);background:color-mix(in srgb,var(--steel) 10%,transparent);cursor:pointer}
 .cx-scene{display:none}
+.cx-new{position:absolute;left:50%;top:-40px;transform:translateX(-50%);min-height:36px;padding:0 16px;border-radius:99px;font:700 .86rem var(--fd);color:#fff;background:var(--steel);box-shadow:0 6px 18px rgba(0,0,0,.3);animation:cxin .25s both}
+.cx-pend{position:relative}.cx-pend .cx-img{opacity:.55}
+.cx-spin{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:3px solid rgba(255,255,255,.4);border-top-color:#fff;animation:cxsp .8s linear infinite}
+@keyframes cxsp{to{transform:rotate(360deg)}}
 .cx-note{margin:8px 0 0;font-size:.74rem;color:var(--mut);text-align:center}
 @keyframes cxin{from{opacity:0;transform:translateY(8px) scale(.97)}}
 @keyframes cxpop{from{opacity:0;transform:scale(.3)}}
@@ -194,9 +199,9 @@ function vChat(){chatCss();const adm=isAdm()&&NT.thread!==USER.id;const th=adm&&
  const sub=adm?(th&&th.last_seen?(live?'Đang học: '+esc(th.activity||''):'Học lần cuối '+ago(th.last_seen)):'Học viên'):'Thường trả lời trong ngày';
  return `${scene()}<div class="cx-head"><button class="cx-back" aria-label="Quay lại" onclick="${adm?"NT.thread=null;NTX.threads();go('msg')":"go('me')"}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
  <span class="cx-av fun ${live?'on':''}" aria-hidden="true">${funAv(adm?NT.thread:'admin')}</span><div style="min-width:0"><div class="cx-name">${esc(who)}</div><div class="cx-sub">${sub}</div></div></div>
- <div class="cx-list">${out||'<p class="mut" style="text-align:center;margin:40px 0">Chưa có tin nhắn nào. Gửi lời chào đầu tiên nhé! 👋</p>'}<div id="msgend"></div></div>
+ <div class="cx-list">${out||'<p class="mut" style="text-align:center;margin:40px 0">Chưa có tin nhắn nào. Gửi lời chào đầu tiên nhé! 👋</p>'}${NT.pend?`<div class="cx-row me last"><div class="cx-pend"><img class="cx-img" src="${NT.pend}" alt="Đang gửi hình"><span class="cx-spin" role="status" aria-label="Đang gửi hình"></span></div></div>`:''}<div id="msgend"></div></div>
  ${adm&&th&&!live?`<p class="cx-note">Người này đang không mở app. Tin nhắn vẫn được lưu và hiện khi họ mở app.</p>`:''}
- <div id="cxsp" style="height:150px"></div><div class="cx-dock"><div class="cx-emo" aria-label="Gửi nhanh emoji">${emoList().map(e=>`<button onclick="NTX.sendEmo('${e}')" aria-label="Gửi ${e}">${e}</button>`).join('')}</div>
+ <div id="cxsp" style="height:150px"></div><div class="cx-dock">${NT.newPill?`<button class="cx-new" onclick="NTX.toEnd(1)">↓ ${NT.newPill} tin mới</button>`:''}<div class="cx-emo" aria-label="Gửi nhanh emoji">${emoList().map(e=>`<button onclick="NTX.sendEmo('${e}')" aria-label="Gửi ${e}">${e}</button>`).join('')}</div>
  <div class="cx-bar"><button class="cx-ib cx-buzzb" aria-label="BUZZ: rung màn hình người nhận" title="BUZZ" onclick="NTX.buzz()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4 8v8M20 8v8M1.5 10v4M22.5 10v4"/></svg></button>
  <label class="cx-ib cx-imgb" aria-label="Gửi hình hoặc sticker" title="Gửi hình"><input type="file" accept="image/*" hidden onchange="NTX.upImg(this.files[0]);this.value=''"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></label>
  <div id="msgin" class="cx-ed" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Nội dung tin nhắn" data-ph="Nhắn tin…" data-empty="${(NT.draft||'').trim()?'':'1'}" oninput="NTX.edIn(this)" onpaste="NTX.pasteImg(event)" onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!('ontouchstart' in window)){event.preventDefault();NTX.send()}" onfocus="setTimeout(()=>NTX.toEnd(1),300)">${esc(NT.draft||'')}</div>
