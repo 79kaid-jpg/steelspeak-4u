@@ -60,7 +60,10 @@ async function readNotes(kind,ref){const ids=NT.list.filter(n=>!n.read_at&&(!kin
 /* --- tin nhắn --- */
 async function loadThread(uid){NT.thread=uid;const {data}=await SB.from('messages').select('*').eq('user_id',uid).order('id').limit(300);NT.msgs=data||[];
  await SB.rpc('msg_read',{thread:uid});NT.list.forEach(n=>{if(n.kind=='msg'&&n.ref==uid)n.read_at=n.read_at||new Date().toISOString()});count();rr();
- setTimeout(()=>{const b=document.getElementById('msgend');b&&b.scrollIntoView({block:'end'})},30)}
+ setTimeout(()=>{fitDock();toEnd()},30)}
+function fitDock(){const d=document.querySelector('.cx-dock'),n=document.querySelector('nav'),sp=document.getElementById('cxsp');if(!d)return;if(n&&n.offsetHeight)d.style.bottom=n.offsetHeight+'px';if(sp)sp.style.height=(d.offsetHeight+8)+'px'}
+function toEnd(sm){fitDock();window.scrollTo({top:document.documentElement.scrollHeight,behavior:sm?'smooth':'auto'})}
+addEventListener('resize',()=>fitDock());
 async function loadThreads(){const {data,error}=await SB.rpc('admin_threads');NT.threads=error?[]:(data||[]);NT.terr=error&&error.message;rr()}
 async function send(){const ta=document.getElementById('msgin');const body=(ta?(ta.innerText??ta.value):'').replace(/\u00a0/g,' ').trim();if(!body||NT.sending)return;if(body.length>2000)return toast('Tin nhắn tối đa 2000 ký tự');
  NT.sending=true;const adm=isAdm()&&NT.thread!==USER.id;
@@ -108,7 +111,7 @@ async function upImg(file){if(!file||!/^image\//.test(file.type))return toast('C
 function pasteImg(ev){const cd=ev.clipboardData;ev.preventDefault();const it=[...(cd?.items||[])].find(i=>i.kind=='file'&&/^image\//.test(i.type));if(it)return upImg(it.getAsFile());
  const h=cd?.getData('text/html')||'',m=h.match(/<img[^>]+src="([^"]+)"/i);if(m)return imgFromSrc(m[1]);const t=cd?.getData('text/plain')||'';if(t)document.execCommand('insertText',false,t)}
 async function imgFromSrc(src){try{const b=await (await fetch(src)).blob();await upImg(new File([b],'sticker',{type:b.type||'image/png'}))}catch(e){toast('Không đọc được sticker này')}}
-function edIn(el){const imgs=[...el.querySelectorAll('img')];imgs.forEach(i=>{const src=i.src;i.remove();if(src)imgFromSrc(src)});NT.draft=el.innerText;el.dataset.empty=el.innerText.trim()?'':'1'}
+function edIn(el){const imgs=[...el.querySelectorAll('img')];imgs.forEach(i=>{const src=i.src;i.remove();if(src)imgFromSrc(src)});fitDock();NT.draft=el.innerText;el.dataset.empty=el.innerText.trim()?'':'1'}
 function addEmo(e){const ta=document.getElementById('msgin');if(!ta){NT.draft=(NT.draft||'')+e;return}ta.focus();document.execCommand('insertText',false,e);NT.draft=ta.innerText}
 async function sendEmo(e){const ta=document.getElementById('msgin');const keep=ta?ta.innerText:NT.draft||'';if(ta)ta.innerText=e;await send();NT.draft=keep}
 const ago=t=>{if(!t)return '';const s=(Date.now()-new Date(t))/1000;return s<60?'vừa xong':s<3600?Math.floor(s/60)+' phút trước':s<86400?Math.floor(s/3600)+' giờ trước':new Date(t).toLocaleDateString('vi')};
@@ -131,7 +134,7 @@ function chatCss(){if(document.getElementById('chatcss'))return;const s=document
 .cx-t{display:flex;justify-content:flex-end;align-items:center;gap:4px;margin-top:2px;font-size:.66rem;opacity:.75}
 .cx-big{font-size:3.2rem;line-height:1.1;animation:cxpop .45s cubic-bezier(.2,1.5,.4,1) both}
 .cx-buzz{align-self:center;margin:6px 0;padding:6px 14px;border-radius:99px;background:color-mix(in srgb,var(--bad) 14%,var(--card));color:var(--bad);font:700 .86rem var(--fd);letter-spacing:.06em}
-.cx-dock{position:sticky;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:3;margin:0 -16px;padding:8px 12px 10px;background:linear-gradient(to top,var(--bg) 70%,color-mix(in srgb,var(--bg) 0%,transparent))}
+.cx-dock{position:fixed;left:0;right:0;margin:0 auto;max-width:480px;box-sizing:border-box;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:4;padding:14px 12px 10px;background:linear-gradient(to top,var(--bg) 70%,color-mix(in srgb,var(--bg) 0%,transparent))}
 .cx-emo{display:flex;gap:2px;overflow-x:auto;padding:0 2px 6px;scrollbar-width:none}.cx-emo::-webkit-scrollbar{display:none}
 .cx-emo button{flex:none;width:42px;height:42px;border-radius:50%;font-size:1.45rem;transition:transform .15s}.cx-emo button:active{transform:scale(1.25)}
 .cx-bar{display:flex;align-items:flex-end;gap:8px;padding:6px;border-radius:26px;background:var(--card);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.12)}
@@ -144,7 +147,7 @@ function chatCss(){if(document.getElementById('chatcss'))return;const s=document
 .cx-send{color:#fff;background:linear-gradient(135deg,var(--steel2),var(--steel));box-shadow:0 6px 14px color-mix(in srgb,var(--steel) 40%,transparent);transition:transform .15s}
 .cx-send:active{transform:scale(.9)}.cx-send:disabled{opacity:.5}
 .cx-av.fun{font-size:1.6rem;background:var(--soft)!important;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--steel) 40%,transparent)}.cx-row .mini.fun{font-size:1.05rem;background:var(--soft)!important}
-.cx-img{display:block;max-width:min(62vw,240px);max-height:280px;border-radius:18px;box-shadow:0 4px 14px rgba(0,0,0,.18);animation:cxpop .35s both}
+.cx-img{display:block;max-width:min(46vw,170px);max-height:200px;border-radius:14px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.28));animation:cxpop .35s both}
 .cx-imgb{color:var(--steel);background:color-mix(in srgb,var(--steel) 10%,transparent);cursor:pointer}
 .cx-scene{display:none}
 .cx-note{margin:8px 0 0;font-size:.74rem;color:var(--mut);text-align:center}
@@ -154,8 +157,8 @@ function chatCss(){if(document.getElementById('chatcss'))return;const s=document
 html:is([data-season="noel"],[data-season="tet"]) body:has(.cx-scene){background:radial-gradient(120% 70% at 50% 35%,#d11f2b,#a3111b 55%,#6e0911) fixed!important}
 html[data-season="tet"] body:has(.cx-scene){background:radial-gradient(120% 70% at 50% 35%,#e0302a,#b0141c 55%,#6a0a10) fixed!important}
 html:is([data-season="noel"],[data-season="tet"]) .cx-scene{display:block;position:fixed;left:0;right:0;top:0;height:300px;z-index:0;pointer-events:none}.cx-scene svg{width:100%;height:100%}
-html:is([data-season="noel"],[data-season="tet"]) :is(.cx-head,.cx-list,.cx-dock,.cx-note){position:relative;z-index:1}
-html:is([data-season="noel"],[data-season="tet"]) .cx-head{position:sticky;top:0;background:rgba(120,8,16,.35);border-bottom:2px solid rgba(255,140,140,.5);color:#fff}
+html:is([data-season="noel"],[data-season="tet"]) :is(.cx-list,.cx-note){position:relative;z-index:1}
+html:is([data-season="noel"],[data-season="tet"]) .cx-head{position:sticky;top:0;z-index:6;background:rgba(120,8,16,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:2px solid rgba(255,140,140,.5);color:#fff}
 html:is([data-season="noel"],[data-season="tet"]) .cx-head .cx-sub{color:#ffe1d6}html:is([data-season="noel"],[data-season="tet"]) .cx-back{background:rgba(255,255,255,.15);color:#fff}
 html:is([data-season="noel"],[data-season="tet"]) .cx-list{margin:12px -6px 0;padding:14px 10px;border-radius:30px;border:2px solid rgba(255,120,120,.55);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02))}
 html[data-season="tet"] .cx-list,html[data-season="tet"] .cx-head{border-color:rgba(255,210,87,.6)!important}
@@ -163,7 +166,7 @@ html:is([data-season="noel"],[data-season="tet"]) .cx-b.them{background:#f4eeea;
 html[data-season="noel"] .cx-b.me{background:#0f5a32!important;color:#fff!important;font-weight:600;border-radius:24px}
 html[data-season="tet"] .cx-b.me{background:linear-gradient(135deg,#ffd257,#f2a900)!important;color:#7a0a10!important;font-weight:700;border-radius:24px}
 html:is([data-season="noel"],[data-season="tet"]) :is(.cx-day,.cx-note,.cx-t[style*="--mut"]){color:#ffe7dc!important}html:is([data-season="noel"],[data-season="tet"]) .cx-day{background:rgba(0,0,0,.2);border:0}
-html:is([data-season="noel"],[data-season="tet"]) .cx-dock{background:linear-gradient(to top,#6e0911 60%,transparent)}
+html:is([data-season="noel"],[data-season="tet"]) .cx-dock{background:linear-gradient(to top,#6e0911 72%,rgba(110,9,17,0))}
 html:is([data-season="noel"],[data-season="tet"]) .cx-emo button{background:rgba(255,255,255,.12)}
 html:is([data-season="noel"],[data-season="tet"]) .cx-bar{background:#f4eeea;color:#3a0a0a;border:0}
 html:is([data-season="noel"],[data-season="tet"]) .cx-list>p.mut{color:#ffe7dc}
@@ -193,10 +196,10 @@ function vChat(){chatCss();const adm=isAdm()&&NT.thread!==USER.id;const th=adm&&
  <span class="cx-av fun ${live?'on':''}" aria-hidden="true">${funAv(adm?NT.thread:'admin')}</span><div style="min-width:0"><div class="cx-name">${esc(who)}</div><div class="cx-sub">${sub}</div></div></div>
  <div class="cx-list">${out||'<p class="mut" style="text-align:center;margin:40px 0">Chưa có tin nhắn nào. Gửi lời chào đầu tiên nhé! 👋</p>'}<div id="msgend"></div></div>
  ${adm&&th&&!live?`<p class="cx-note">Người này đang không mở app. Tin nhắn vẫn được lưu và hiện khi họ mở app.</p>`:''}
- <div class="cx-dock"><div class="cx-emo" aria-label="Gửi nhanh emoji">${emoList().map(e=>`<button onclick="NTX.sendEmo('${e}')" aria-label="Gửi ${e}">${e}</button>`).join('')}</div>
+ <div id="cxsp" style="height:150px"></div><div class="cx-dock"><div class="cx-emo" aria-label="Gửi nhanh emoji">${emoList().map(e=>`<button onclick="NTX.sendEmo('${e}')" aria-label="Gửi ${e}">${e}</button>`).join('')}</div>
  <div class="cx-bar"><button class="cx-ib cx-buzzb" aria-label="BUZZ: rung màn hình người nhận" title="BUZZ" onclick="NTX.buzz()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4 8v8M20 8v8M1.5 10v4M22.5 10v4"/></svg></button>
  <label class="cx-ib cx-imgb" aria-label="Gửi hình hoặc sticker" title="Gửi hình"><input type="file" accept="image/*" hidden onchange="NTX.upImg(this.files[0]);this.value=''"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></label>
- <div id="msgin" class="cx-ed" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Nội dung tin nhắn" data-ph="Nhắn tin…" data-empty="${(NT.draft||'').trim()?'':'1'}" oninput="NTX.edIn(this)" onpaste="NTX.pasteImg(event)" onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!('ontouchstart' in window)){event.preventDefault();NTX.send()}" onfocus="setTimeout(()=>document.getElementById('msgend')?.scrollIntoView({block:'end',behavior:'smooth'}),300)">${esc(NT.draft||'')}</div>
+ <div id="msgin" class="cx-ed" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Nội dung tin nhắn" data-ph="Nhắn tin…" data-empty="${(NT.draft||'').trim()?'':'1'}" oninput="NTX.edIn(this)" onpaste="NTX.pasteImg(event)" onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!('ontouchstart' in window)){event.preventDefault();NTX.send()}" onfocus="setTimeout(()=>NTX.toEnd(1),300)">${esc(NT.draft||'')}</div>
  <button class="cx-ib cx-send" aria-label="Gửi" ${NT.sending?'disabled':''} onclick="NTX.send()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button></div></div>`}
 function vInbox(){if(!NT.threads){loadThreads();return '<h1>Tin nhắn</h1><p class="mut">Đang tải…</p>'}
  const study=NT.list.filter(n=>n.kind=='study').slice(0,15);
@@ -214,7 +217,7 @@ function meCard(){if(!on()||NT.off)return '';const adm=isAdm();const n=adm?NT.un
 function userBtns(u){if(!on()||!isAdm()||u.id==USER.id)return '';const w=NT.watch.has(u.id),nm=esc(JSON.stringify(u.full_name||u.email));
  return `<button class="chip ${w?'on':''}" title="Báo khi người này bắt đầu học" onclick="NTX.toggleWatch('${u.id}',${nm})">${w?'🔔 Đang theo dõi':'🔕 Báo khi học'}</button><button class="chip" onclick="NTX.openChat('${u.id}')">✉ Nhắn</button>`}
 
-window.NTX={upImg,pasteImg,edIn,buzz,sendEmo,addEmo,send,toggleWatch,askPerm,openChat,openInbox,readNotes,threads:loadThreads,vMsg,meCard,userBtns};
+window.NTX={toEnd,upImg,pasteImg,edIn,buzz,sendEmo,addEmo,send,toggleWatch,askPerm,openChat,openInbox,readNotes,threads:loadThreads,vMsg,meCard,userBtns};
 window.vMsg=vMsg;
 
 /* --- khởi động / theo dõi đăng nhập --- */
