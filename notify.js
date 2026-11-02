@@ -62,7 +62,7 @@ async function loadThread(uid){NT.thread=uid;const {data}=await SB.from('message
  await SB.rpc('msg_read',{thread:uid});NT.list.forEach(n=>{if(n.kind=='msg'&&n.ref==uid)n.read_at=n.read_at||new Date().toISOString()});count();rr();
  setTimeout(()=>{const b=document.getElementById('msgend');b&&b.scrollIntoView({block:'end'})},30)}
 async function loadThreads(){const {data,error}=await SB.rpc('admin_threads');NT.threads=error?[]:(data||[]);NT.terr=error&&error.message;rr()}
-async function send(){const ta=document.getElementById('msgin');const body=(ta?.value||'').trim();if(!body||NT.sending)return;if(body.length>2000)return toast('Tin nhắn tối đa 2000 ký tự');
+async function send(){const ta=document.getElementById('msgin');const body=(ta?(ta.innerText??ta.value):'').replace(/\u00a0/g,' ').trim();if(!body||NT.sending)return;if(body.length>2000)return toast('Tin nhắn tối đa 2000 ký tự');
  NT.sending=true;const adm=isAdm()&&NT.thread!==USER.id;
  const {error}=await SB.from('messages').insert({user_id:NT.thread,from_admin:adm,body});NT.sending=false;
  if(error)return toast(/messages/.test(error.message)?'Admin cần chạy supabase/messaging.sql':'Chưa gửi được: '+error.message);
@@ -105,9 +105,12 @@ async function upImg(file){if(!file||!/^image\//.test(file.type))return toast('C
   const url=SB.storage.from('chat-images').getPublicUrl(path).data.publicUrl;const adm=isAdm()&&NT.thread!==USER.id;
   const {error}=await SB.from('messages').insert({user_id:NT.thread,from_admin:adm,body:IMG+url});if(error)throw error;NT.sending=false;await loadThread(NT.thread)}
  catch(e){NT.sending=false;rr();toast('Chưa gửi được hình: '+(e.message||e))}}
-function pasteImg(ev){const it=[...(ev.clipboardData?.items||[])].find(i=>i.kind=='file'&&/^image\//.test(i.type));if(!it)return;ev.preventDefault();upImg(it.getAsFile())}
-function addEmo(e){const ta=document.getElementById('msgin');if(!ta){NT.draft=(NT.draft||'')+e;return}const p=ta.selectionStart??ta.value.length;ta.value=ta.value.slice(0,p)+e+ta.value.slice(p);NT.draft=ta.value;ta.focus();try{ta.setSelectionRange(p+e.length,p+e.length)}catch(x){}}
-async function sendEmo(e){NT.draft=e;const ta=document.getElementById('msgin');if(ta)ta.value=e;await send()}
+function pasteImg(ev){const cd=ev.clipboardData;ev.preventDefault();const it=[...(cd?.items||[])].find(i=>i.kind=='file'&&/^image\//.test(i.type));if(it)return upImg(it.getAsFile());
+ const h=cd?.getData('text/html')||'',m=h.match(/<img[^>]+src="([^"]+)"/i);if(m)return imgFromSrc(m[1]);const t=cd?.getData('text/plain')||'';if(t)document.execCommand('insertText',false,t)}
+async function imgFromSrc(src){try{const b=await (await fetch(src)).blob();await upImg(new File([b],'sticker',{type:b.type||'image/png'}))}catch(e){toast('Không đọc được sticker này')}}
+function edIn(el){const imgs=[...el.querySelectorAll('img')];imgs.forEach(i=>{const src=i.src;i.remove();if(src)imgFromSrc(src)});NT.draft=el.innerText;el.dataset.empty=el.innerText.trim()?'':'1'}
+function addEmo(e){const ta=document.getElementById('msgin');if(!ta){NT.draft=(NT.draft||'')+e;return}ta.focus();document.execCommand('insertText',false,e);NT.draft=ta.innerText}
+async function sendEmo(e){const ta=document.getElementById('msgin');const keep=ta?ta.innerText:NT.draft||'';if(ta)ta.innerText=e;await send();NT.draft=keep}
 const ago=t=>{if(!t)return '';const s=(Date.now()-new Date(t))/1000;return s<60?'vừa xong':s<3600?Math.floor(s/60)+' phút trước':s<86400?Math.floor(s/3600)+' giờ trước':new Date(t).toLocaleDateString('vi')};
 const onlineNow=t=>t&&Date.now()-new Date(t)<3*60*1000;
 function chatCss(){if(document.getElementById('chatcss'))return;const s=document.createElement('style');s.id='chatcss';s.textContent=`
@@ -134,6 +137,8 @@ function chatCss(){if(document.getElementById('chatcss'))return;const s=document
 .cx-bar{display:flex;align-items:flex-end;gap:8px;padding:6px;border-radius:26px;background:var(--card);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.12)}
 .cx-bar:focus-within{border-color:color-mix(in srgb,var(--steel) 60%,var(--line));box-shadow:0 0 0 3px color-mix(in srgb,var(--steel) 18%,transparent),0 8px 24px rgba(0,0,0,.12)}
 .cx-bar textarea{flex:1;min-width:0;min-height:40px;max-height:38vh;padding:9px 6px;border:0;outline:0;resize:none;background:transparent;color:inherit;font:inherit;font-size:16px;line-height:1.4}
+.cx-ed{flex:1;min-width:0;min-height:22px;max-height:38vh;overflow-y:auto;padding:9px 6px;outline:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:1.4;-webkit-user-select:text;user-select:text}
+.cx-ed[data-empty="1"]:before{content:attr(data-ph);color:var(--mut);pointer-events:none}.cx-ed img{max-height:60px}
 .cx-ib{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center}
 .cx-buzzb{color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,transparent)}
 .cx-send{color:#fff;background:linear-gradient(135deg,var(--steel2),var(--steel));box-shadow:0 6px 14px color-mix(in srgb,var(--steel) 40%,transparent);transition:transform .15s}
@@ -191,7 +196,7 @@ function vChat(){chatCss();const adm=isAdm()&&NT.thread!==USER.id;const th=adm&&
  <div class="cx-dock"><div class="cx-emo" aria-label="Gửi nhanh emoji">${emoList().map(e=>`<button onclick="NTX.sendEmo('${e}')" aria-label="Gửi ${e}">${e}</button>`).join('')}</div>
  <div class="cx-bar"><button class="cx-ib cx-buzzb" aria-label="BUZZ: rung màn hình người nhận" title="BUZZ" onclick="NTX.buzz()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4 8v8M20 8v8M1.5 10v4M22.5 10v4"/></svg></button>
  <label class="cx-ib cx-imgb" aria-label="Gửi hình hoặc sticker" title="Gửi hình"><input type="file" accept="image/*" hidden onchange="NTX.upImg(this.files[0]);this.value=''"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></label>
- <textarea id="msgin" rows="1" maxlength="2000" placeholder="Nhắn tin…" aria-label="Nội dung tin nhắn" oninput="NT.draft=this.value;this.style.height='auto';this.style.height=Math.min(this.scrollHeight,innerHeight*.38)+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!('ontouchstart' in window)){event.preventDefault();NTX.send()}" onpaste="NTX.pasteImg(event)" onfocus="setTimeout(()=>document.getElementById('msgend')?.scrollIntoView({block:'end',behavior:'smooth'}),300)">${esc(NT.draft||'')}</textarea>
+ <div id="msgin" class="cx-ed" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Nội dung tin nhắn" data-ph="Nhắn tin…" data-empty="${(NT.draft||'').trim()?'':'1'}" oninput="NTX.edIn(this)" onpaste="NTX.pasteImg(event)" onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!('ontouchstart' in window)){event.preventDefault();NTX.send()}" onfocus="setTimeout(()=>document.getElementById('msgend')?.scrollIntoView({block:'end',behavior:'smooth'}),300)">${esc(NT.draft||'')}</div>
  <button class="cx-ib cx-send" aria-label="Gửi" ${NT.sending?'disabled':''} onclick="NTX.send()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button></div></div>`}
 function vInbox(){if(!NT.threads){loadThreads();return '<h1>Tin nhắn</h1><p class="mut">Đang tải…</p>'}
  const study=NT.list.filter(n=>n.kind=='study').slice(0,15);
@@ -209,7 +214,7 @@ function meCard(){if(!on()||NT.off)return '';const adm=isAdm();const n=adm?NT.un
 function userBtns(u){if(!on()||!isAdm()||u.id==USER.id)return '';const w=NT.watch.has(u.id),nm=esc(JSON.stringify(u.full_name||u.email));
  return `<button class="chip ${w?'on':''}" title="Báo khi người này bắt đầu học" onclick="NTX.toggleWatch('${u.id}',${nm})">${w?'🔔 Đang theo dõi':'🔕 Báo khi học'}</button><button class="chip" onclick="NTX.openChat('${u.id}')">✉ Nhắn</button>`}
 
-window.NTX={upImg,pasteImg,buzz,sendEmo,addEmo,send,toggleWatch,askPerm,openChat,openInbox,readNotes,threads:loadThreads,vMsg,meCard,userBtns};
+window.NTX={upImg,pasteImg,edIn,buzz,sendEmo,addEmo,send,toggleWatch,askPerm,openChat,openInbox,readNotes,threads:loadThreads,vMsg,meCard,userBtns};
 window.vMsg=vMsg;
 
 /* --- khởi động / theo dõi đăng nhập --- */
