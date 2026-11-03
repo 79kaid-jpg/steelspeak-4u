@@ -11,7 +11,7 @@ const cors = {
 const json = (b: unknown, status = 200) =>
   new Response(JSON.stringify(b), { status, headers: { ...cors, "Content-Type": "application/json" } });
 const env = (k: string) => Deno.env.get(k) ?? "";
-const VOICE = env("TTS_VOICE") || "Kore";
+const VOICE = env("TTS_VOICE") || "Charon";
 const STYLE = "clear, natural American English for a language learner, moderate pace";
 
 async function sha(s: string) {

@@ -100,5 +100,5 @@ Người học (đã tham gia khóa) vào **Từ vựng → Góp từ cho khóa�
 ## Giọng đọc Gemini TTS
 1. **SQL Editor** → chạy `supabase/tts_storage.sql` (tạo kho `tts` lưu file âm thanh).
 2. **Edge Functions → Deploy a new function → Via Editor**, tên `tts`, dán `supabase/functions/tts/index.ts` → **Deploy** (CLI: `supabase functions deploy tts`). Dùng lại khoá `GEMINI_API_KEY` đã có.
-3. Tuỳ chọn: secret `TTS_VOICE` để đổi giọng (mặc định `Kore`; ví dụ `Puck`, `Aoede`, `Charon`).
+3. Tuỳ chọn: secret `TTS_VOICE` để đổi giọng (mặc định `Charon` (nam); ví dụ `Puck`, `Orus`, `Sulafat`).
 Mỗi câu chỉ tạo 1 lần rồi lưu lại; lần đầu còn chậm thì app đọc bằng giọng của máy.

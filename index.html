@@ -977,7 +977,7 @@ function toast(t){const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeou
 let VOICE=null;function pickVoice(){const vs=speechSynthesis.getVoices().filter(v=>/en[-_]US/i.test(v.lang));VOICE=vs.find(v=>/Samantha|Google US|Aria|Jenny|Natural/i.test(v.name))||vs[0]||null}
 if('speechSynthesis' in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
 /* Giọng đọc Gemini TTS: phát thẳng file đã lưu trên kho (nhanh); chưa có thì nhờ máy chủ tạo ở nền */
-const TTSB=new Map(),TTSP=new Map(),TTSMISS=new Set();let TTSSRC=null;const TTSV='Kore';
+const TTSB=new Map(),TTSP=new Map(),TTSMISS=new Set();let TTSSRC=null;const TTSV='Charon';
 const ttsNorm=t=>String(t||'').replace(/\s+/g,' ').trim().slice(0,300);
 async function ttsPath(t,rate){const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t.toLowerCase()));const h=[...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,40);return window.SS_CONFIG.SUPABASE_URL+'/storage/v1/object/public/tts/'+TTSV+'/'+(rate<0.8?'slow':'n')+'/'+h+'.wav'}
 async function ttsGen(t,rate){const {data:{session}}=await SB.auth.getSession();if(!session)throw new Error('login');
