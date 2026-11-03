@@ -96,3 +96,9 @@ Người học (đã tham gia khóa) vào **Từ vựng → Góp từ cho khóa�
 1. **SQL Editor** → `supabase/community.sql` → **Run**.
 2. **Edge Functions → Deploy a new function → Via Editor**, tên `suggest`, dán `supabase/functions/suggest/index.ts` → **Deploy** (dùng chung secret `GEMINI_API_KEY`).
 3. Đổi ngưỡng phiếu: `update tracks set vote_threshold = 5 where slug = 'steel';`
+
+## Giọng đọc Gemini TTS
+1. **SQL Editor** → chạy `supabase/tts_storage.sql` (tạo kho `tts` lưu file âm thanh).
+2. **Edge Functions → Deploy a new function → Via Editor**, tên `tts`, dán `supabase/functions/tts/index.ts` → **Deploy** (CLI: `supabase functions deploy tts`). Dùng lại khoá `GEMINI_API_KEY` đã có.
+3. Tuỳ chọn: secret `TTS_VOICE` để đổi giọng (mặc định `Kore`; ví dụ `Puck`, `Aoede`, `Charon`).
+Mỗi câu chỉ tạo 1 lần rồi lưu lại; lần đầu còn chậm thì app đọc bằng giọng của máy.
