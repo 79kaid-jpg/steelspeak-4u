@@ -46,13 +46,18 @@ async function pick(){const snap=snapshot();if(!snap)return;CH.snap=snap;
  const ov=sheet(`<div class="lbl">Thách đấu câu này</div><h2 style="margin:4px 0 2px">${esc(snap.q.en)}</h2><p class="mut" style="margin:0 0 10px;font-size:.88rem">Bạn ${snap.ok?'trả lời đúng':'trả lời sai'} trong ${sec(snap.ms)}. Ai đúng và nhanh hơn sẽ thắng.</p><div id="chlist"><p class="mut">Đang tải danh sách…</p></div><button class="btn ghost" style="width:100%;margin-top:8px" onclick="CHX.close()">Để sau</button>`);
  if(!CH.targets)await loadTargets();
  const L=CH.targets||[];const box=ov.querySelector('#chlist');if(!box)return;
- box.innerHTML=`<button class="ch-row" onclick="CHX.send(null)">${avatar(null)}<span style="flex:1;min-width:0"><b>Kaka</b><small class="mut" style="display:block">Luôn sẵn sàng · trả lời ngay</small></span><span class="chip on" style="display:inline-flex">${SW}</span></button>`+
-  L.map(u=>`<button class="ch-row" onclick="CHX.send('${u.user_id}')">${avatar(u.user_id,u.name,u.avatar)}<span style="flex:1;min-width:0"><b>${esc(u.name)}</b><small class="mut" style="display:block">${u.is_admin?'Admin':'Bạn bè'}</small></span><span class="chip" style="display:inline-flex">${SW}</span></button>`).join('')+
-  (CH.off?'<p class="note">Admin cần chạy supabase/challenges.sql để bật thách đấu với người khác.</p>':L.length?'':'<p class="mut" style="font-size:.84rem;margin:8px 4px 0">Kết bạn trong Đua level để thách đấu bạn bè.</p>')}
+ const ago=t=>{if(!t)return 'Chưa từng mở app';const m=Math.round((Date.now()-new Date(t))/60000);return m<60?`Hoạt động ${m} phút trước`:m<1440?`Hoạt động ${Math.round(m/60)} giờ trước`:`Hoạt động ${Math.round(m/1440)} ngày trước`};
+ const sub=u=>(u.is_admin?'Admin · ':u.is_friend?'Bạn bè · ':'')+(u.online?'<span style="color:var(--good)">● Đang online</span>':ago(u.last_seen)+' · nhận khi mở app');
+ const row=u=>`<button class="ch-row" data-n="${esc((u.name||'').toLowerCase())}" onclick="CHX.send('${u.user_id}')">${avatar(u.user_id,u.name,u.avatar)}<span style="flex:1;min-width:0"><b>${esc(u.name)}</b><small class="mut" style="display:block">${sub(u)}</small></span><span class="chip" style="display:inline-flex">${SW}</span></button>`;
+ box.innerHTML=(L.length>6?`<input id="chq" type="search" placeholder="Tìm người dùng…" aria-label="Tìm người dùng" style="width:100%;box-sizing:border-box;margin-bottom:8px;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit">`:'')+
+  `<button class="ch-row" data-n="kaka" onclick="CHX.send(null)">${avatar(null)}<span style="flex:1;min-width:0"><b>Kaka</b><small class="mut" style="display:block">Luôn sẵn sàng · trả lời ngay</small></span><span class="chip on" style="display:inline-flex">${SW}</span></button>`+
+  `<div id="chrows" style="max-height:52vh;overflow:auto">${L.map(row).join('')}</div>`+
+  (CH.off?'<p class="note">Admin cần chạy supabase/challenges.sql để bật thách đấu với người khác.</p>':L.length?'':'<p class="mut" style="font-size:.84rem;margin:8px 4px 0">Kết bạn trong Đua level để thách đấu bạn bè.</p>');
+ const q=box.querySelector('#chq');if(q)q.oninput=()=>{const v=q.value.trim().toLowerCase();box.querySelectorAll('.ch-row').forEach(b=>{b.hidden=!!v&&!b.dataset.n.includes(v)})}}
 async function send(target){if(CH.busy||!CH.snap)return;CH.busy=true;const s=CH.snap;let trk='';try{trk=curTrack()?.name||''}catch(e){}
  const {data,error}=await SB.rpc('challenge_send',{target,q:s.q,ok:s.ok,ms:s.ms,trk});CH.busy=false;
  if(error){close();return toast(needSql(error)?'Admin cần chạy supabase/challenges.sql':error.message)}
- CH.list=null;if(!target){showResult(data,true);try{BDG&&BDG.evt&&BDG.evt('study')}catch(e){}}else{close();const u=(CH.targets||[]).find(x=>x.user_id==target);toast('Đã gửi thách đấu tới '+(u?u.name:'bạn'))}}
+ CH.list=null;if(!target){showResult(data,true);try{BDG&&BDG.evt&&BDG.evt('study')}catch(e){}}else{close();const u=(CH.targets||[]).find(x=>x.user_id==target);toast(u&&!u.online?'Đã gửi tới '+u.name+'. Họ sẽ nhận thông báo khi mở app':'Đã gửi thách đấu tới '+(u?u.name:'bạn'))}}
 
 /* ---------- kết quả ---------- */
 function verdict(c,meFrom){const a={ok:meFrom?c.from_ok:c.to_ok,ms:meFrom?c.from_ms:c.to_ms},b={ok:meFrom?c.to_ok:c.from_ok,ms:meFrom?c.to_ms:c.from_ms};
