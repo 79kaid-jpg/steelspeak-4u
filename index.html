@@ -976,21 +976,24 @@ function toast(t){const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeou
 /* ---- US voice ---- */
 let VOICE=null;function pickVoice(){const vs=speechSynthesis.getVoices().filter(v=>/en[-_]US/i.test(v.lang));VOICE=vs.find(v=>/Samantha|Google US|Aria|Jenny|Natural/i.test(v.name))||vs[0]||null}
 if('speechSynthesis' in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
-/* Giọng đọc Gemini TTS (máy chủ), lưu sẵn file; lỗi/mất mạng thì dùng giọng của máy */
-const TTSU={};try{Object.assign(TTSU,JSON.parse(localStorage.getItem('tts-urls')||'{}'))}catch(e){}
-const TTSB=new Map();let TTSSRC=null;
-function ttsKey(t,rate){return (rate<0.8?'s|':'n|')+t.trim().toLowerCase()}
-async function ttsUrl(t,rate){const k=ttsKey(t,rate);if(TTSU[k])return TTSU[k];const {data:{session}}=await SB.auth.getSession();
- const r=await fetch(window.SS_CONFIG.SUPABASE_URL+'/functions/v1/tts',{method:'POST',headers:{'Content-Type':'application/json',apikey:window.SS_CONFIG.SUPABASE_ANON_KEY,Authorization:'Bearer '+(session?session.access_token:window.SS_CONFIG.SUPABASE_ANON_KEY)},body:JSON.stringify({text:t,rate})});
- const j=await r.json().catch(()=>({}));if(!r.ok||!j.url)throw new Error(j.error||r.status);TTSU[k]=j.url;try{const ks=Object.keys(TTSU);if(ks.length>3000)delete TTSU[ks[0]];localStorage.setItem('tts-urls',JSON.stringify(TTSU))}catch(e){}return j.url}
-async function ttsBuf(url){if(TTSB.has(url))return TTSB.get(url);const c=actx();const b=await c.decodeAudioData(await (await fetch(url)).arrayBuffer());if(TTSB.size>60)TTSB.delete(TTSB.keys().next().value);TTSB.set(url,b);return b}
+/* Giọng đọc Gemini TTS: phát thẳng file đã lưu trên kho (nhanh); chưa có thì nhờ máy chủ tạo ở nền */
+const TTSB=new Map(),TTSP=new Map(),TTSMISS=new Set();let TTSSRC=null;const TTSV='Kore';
+const ttsNorm=t=>String(t||'').replace(/\s+/g,' ').trim().slice(0,300);
+async function ttsPath(t,rate){const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t.toLowerCase()));const h=[...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,40);return window.SS_CONFIG.SUPABASE_URL+'/storage/v1/object/public/tts/'+TTSV+'/'+(rate<0.8?'slow':'n')+'/'+h+'.wav'}
+async function ttsGen(t,rate){const {data:{session}}=await SB.auth.getSession();if(!session)throw new Error('login');
+ const r=await fetch(window.SS_CONFIG.SUPABASE_URL+'/functions/v1/tts',{method:'POST',headers:{'Content-Type':'application/json',apikey:window.SS_CONFIG.SUPABASE_ANON_KEY,Authorization:'Bearer '+session.access_token},body:JSON.stringify({text:t,rate})});
+ if(!r.ok)throw new Error(r.status);if((r.headers.get('content-type')||'').includes('json')){const j=await r.json();return (await fetch(j.url)).arrayBuffer()}return r.arrayBuffer()}
+function ttsGet(t,rate){t=ttsNorm(t);const k=(rate<0.8?'s|':'n|')+t.toLowerCase();if(TTSB.has(k))return Promise.resolve(TTSB.get(k));if(TTSP.has(k))return TTSP.get(k);
+ const p=(async()=>{let ab=null;if(!TTSMISS.has(k)){const r=await fetch(await ttsPath(t,rate)).catch(()=>null);if(r&&r.ok)ab=await r.arrayBuffer();else TTSMISS.add(k)}
+  if(!ab)ab=await ttsGen(t,rate);const b=await actx().decodeAudioData(ab);if(TTSB.size>150)TTSB.delete(TTSB.keys().next().value);TTSB.set(k,b);TTSMISS.delete(k);return b})();
+ TTSP.set(k,p);p.finally(()=>TTSP.delete(k));return p}
 function ttsPlay(b){const c=actx();try{TTSSRC&&TTSSRC.stop()}catch(e){}try{speechSynthesis.cancel()}catch(e){}const s=c.createBufferSource(),g=c.createGain();g.gain.value=1.4;s.buffer=b;s.connect(g).connect(c.destination);TTSSRC=s;return new Promise(r=>{s.onended=()=>{ALAST=Date.now();r()};s.start()})}
-function say(t,rate=0.95){t=String(t||'').trim();if(!t)return Promise.resolve();audioWake();
- if(!navigator.onLine||localStorage.getItem('tts-off')==='1')return sayDevice(t,rate);
- let settled=false;const job=ttsUrl(t,rate).then(ttsBuf);
- const quick=new Promise(r=>setTimeout(()=>r(null),TTSU[ttsKey(t,rate)]?2500:1300));
- return Promise.race([job,quick]).then(b=>{settled=true;if(b)return ttsPlay(b);job.catch(()=>{});return sayDevice(t,rate)},()=>{settled=true;return sayDevice(t,rate)})}
-function ttsPrefetch(list){if(!navigator.onLine)return;(list||[]).slice(0,6).forEach((t,i)=>setTimeout(()=>ttsUrl(String(t),0.95).then(ttsBuf).catch(()=>{}),i*400))}
+function say(t,rate=0.95){t=ttsNorm(t);if(!t)return Promise.resolve();audioWake();
+ let off=false;try{off=localStorage.getItem('tts-off')==='1'}catch(e){}if(!navigator.onLine||off)return sayDevice(t,rate);
+ const job=ttsGet(t,rate);job.catch(()=>{});
+ // File đã lưu thường về trong <0,5 giây; chưa kịp thì đọc bằng giọng máy, lần sau sẽ là giọng Gemini
+ return Promise.race([job,new Promise(r=>setTimeout(()=>r(null),700))]).then(b=>b?ttsPlay(b):sayDevice(t,rate),()=>sayDevice(t,rate))}
+function ttsPrefetch(list){if(!navigator.onLine)return;const q=[...new Set((list||[]).map(ttsNorm).filter(Boolean))];let i=0;const nx=()=>{if(i>=q.length)return;ttsGet(q[i++],0.95).catch(()=>{}).finally(()=>setTimeout(nx,150))};nx();nx()}
 function sayDevice(t,rate=0.95){if(!('speechSynthesis' in window))return toast('Thiết bị chưa hỗ trợ đọc');const ss=speechSynthesis;if(!VOICE)pickVoice();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(VOICE)u.voice=VOICE;u.rate=rate;u.volume=1;window._utt=u;u.onerror=e=>{if(e.error!='interrupted'&&e.error!='canceled')toast('Không phát được âm thanh. iPhone: gạt nút im lặng bên hông máy & tăng âm lượng.')};let done;const p=new Promise(r=>done=r);window._sayP=p;setTimeout(()=>done(),Math.min(3500,600+t.length*90));u.onend=()=>{ALAST=Date.now();done()};const oe=u.onerror;u.onerror=e=>{done();oe(e)};const go=()=>{ss.resume();ss.speak(u)};const idle=audioWake();if(ss.speaking||ss.pending){ss.cancel();setTimeout(go,150)}else if(idle||!TTS_WARM){TTS_WARM=1;setTimeout(go,120)}else go();return p}
 // Làm nóng bộ đọc ngay lần chạm đầu tiên (tránh mất chữ đầu, mở khóa âm thanh trên iPhone)
 let TTS_WARM=0;

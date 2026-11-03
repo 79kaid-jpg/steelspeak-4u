@@ -32,7 +32,7 @@ async function gemini(text: string, rate: number): Promise<Uint8Array> {
   const key = env("GEMINI_API_KEY"); if (!key) throw new Error("Thiếu GEMINI_API_KEY");
   const style = STYLE + (rate < 0.8 ? ", speak slowly and clearly" : "");
   const errs: string[] = [];
-  for (const model of [env("TTS_MODEL") || "gemini-3.8-flash-tts", "gemini-3.8-flash-lite-tts"]) {
+  for (const model of [env("TTS_MODEL") || "gemini-3.8-flash-lite-tts", "gemini-3.8-flash-tts"]) {
     const r = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
       method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({ model, input: [{ type: "user_input", content: [{ type: "text", text, annotations: [{ type: "speech_metadata", style }] }] }],
@@ -66,16 +66,17 @@ Deno.serve(async (req) => {
     const admin = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"));
     const path = `${VOICE}/${rate < 0.8 ? "slow" : "n"}/${await sha(text.toLowerCase())}.wav`;
     const url = admin.storage.from("tts").getPublicUrl(path).data.publicUrl;
-    const head = await fetch(url, { method: "HEAD" });
+    const head = await fetch(url, { method: "HEAD" }).catch(() => ({ ok: false }));
     if (head.ok) return json({ url, cached: true });
     // Chỉ người đăng nhập mới được tạo file mới (tránh bị lạm dụng hạn mức)
     const auth = req.headers.get("authorization") ?? "";
     const { data: { user } } = await createClient(env("SUPABASE_URL"), env("SUPABASE_ANON_KEY"), { global: { headers: { Authorization: auth } } }).auth.getUser();
     if (!user) return json({ error: "login" }, 401);
     const audio = await gemini(text, rate);
-    const up = await admin.storage.from("tts").upload(path, audio, { contentType: "audio/wav", upsert: true, cacheControl: "31536000" });
-    if (up.error) throw up.error;
-    return json({ url, cached: false });
+    // Trả âm thanh ngay, lưu vào kho ở chế độ nền để lần sau phát tức thì
+    const save = admin.storage.from("tts").upload(path, audio, { contentType: "audio/wav", upsert: true, cacheControl: "31536000" });
+    try { (globalThis as any).EdgeRuntime?.waitUntil(save) } catch { await save }
+    return new Response(audio, { headers: { ...cors, "Content-Type": "audio/wav", "X-TTS-Url": url, "Access-Control-Expose-Headers": "X-TTS-Url" } });
   } catch (e) {
     return json({ error: String((e as Error).message ?? e) }, 500);
   }
