@@ -988,13 +988,21 @@ function ttsGet(t,rate){t=ttsNorm(t);const k=(rate<0.8?'s|':'n|')+t.toLowerCase(
   if(!ab)ab=await ttsGen(t,rate);const b=await actx().decodeAudioData(ab);if(TTSB.size>150)TTSB.delete(TTSB.keys().next().value);TTSB.set(k,b);TTSMISS.delete(k);return b})();
  TTSP.set(k,p);p.finally(()=>TTSP.delete(k));return p}
 function ttsPlay(b){const c=actx();try{TTSSRC&&TTSSRC.stop()}catch(e){}try{speechSynthesis.cancel()}catch(e){}const s=c.createBufferSource(),g=c.createGain();g.gain.value=1.4;s.buffer=b;s.connect(g).connect(c.destination);TTSSRC=s;return new Promise(r=>{s.onended=()=>{ALAST=Date.now();r()};s.start()})}
-function say(t,rate=0.95){t=ttsNorm(t);if(!t)return Promise.resolve();audioWake();
- let off=false;try{off=localStorage.getItem('tts-off')==='1'}catch(e){}if(!navigator.onLine||off)return sayDevice(t,rate);
- const job=ttsGet(t,rate);job.catch(()=>{});
- // File đã lưu thường về trong <0,5 giây; chưa kịp thì đọc bằng giọng máy, lần sau sẽ là giọng Gemini
- return Promise.race([job,new Promise(r=>setTimeout(()=>r(null),700))]).then(b=>b?ttsPlay(b):sayDevice(t,rate),()=>sayDevice(t,rate))}
+function ttsReady(t,rate){const k=(rate<0.8?'s|':'n|')+ttsNorm(t).toLowerCase();return TTSB.get(k)}
+function say(t,rate=0.95){t=ttsNorm(t);if(!t)return Promise.resolve();try{const c=actx();if(c.state!=='running')c.resume()}catch(e){}
+ let off=false;try{off=localStorage.getItem('tts-off')==='1'}catch(e){}
+ const b=!off&&ttsReady(t,rate);if(b&&ACX&&ACX.state==='running')return ttsPlay(b);
+ // Chưa có giọng Gemini trong máy: đọc ngay bằng giọng của máy (luôn ổn định), đồng thời tải giọng Gemini cho lần sau
+ if(!off&&navigator.onLine)ttsGet(t,rate).catch(()=>{});return sayDevice(t,rate)}
 function ttsPrefetch(list){if(!navigator.onLine)return;const q=[...new Set((list||[]).map(ttsNorm).filter(Boolean))];let i=0;const nx=()=>{if(i>=q.length)return;ttsGet(q[i++],0.95).catch(()=>{}).finally(()=>setTimeout(nx,150))};nx();nx()}
-function sayDevice(t,rate=0.95){if(!('speechSynthesis' in window))return toast('Thiết bị chưa hỗ trợ đọc');const ss=speechSynthesis;if(!VOICE)pickVoice();const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(VOICE)u.voice=VOICE;u.rate=rate;u.volume=1;window._utt=u;u.onerror=e=>{if(e.error!='interrupted'&&e.error!='canceled')toast('Không phát được âm thanh. iPhone: gạt nút im lặng bên hông máy & tăng âm lượng.')};let done;const p=new Promise(r=>done=r);window._sayP=p;setTimeout(()=>done(),Math.min(3500,600+t.length*90));u.onend=()=>{ALAST=Date.now();done()};const oe=u.onerror;u.onerror=e=>{done();oe(e)};const go=()=>{ss.resume();ss.speak(u)};const idle=audioWake();if(ss.speaking||ss.pending){ss.cancel();setTimeout(go,150)}else if(idle||!TTS_WARM){TTS_WARM=1;setTimeout(go,120)}else go();return p}
+function sayDevice(t,rate=0.95){if(!('speechSynthesis' in window)){toast('Thiết bị chưa hỗ trợ đọc');return Promise.resolve()}const ss=speechSynthesis;if(!VOICE)pickVoice();
+ const mk=()=>{const u=new SpeechSynthesisUtterance(t);u.lang='en-US';if(VOICE)u.voice=VOICE;u.rate=rate;u.volume=1;return u};let u=mk();window._utt=u;
+ let done,started=false,fin=false;const p=new Promise(r=>done=()=>{if(!fin){fin=true;ALAST=Date.now();r()}});window._sayP=p;setTimeout(done,Math.min(4000,900+t.length*90));
+ const wire=x=>{x.onstart=()=>{started=true};x.onend=done;x.onerror=e=>{if(e.error=='interrupted'||e.error=='canceled')return done();if(!started)retry()}};
+ const retry=()=>{if(started||fin||retry.n)return;retry.n=1;try{ss.cancel()}catch(e){}u=mk();window._utt=u;wire(u);setTimeout(()=>{ss.resume();ss.speak(u)},60);setTimeout(()=>{if(!started&&!fin)toast('Không phát được âm thanh. iPhone: gạt nút im lặng & tăng âm lượng.')},1800)};
+ wire(u);if(ss.speaking||ss.pending)ss.cancel();ss.resume();ss.speak(u);TTS_WARM=1;
+ // iOS đôi khi "kẹt" bộ đọc: sau 900ms chưa bắt đầu thì đọc lại một lần
+ setTimeout(()=>{if(!started&&!fin&&!ss.speaking)retry()},900);return p}
 // Làm nóng bộ đọc ngay lần chạm đầu tiên (tránh mất chữ đầu, mở khóa âm thanh trên iPhone)
 let TTS_WARM=0;
 // Đánh thức đường ra âm thanh bằng tín hiệu gần như im lặng (không đọc ra chữ nào), rồi mới đọc
