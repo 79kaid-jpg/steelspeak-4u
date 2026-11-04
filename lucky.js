@@ -59,16 +59,38 @@ function wheel(){const L=LK.prizes,n=L.length||1,seg=360/n,S2=SEASON[LK.camp.sea
  return `<div style="position:relative;width:300px;height:318px;margin:4px auto 0">
  <svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true" style="position:absolute;left:133px;top:0;z-index:2"><path d="M3 3h28L17 27z" fill="#f2c14e" stroke="#7d5a05" stroke-width="2" stroke-linejoin="round"/></svg>
  <div style="position:absolute;left:0;top:18px;width:300px;height:300px;border-radius:50%;box-shadow:0 10px 28px rgba(0,0,0,.3),0 0 0 8px ${S2.b},0 0 0 11px #f2c14e"></div>
- <div id="lkw" style="position:absolute;left:0;top:18px;width:300px;height:300px;border-radius:50%;background:conic-gradient(${stops});transform:rotate(${LK.rot}deg);transition:transform 4.2s cubic-bezier(.15,.7,.12,1)">${icons}</div>
+ <div id="lkw" style="position:absolute;left:0;top:18px;width:300px;height:300px;border-radius:50%;background:conic-gradient(${stops});transform:rotate(${LK.rot}deg);transition:transform 7s cubic-bezier(.1,.62,.08,1);touch-action:none;cursor:grab" role="slider" aria-label="Vuốt vòng quay để quay" tabindex="0">${icons}</div>
  <div style="position:absolute;left:118px;top:136px;width:64px;height:64px;border-radius:50%;background:${S2.b};border:4px solid #f2c14e;box-sizing:border-box;display:grid;place-items:center">${gsvg('custom',34)}</div></div>`}
-async function spin(){if(LK.spinning||LK.tickets<=0)return;LK.spinning=true;LK.res=null;rr();
- const {data,error}=await SB.rpc('lucky_spin');if(error){LK.spinning=false;toast(error.message);return load()}
+async function spin(vel){if(LK.spinning||LK.tickets<=0)return;LK.spinning=true;LK.res=null;const w0=document.getElementById('lkw');
+ // Quay nhẹ trong lúc chờ máy chủ trả kết quả, để vòng quay không đứng yên sau cú vuốt
+ const dir=vel<0?-1:1;if(w0){w0.style.transition='transform .9s cubic-bezier(.3,0,.7,1)';LK.rot+=dir*200;w0.style.transform=`rotate(${LK.rot}deg)`}
+ const t0=Date.now();const {data,error}=await SB.rpc('lucky_spin');if(error){LK.spinning=false;toast(error.message);return load()}
+ await new Promise(r=>setTimeout(r,Math.max(0,500-(Date.now()-t0))));
  const i=Math.max(0,LK.prizes.findIndex(p=>p.id==data.prize_id)),seg=360/LK.prizes.length;
- LK.rot=LK.rot-(LK.rot%360)+360*6+(360-(i*seg+seg/2));LK.tickets=data.tickets??Math.max(0,LK.tickets-1);
- const w=document.getElementById('lkw');if(w)w.style.transform=`rotate(${LK.rot}deg)`;else rr();
- if(matchMedia('(prefers-reduced-motion:reduce)').matches&&w)w.style.transition='none';
+ const target=(360-(i*seg+seg/2)+(Math.random()-.5)*seg*.6+3600)%360,cur=((LK.rot%360)+360)%360;
+ const turns=Math.min(9,Math.max(5,Math.round(Math.abs(vel||1.2)*2.2)+4));
+ LK.rot+=dir>0?turns*360+((target-cur+360)%360):-(turns*360+((cur-target+360)%360));
+ LK.tickets=data.tickets??Math.max(0,LK.tickets-1);
+ const rm=matchMedia('(prefers-reduced-motion:reduce)').matches,w=document.getElementById('lkw');
+ if(w){w.style.transition=rm?'none':'transform 7s cubic-bezier(.1,.62,.08,1)';void w.offsetWidth;w.style.transform=`rotate(${LK.rot}deg)`}else rr();
+ const btn=document.querySelector('[onclick="LKX.spin()"]');if(btn){btn.disabled=true;btn.textContent='ĐANG QUAY…'}
  setTimeout(()=>{LK.spinning=false;LK.res=data;LK.mine=null;if(data.gift=='xp200'){try{S.xp=(S.xp||0)+200;save()}catch(e){}}
-  try{navigator.vibrate&&navigator.vibrate(data.code?[60,40,140]:30)}catch(e){}rr();resultSheet(data)},matchMedia('(prefers-reduced-motion:reduce)').matches?300:4400)}
+  try{navigator.vibrate&&navigator.vibrate(data.code?[60,40,140]:30)}catch(e){}rr();resultSheet(data)},rm?300:7100)}
+/* Vuốt vòng quay: bánh xe đi theo ngón tay, thả ra đủ mạnh thì quay thật */
+(function(){let drag=null;
+ const ang=(e,c)=>Math.atan2(e.clientY-c.y,e.clientX-c.x)*180/Math.PI;
+ document.addEventListener('pointerdown',e=>{const w=e.target.closest&&e.target.closest('#lkw');if(!w||LK.spinning)return;
+  if(LK.tickets<=0){toast('Hết lượt quay · học thêm để nhận lượt');return}
+  const r=w.getBoundingClientRect(),c={x:r.left+r.width/2,y:r.top+r.height/2};drag={w,c,a:ang(e,c),base:LK.rot,hist:[{t:performance.now(),r:LK.rot}]};
+  w.style.transition='none';w.style.cursor='grabbing';try{w.setPointerCapture(e.pointerId)}catch(x){}e.preventDefault()});
+ document.addEventListener('pointermove',e=>{if(!drag)return;let d=ang(e,drag.c)-drag.a;if(d>180)d-=360;if(d<-180)d+=360;drag.a+=d;LK.rot+=d;
+  drag.w.style.transform=`rotate(${LK.rot}deg)`;const now=performance.now();drag.hist.push({t:now,r:LK.rot});while(drag.hist.length>2&&now-drag.hist[0].t>120)drag.hist.shift()});
+ const up=()=>{if(!drag)return;const h=drag.hist,a=h[0],b=h[h.length-1],dt=Math.max(16,b.t-a.t),v=(b.r-a.r)/dt;// độ/ms
+  const w=drag.w,drag0=drag.base;w.style.cursor='grab';drag=null;
+  if(Math.abs(v)>=.35&&Math.abs(b.r-a.r)>12)spin(v);
+  else if(Math.abs(b.r-drag0)>12)toast('Vuốt mạnh tay hơn để quay nhé')};
+ document.addEventListener('pointerup',up);document.addEventListener('pointercancel',up);
+ document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&document.activeElement&&document.activeElement.id==='lkw'){e.preventDefault();spin(1.2)}})})();
 function resultSheet(d){document.querySelectorAll('.lk-ov').forEach(x=>x.remove());const none=d.gift=='none';const ov=document.createElement('div');ov.className='lk-ov';ov.setAttribute('role','dialog');ov.setAttribute('aria-modal','true');
  ov.style.cssText='position:fixed;inset:0;z-index:2147483647;background:rgba(8,14,20,.66);display:flex;align-items:center;justify-content:center;padding:20px';
  ov.innerHTML=`<div class="card stack" style="width:min(380px,100%);text-align:center;align-items:center;gap:8px;padding:24px 20px 18px;border-radius:22px">
@@ -91,7 +113,7 @@ function vLucky(){if(!on())return '<h1>Vòng quay may mắn</h1><p class="mut">�
  <div style="flex:none;width:72px;height:72px;border-radius:16px;background:${S2.a};display:flex;flex-direction:column;align-items:center;justify-content:center"><b style="font-family:var(--fd);font-size:1.9rem;line-height:1">${LK.tickets}</b><small style="font-size:.7rem">lượt quay</small></div></div>
  ${earn.length?`<div style="display:grid;grid-template-columns:repeat(${earn.length},minmax(0,1fr));gap:8px;margin-top:10px">${earn.map(([k,n])=>`<div class="card" style="padding:8px"><b style="color:var(--good);font-size:.86rem">+${e[k]} lượt</b><div class="mut" style="font-size:.76rem;line-height:1.3">${n}</div></div>`).join('')}</div>`:''}
  ${LK.prizes.length?wheel():'<p class="note">Vòng quay chưa có quà.</p>'}
- <button class="btn" style="width:100%;min-height:54px;margin-top:12px;background:${S2.a};font-family:var(--fd);font-size:1.3rem;letter-spacing:.05em" ${LK.spinning||LK.tickets<=0||!LK.prizes.length?'disabled':''} onclick="LKX.spin()">${LK.spinning?'ĐANG QUAY…':LK.tickets>0?'QUAY NGAY':'HẾT LƯỢT · HỌC THÊM ĐỂ NHẬN'}</button>
+ <button class="btn" style="width:100%;min-height:54px;margin-top:12px;background:${S2.a};font-family:var(--fd);font-size:1.3rem;letter-spacing:.05em" ${LK.spinning||LK.tickets<=0||!LK.prizes.length?'disabled':''} onclick="LKX.spin()">${LK.spinning?'ĐANG QUAY…':LK.tickets>0?'↻ VUỐT VÒNG QUAY HOẶC BẤM ĐÂY':'HẾT LƯỢT · HỌC THÊM ĐỂ NHẬN'}</button>
  ${e.show_odds?`<div class="card" style="margin-top:12px;padding:10px 12px"><div class="row" style="justify-content:space-between"><b style="font-size:.88rem">Tỉ lệ trúng</b><small class="mut">Admin công bố</small></div>
  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:14px;row-gap:2px;font-size:.8rem;margin-top:4px">${LK.prizes.map(p=>`<span>${esc(p.name)} · ${+p.rate}%${p.stock!=null&&p.given>=p.stock?' (hết)':''}</span>`).join('')}</div></div>`:''}${mineList()}`}
 function mineList(){if(!LK.mine){loadMine();return ''}const L=LK.mine.filter(x=>x.gift!='none');if(!L.length)return '';
