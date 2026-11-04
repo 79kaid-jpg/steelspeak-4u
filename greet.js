@@ -56,7 +56,7 @@ const css=`.gx{position:fixed;inset:0;z-index:2147483600;background:radial-gradi
 .gc-it b{color:#ffd166}.gc-it code{display:inline-block;margin-top:2px;padding:2px 8px;border:1.5px dashed #ffd166;border-radius:8px;color:#ffd166;font:700 .85rem ui-monospace,monospace}
 .gc-ok{margin-top:16px;width:100%;min-height:48px;border:0;border-radius:999px;font:800 1rem system-ui,sans-serif;color:#2a0812;background:linear-gradient(135deg,#ffd166,#ff9f43);cursor:pointer}
 @media (prefers-reduced-motion:reduce){.gx *{animation-duration:.01s!important;transition-duration:.01s!important}}`;
-let AC;function ac(){try{try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state!=='running')AC.resume();return AC}catch(e){return null}}
+let AC;function ac(){try{try{if(navigator.audioSession&&!window.__rec)navigator.audioSession.type='playback'}catch(e){}AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state!=='running')AC.resume();return AC}catch(e){return null}}
 function unlock(){const c=ac();if(!c)return;try{const b=c.createBuffer(1,1,22050),s=c.createBufferSource();s.buffer=b;s.connect(c.destination);s.start(0)}catch(e){}}
 function bell(f,t,d=1.6,v=.12){const c=ac();if(!c)return;const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,c.currentTime+t);g.gain.linearRampToValueAtTime(v,c.currentTime+t+.01);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+t+d);o.connect(g).connect(c.destination);o.start(c.currentTime+t);o.stop(c.currentTime+t+d)}
 function jingle(){for(let i=0;i<14;i++)bell(2200+Math.random()*1800,i*.045+Math.random()*.03,.5,.05)}

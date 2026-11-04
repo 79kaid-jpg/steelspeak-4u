@@ -695,6 +695,7 @@ input,select,textarea{font-size:max(16px,1em)!important}
 html,body{max-width:100%;overflow-x:hidden}@supports (overflow:clip){html,body{overflow-x:clip}}
 </style>
 <script>/* Áp theme mùa ngay khi mở app, tránh nháy giao diện gốc */(function(){try{var p=sessionStorage.getItem('ss-season-preview'),k=p!=null?p:localStorage.getItem('ss-season-cur'),c=localStorage.getItem('ss-season-css');if(k&&c){var s=document.createElement('style');s.id='ss-season-css';s.textContent=c;document.head.appendChild(s);document.documentElement.setAttribute('data-season',k);var m=document.querySelector('meta[name=theme-color]');if(m){m.dataset.orig=m.content;m.content=k=='noel'?'#0f2a1f':k=='tet'?'#c8102e':m.content}}}catch(e){}})()</script>
+<script>/* Ghi âm cần chế độ âm thanh "phát + thu"; chế độ "chỉ phát" sẽ chặn micro trên iPhone */(function(){try{var md=navigator.mediaDevices;if(!md||!md.getUserMedia||md.__w)return;var g=md.getUserMedia.bind(md);md.__w=1;md.getUserMedia=function(c){if(c&&c.audio){window.__rec=(window.__rec||0)+1;try{if(navigator.audioSession)navigator.audioSession.type='play-and-record'}catch(e){}}return g(c).then(function(s){if(c&&c.audio){var left=s.getAudioTracks().length;s.getAudioTracks().forEach(function(t){var end=function(){if(--left<=0){window.__rec=Math.max(0,(window.__rec||1)-1);if(!window.__rec)try{navigator.audioSession.type='auto'}catch(e){}}};t.addEventListener('ended',end);var st=t.stop.bind(t);t.stop=function(){st();end()}})}return s},function(e){if(c&&c.audio){window.__rec=Math.max(0,(window.__rec||1)-1);try{if(!window.__rec&&navigator.audioSession)navigator.audioSession.type='auto'}catch(x){}}throw e})}}catch(e){}})()</script>
 </head><body><div id="app"></div>
 <nav><div id="nav"></div></nav>
 <div class="toast" id="toast" hidden></div>
@@ -1772,7 +1773,7 @@ function carHTML(uid,av,size=1,cls=''){const {type,color}=carOf(uid);return `<di
 
 // ===================== Âm nhạc & hiệu ứng âm thanh (tự tổng hợp bằng Web Audio, không dùng nhạc có bản quyền) =====================
 const MUSIC={on:(()=>{try{return localStorage.getItem('music')!=='0'}catch(e){return true}})(),playing:null,timer:null,step:0,next:0,bus:null};
-function actx(){try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}ACX=ACX||new (window.AudioContext||window.webkitAudioContext)();if(ACX.state=='suspended')ACX.resume();return ACX}
+function actx(){try{if(navigator.audioSession&&!window.__rec)navigator.audioSession.type='playback'}catch(e){}ACX=ACX||new (window.AudioContext||window.webkitAudioContext)();if(ACX.state=='suspended')ACX.resume();return ACX}
 const N2F=n=>440*Math.pow(2,(n-69)/12);
 const SONGS={
  race:{bpm:150,bass:[40,40,52,40,43,43,55,43,45,45,57,45,43,43,47,50],lead:[64,67,71,72,71,67,64,62,64,67,69,71,74,71,69,67],wave:'sawtooth',lv:.045,drums:'xx-x'},
