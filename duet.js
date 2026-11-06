@@ -2,6 +2,7 @@
  Hát nối từng câu với bạn bè: nghe câu mẫu → người được gọi hát → AI chấm → ráp cả bài → bảng điểm.
  Máy chủ: supabase/duet.sql (bảng duet_*, bucket 'duet').
  Bài 2: khung · Bài 3: tạo/vào phòng · Bài 5: bài hát, chia câu, thu âm, chấm điểm.
+ Nhạc: admin tải bản có lời + beat, app tự tách câu (trừ beat → còn giọng → tìm chỗ ngắt), admin chỉnh mốc.
  Còn lại: bài 4 realtime (đang tạm hỏi lại máy chủ), bài 6 ráp bài + bảng điểm. */
 (function(){
 /* Trạng thái riêng của module, không lẫn với S của app */
@@ -95,18 +96,29 @@ function vSong(){
   return `<form class="card stack" onsubmit="event.preventDefault();DUET.saveSong()">
    <b>Bài hát</b>
    <label class="mut" for="du-title" style="font-size:.86rem">Tên bài</label>
-   <input id="du-title" maxlength="80" value="${esc(SAMPLE.title)}">
+   <input id="du-title" maxlength="80" value="${esc(D.draft?.title??SAMPLE.title)}">
    <label class="mut" for="du-lyrics" style="font-size:.86rem">Lời bài hát, mỗi câu một dòng</label>
-   <textarea id="du-lyrics" rows="7" class="duet-ta">${esc(SAMPLE.lyrics)}</textarea>
-   <p class="mut" style="margin:0;font-size:.82rem">Mẫu là dân ca, không vướng bản quyền. Bạn có thể dán lời bài khác.</p>
-   <button class="btn ghost">Lưu bài và chia câu</button>
+   <textarea id="du-lyrics" rows="7" class="duet-ta">${esc(D.draft?.lyrics??SAMPLE.lyrics)}</textarea>
+   <label class="mut" for="du-voc" style="font-size:.86rem">Bản có lời (ca sĩ hát), mp3</label>
+   <input id="du-voc" type="file" accept="audio/*">
+   <label class="mut" for="du-beat" style="font-size:.86rem">Bản beat (không lời) của đúng bài đó</label>
+   <input id="du-beat" type="file" accept="audio/*">
+   <p class="mut" style="margin:0;font-size:.82rem">App tự tách câu theo bản có lời, sau đó bạn nghe lại và chỉnh. Không có file nhạc thì app dùng giọng máy đọc lời. Mỗi file tối đa 20 MB.</p>
+   ${D.prog?`<div class="note" style="margin:0">${esc(D.prog)}</div>`:''}
+   <button class="btn ghost" ${D.prog?'disabled':''}>Lưu bài và tách câu</button>
   </form>`;
  }
+ const music=!!D.song.original_path,tune=D.tune&&isAdmin()&&music;
  return `<section class="card stack">
-  <div class="duet-row"><b style="flex:1">${esc(D.song.title)}</b><span class="mut" style="font-size:.82rem">${D.lines.length} câu</span></div>
-  ${isAdmin()?`<div class="duet-row"><span class="mut" style="font-size:.82rem;flex:1">Chạm vào câu để đổi người hát</span><button class="duet-link" onclick="DUET.autoAssign()">Chia luân phiên</button></div>`:''}
-  <ol class="duet-lines">${D.lines.map(l=>{const u=singerOf(l);return `<li><button class="duet-line" ${isAdmin()?`onclick="DUET.cycle('${l.id}')"`:'disabled'}>
+  <div class="duet-row"><b style="flex:1">${esc(D.song.title)}</b><span class="mut" style="font-size:.82rem">${D.lines.length} câu${music?' · có nhạc':''}</span></div>
+  ${isAdmin()?`<div class="duet-row"><span class="mut" style="font-size:.82rem;flex:1">${tune?'Nghe từng câu, chỉnh mốc bắt đầu / kết thúc':'Chạm vào câu để đổi người hát'}</span>${music?`<button class="duet-link" onclick="DUET.toggleTune()">${tune?'Xong':'Chỉnh mốc'}</button>`:''}${tune?'':`<button class="duet-link" onclick="DUET.autoAssign()">Chia luân phiên</button>`}</div>`:''}
+  <ol class="duet-lines">${D.lines.map(l=>{const u=singerOf(l);
+   if(tune)return `<li class="duet-tune"><div class="duet-row"><button class="duet-play" onclick="DUET.preview(${l.idx})" aria-label="Nghe câu ${l.idx}">${ic('play',16)}</button><span class="duet-n">${pad(l.idx)}</span><span style="flex:1">${esc(l.text)}</span></div>
+    <div class="duet-row duet-adj"><span class="duet-n">Bắt đầu ${fmt(l.start_ms)}</span><button onclick="DUET.nudge(${l.idx},'start',-200)" aria-label="Bắt đầu sớm hơn 0,2 giây">−</button><button onclick="DUET.nudge(${l.idx},'start',200)" aria-label="Bắt đầu muộn hơn 0,2 giây">+</button>
+    <span class="duet-n" style="margin-left:auto">Kết thúc ${fmt(l.end_ms)}</span><button onclick="DUET.nudge(${l.idx},'end',-200)" aria-label="Kết thúc sớm hơn 0,2 giây">−</button><button onclick="DUET.nudge(${l.idx},'end',200)" aria-label="Kết thúc muộn hơn 0,2 giây">+</button></div></li>`;
+   return `<li><button class="duet-line" ${isAdmin()?`onclick="DUET.cycle('${l.id}')"`:'disabled'}>
    <span class="duet-n">${pad(l.idx)}</span><span style="flex:1">${esc(l.text)}</span><span class="duet-who">${u===undefined?'—':u===null?'Cả nhóm':esc(member(u)?.slot||'?')}</span></button></li>`}).join('')}</ol>
+  ${D.splitMode&&isAdmin()?`<p class="mut" style="margin:0;font-size:.82rem">${D.splitMode==='tách giọng'?'Đã tách giọng khỏi beat để tìm chỗ ngắt câu.':'Không trừ được beat (có thể hai file là hai bản phối khác nhau), app tìm chỗ ngắt trên bản có lời nên dễ lệch hơn.'} Nên bấm Chỉnh mốc và nghe lại vài câu trước khi hát.</p>`:''}
   ${isAdmin()?`<button class="duet-link" onclick="DUET.removeSong()">Đổi bài khác</button>`:''}
  </section>`;
 }
@@ -128,6 +140,7 @@ function vTurn(){
    <h1 class="duet-term">${esc(line.text)}</h1>
    <button class="btn ghost" style="border-radius:99px" onclick="DUET.say(${idx})">${ic('vol',18)} Nghe câu mẫu</button>
    <div class="duet-mic">${mine&&!done?micUI():done?`<span class="good">✓ Đã thu${done.score_total!=null?` · ${Math.round(done.score_total)} điểm`:''}. Chuyển câu…</span>`:`<span class="mut">Đang chờ ${esc(nameOf(singer))} hát…</span>`}</div>
+   ${mine&&D.song?.beat_path&&!done?`<span class="mut" style="font-size:.82rem">Đeo tai nghe để micro không thu lẫn tiếng nhạc. Beat tự chạy khi bạn chạm micro.</span>`:''}
    ${mine&&!canScore?`<span class="mut" style="font-size:.82rem">Trình duyệt này chưa chấm lời được, vẫn thu âm bình thường. Dùng Chrome hoặc Edge để có điểm.</span>`:''}
   </section>
   ${next?`<section class="card duet-row" style="margin-top:10px;background:var(--soft)"><span class="mut" style="font-size:.82rem">Tiếp theo</span><span style="flex:1">${esc(next.text)}</span><span class="duet-who">${esc(nameOf(singerOf(next)))}</span></section>`:''}
@@ -238,21 +251,64 @@ async function leave(){
 /* ---- Bài hát và chia câu (admin) ---- */
 async function saveSong(){
  if(busy)return;D.err='';
- const title=val('du-title'),rows=(document.getElementById('du-lyrics')?.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+ const title=val('du-title'),lyrics=document.getElementById('du-lyrics')?.value||'';
+ const rows=lyrics.split('\n').map(s=>s.trim()).filter(Boolean);
+ const fv=document.getElementById('du-voc')?.files?.[0],fb=document.getElementById('du-beat')?.files?.[0];
+ D.draft={title,lyrics};                                  // giữ lại chữ đã nhập nếu có lỗi
  if(!title)return fail('Nhập tên bài hát.');
  if(rows.length<2)return fail('Cần ít nhất 2 câu, mỗi câu một dòng.');
  if(rows.length>60)return fail('Tối đa 60 câu mỗi bài.');
+ if(fb&&!fv)return fail('Cần thêm bản có lời để app tách câu.');
+ for(const f of [fv,fb])if(f&&f.size>20*1024*1024)return fail('Mỗi file nhạc tối đa 20 MB.');
  busy=true;
- const s=await SB().from('duet_songs').insert({room_id:D.room.id,title,source:'public_domain',status:'ready'}).select('id').single();
- if(s.error)return fail('Chưa lưu được bài',s.error);
- // Chưa có audio gốc nên mốc thời gian tạm là 4 giây mỗi câu
- const l=await SB().from('duet_lines').insert(rows.map((text,i)=>({song_id:s.data.id,idx:i+1,text,start_ms:i*4000,end_ms:(i+1)*4000}))).select('*');
- if(l.error)return fail('Chưa lưu được lời',l.error);
- const u=await SB().from('duet_rooms').update({song_id:s.data.id}).eq('id',D.room.id);
- if(u.error)return fail('Chưa gắn bài vào phòng',u.error);
- D.lines=l.data.sort((a,b)=>a.idx-b.idx);
- await autoAssign(true);
- busy=false;toast('Đã lưu bài và chia câu');load();
+ const prog=t=>{D.prog=t;rerender()};
+ try{
+  let times=rows.map((_,i)=>({start:i*4000,end:(i+1)*4000})),vBuf=null,bBuf=null,offset=0;
+  if(fv){
+   prog('Đang đọc file nhạc…');
+   vBuf=await AC().decodeAudioData(await fv.arrayBuffer());
+   if(fb)bBuf=await AC().decodeAudioData(await fb.arrayBuffer());
+   prog(fb?'Đang tách giọng khỏi beat và tìm chỗ ngắt câu…':'Đang tìm chỗ ngắt câu…');
+   await new Promise(r=>setTimeout(r,50));               // cho màn hình kịp hiện dòng trạng thái
+   const sp=splitLines(vBuf,bBuf,rows.length);times=sp.times;offset=sp.offset;D.splitMode=sp.mode;
+  }
+  prog('Đang lưu bài…');
+  const s=await SB().from('duet_songs').insert({room_id:D.room.id,title,source:fv?'upload':'public_domain',status:'ready'}).select('id').single();
+  if(s.error)throw new Error('Chưa lưu được bài: '+s.error.message);
+  if(fv){
+   prog('Đang tải nhạc lên…');
+   const base=`${D.room.id}/${user().id}/song-${s.data.id}`,ext=f=>(f.name.split('.').pop()||'mp3').toLowerCase().replace(/[^a-z0-9]/g,'');
+   const pv=`${base}-voc.${ext(fv)}`,pb=fb?`${base}-beat.${ext(fb)}`:null;
+   const uv=await SB().storage.from(BUCKET).upload(pv,fv,{contentType:fv.type||'audio/mpeg'});
+   if(uv.error)throw new Error('Tải bản có lời lỗi: '+uv.error.message);
+   if(fb){const ub=await SB().storage.from(BUCKET).upload(pb,fb,{contentType:fb.type||'audio/mpeg'});if(ub.error)throw new Error('Tải bản beat lỗi: '+ub.error.message)}
+   BUF[pv]=vBuf;if(pb)BUF[pb]=bBuf;
+   const us=await SB().from('duet_songs').update({original_path:pv,beat_path:pb,beat_offset_ms:offset}).eq('id',s.data.id);
+   if(us.error)throw new Error('Chưa lưu được thông tin nhạc: '+us.error.message+'. Bạn đã chạy duet_music.sql chưa?');
+  }
+  const l=await SB().from('duet_lines').insert(rows.map((text,i)=>({song_id:s.data.id,idx:i+1,text,start_ms:times[i].start,end_ms:Math.max(times[i].start+100,times[i].end)}))).select('*');
+  if(l.error)throw new Error('Chưa lưu được lời: '+l.error.message);
+  const u=await SB().from('duet_rooms').update({song_id:s.data.id}).eq('id',D.room.id);
+  if(u.error)throw new Error('Chưa gắn bài vào phòng: '+u.error.message);
+  D.lines=l.data.sort((a,b)=>a.idx-b.idx);
+  await autoAssign(true);
+  D.prog='';D.draft=null;D.tune=!!fv;busy=false;
+  toast(fv?'Đã tách câu. Nghe lại và chỉnh mốc nếu cần.':'Đã lưu bài và chia câu');load();
+ }catch(e){D.prog='';fail(e.message)}
+}
+function toggleTune(){D.tune=!D.tune;stopPlay();rerender()}
+async function preview(idx){
+ const l=D.lines.find(x=>x.idx===idx);if(!l)return;
+ try{const b=await getBuf(D.song.original_path);playSeg(b,l.start_ms,l.end_ms)}catch(e){fail(e.message)}
+}
+async function nudge(idx,key,d){
+ const l=D.lines.find(x=>x.idx===idx);if(!l)return;
+ const col=key==='start'?'start_ms':'end_ms',v=Math.max(0,l[col]+d);
+ if(key==='start'&&v>=l.end_ms-100)return;if(key==='end'&&v<=l.start_ms+100)return;
+ l[col]=v;rerender();                                     // hiện ngay, lưu sau
+ const {error}=await SB().from('duet_lines').update({[col]:v}).eq('id',l.id);
+ if(error)return fail('Chưa lưu được mốc. Bạn đã chạy duet_music.sql chưa?',error);
+ preview(idx);
 }
 async function autoAssign(quiet){
  if(!D.members.length||!D.lines.length)return;
@@ -287,13 +343,92 @@ const skip=()=>setRoomRow({current_line:D.room.current_line+1});
 const stopGame=()=>{stopRec(true);setRoomRow({status:'waiting',current_line:0})};
 const backToLobby=()=>setRoomRow({status:'waiting',current_line:0});
 
+/* ==================== NHẠC: TẢI, TÁCH CÂU, PHÁT ==================== */
+let _ac=null;
+const AC=()=>{if(!_ac)_ac=new (window.AudioContext||window.webkitAudioContext)();if(_ac.state==='suspended')_ac.resume();return _ac};
+const BUF={};                       // bộ nhớ đệm: đường dẫn → AudioBuffer đã giải mã
+async function getBuf(path){
+ if(!path)return null;if(BUF[path])return BUF[path];
+ const {data,error}=await SB().storage.from(BUCKET).download(path);
+ if(error)throw new Error('Không tải được nhạc: '+error.message);
+ return BUF[path]=await AC().decodeAudioData(await data.arrayBuffer());
+}
+function mono(buf){const n=buf.length,out=new Float32Array(n);for(let c=0;c<buf.numberOfChannels;c++){const d=buf.getChannelData(c);for(let i=0;i<n;i++)out[i]+=d[i]/buf.numberOfChannels}return out}
+
+/* Đường bao năng lượng: tổng |mẫu| trong mỗi khung `f` mẫu */
+function env(x,f){const n=Math.floor(x.length/f),e=new Float32Array(n);for(let i=0;i<n;i++){let s=0;for(let j=i*f,k=j+f;j<k;j++)s+=Math.abs(x[j]);e[i]=s/f}return e}
+
+/* Bước 1: tìm độ lệch giữa bản có lời (v) và beat (b): v[t] ≈ g·b[t−lag] */
+function align(v,b,sr){
+ const f=Math.round(sr*0.01);                       // khung 10 ms
+ const ev=env(v,f),eb=env(b,f),N=Math.min(ev.length,eb.length,6000);   // dùng 60 giây đầu
+ const mean=a=>{let s=0;for(let i=0;i<N;i++)s+=a[i];return s/N},mv=mean(ev),mb=mean(eb);
+ let best=-Infinity,lagF=0;
+ for(let L=-300;L<=300;L++){                         // thử lệch ±3 giây
+  let s=0;for(let i=Math.max(0,L);i<N&&i-L<N;i++)s+=(ev[i]-mv)*(eb[i-L]-mb);
+  if(s>best){best=s;lagF=L}
+ }
+ // Tinh chỉnh tới từng mẫu trên 1,5 giây ở giữa bài
+ const mid=Math.floor(Math.min(v.length,b.length)/2),W=Math.round(sr*1.5);
+ let lag=lagF*f,bestS=-Infinity;
+ for(let d=-f;d<=f;d++){const L=lagF*f+d;let s=0;for(let i=mid;i<mid+W;i+=2){const j=i-L;if(j>=0&&j<b.length)s+=v[i]*b[j]}if(s>bestS){bestS=s;lag=L}}
+ // Hệ số âm lượng g (bình phương tối thiểu) trên 30 giây ở giữa
+ let num=0,den=0;for(let i=mid,k=Math.min(v.length,mid+sr*30);i<k;i+=4){const j=i-lag;if(j<0||j>=b.length)continue;num+=v[i]*b[j];den+=b[j]*b[j]}
+ return {lag,g:den?num/den:0};
+}
+
+/* Bước 2–4: lấy riêng giọng hát, tìm chỗ ngắt, khớp với số câu */
+function splitLines(vBuf,bBuf,nLines){
+ const sr=vBuf.sampleRate,v=mono(vBuf);
+ let x=v,lag=0,mode='vocal';
+ if(bBuf&&bBuf.sampleRate===sr){
+  const b=mono(bBuf),a=align(v,b,sr);lag=a.lag;
+  const r=new Float32Array(v.length);let ev=0,er=0;
+  for(let i=0;i<v.length;i++){const j=i-lag,bv=j>=0&&j<b.length?b[j]:0;r[i]=v[i]-a.g*bv;ev+=v[i]*v[i];er+=r[i]*r[i]}
+  if(er<ev*0.6){x=r;mode='tách giọng'}             // trừ beat làm năng lượng giảm rõ → tách giọng thành công
+ }
+ const F=Math.round(sr*0.02),e=env(x,F);            // khung 20 ms
+ const db=Array.from(e,y=>20*Math.log10(y+1e-6));
+ const sm=db.map((_,i)=>{let s=0,c=0;for(let k=i-3;k<=i+3;k++)if(k>=0&&k<db.length){s+=db[k];c++}return s/c});
+ const sorted=[...sm].sort((p,q)=>p-q),pct=p=>sorted[Math.floor(p*(sorted.length-1))];
+ const floor=pct(.2),peak=pct(.95),thr=floor+0.3*(peak-floor);
+ let segs=[],on=-1;
+ for(let i=0;i<=sm.length;i++){const up=i<sm.length&&sm[i]>thr;if(up&&on<0)on=i;if(!up&&on>=0){segs.push([on,i]);on=-1}}
+ // Gộp khoảng nghỉ < 300 ms, bỏ tiếng ngắn < 250 ms
+ segs=segs.reduce((o,s)=>{const l=o[o.length-1];if(l&&s[0]-l[1]<15)l[1]=s[1];else o.push(s);return o},[]).filter(s=>s[1]-s[0]>=13);
+ if(!segs.length)segs=[[0,sm.length]];
+ // Khớp số đoạn với số câu: thừa thì gộp chỗ nghỉ ngắn nhất, thiếu thì chia đoạn dài nhất tại chỗ nhỏ tiếng nhất
+ while(segs.length>nLines){let k=0,g=Infinity;for(let i=0;i<segs.length-1;i++){const d=segs[i+1][0]-segs[i][1];if(d<g){g=d;k=i}}segs.splice(k,2,[segs[k][0],segs[k+1][1]])}
+ while(segs.length<nLines){let k=0;segs.forEach((s,i)=>{if(s[1]-s[0]>segs[k][1]-segs[k][0])k=i});const [a,b]=segs[k],lo=a+Math.floor((b-a)*.2),hi=a+Math.ceil((b-a)*.8);let m=lo;for(let i=lo;i<hi;i++)if(sm[i]<sm[m])m=i;if(b-a<4)break;segs.splice(k,1,[a,m],[m,b])}
+ while(segs.length<nLines){const l=segs[segs.length-1];segs.push([l[1],l[1]+100])}   // bài quá ngắn: thêm đoạn giả để admin chỉnh
+ const ms=i=>Math.round(i*F/sr*1000),total=Math.round(vBuf.duration*1000);
+ const out=segs.map(([a,b])=>({start:Math.max(0,ms(a)-150),end:Math.min(total,ms(b)+250)}));
+ for(let i=0;i<out.length-1;i++)if(out[i].end>out[i+1].start)out[i].end=out[i+1].start;
+ return {times:out,offset:Math.round(lag/sr*1000),mode};
+}
+
+/* Phát một đoạn của file nhạc. Trả về {node, at}: at = giờ AudioContext lúc bắt đầu */
+let PLAY=null;
+function stopPlay(){try{PLAY&&PLAY.stop()}catch(e){}PLAY=null}
+function playSeg(buf,fromMs,toMs,delay=0){
+ stopPlay();const ac=AC(),s=ac.createBufferSource();s.buffer=buf;s.connect(ac.destination);
+ const from=Math.max(0,fromMs/1000),dur=Math.max(.1,(toMs-fromMs)/1000);
+ const at=ac.currentTime+delay;s.start(at,from,dur);PLAY=s;return {node:s,at,from};
+}
+const fmt=ms=>{const s=Math.max(0,ms)/1000;return Math.floor(s/60)+':'+(s%60).toFixed(1).padStart(4,'0')};
+
 /* ==================== THU ÂM + CHẤM ĐIỂM ==================== */
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
 const canScore=!!SR;
 const REC={h:null,busy:false,t:0,iv:0};
 
-function say(idx){
- const l=D.lines.find(x=>x.idx===idx);if(!l||!window.speechSynthesis)return;
+async function say(idx){
+ const l=D.lines.find(x=>x.idx===idx);if(!l)return;
+ AC();                                                    // mở khoá âm thanh ngay trong lúc chạm (iPhone cần)
+ if(D.song?.original_path){                               // có bản ca sĩ hát: phát đúng đoạn câu này
+  try{const b=await getBuf(D.song.original_path);playSeg(b,l.start_ms,l.end_ms);return}catch(e){D.err=e.message;rerender()}
+ }
+ if(!window.speechSynthesis)return;                       // không có nhạc: giọng máy đọc lời
  speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(l.text);u.lang='en-US';u.rate=.9;speechSynthesis.speak(u);
 }
 async function startRecording(){
@@ -318,18 +453,34 @@ function scoreWords(target,heard){
  for(const w of T){const i=pool.indexOf(w);if(i>=0)pool.splice(i,1);else wrong.push(w)}
  return {score:T.length?Math.round((T.length-wrong.length)/T.length*100):0,wrong:[...new Set(wrong)]};
 }
-function stopRec(cancel){clearInterval(REC.iv);if(REC.h&&cancel)REC.h.cancel();if(cancel)REC.h=null}
+function stopRec(cancel){clearInterval(REC.iv);if(cancel){clearTimeout(REC.auto);stopPlay()}if(REC.h&&cancel)REC.h.cancel();if(cancel)REC.h=null}
 
 async function rec(){
  D.err='';
  const line=D.lines.find(l=>l.idx===D.room?.current_line);if(!line||REC.busy)return;
  if(!REC.h){
-  try{REC.h=await startRecording()}catch(e){D.err='Chưa dùng được micro. Cho phép micro rồi thử lại.';rerender();if(window.MIC)MIC.open&&MIC.open();return}
-  REC.t=Date.now();rerender();
-  REC.iv=setInterval(()=>{const el=document.getElementById('du-st');if(el)el.textContent='● Đang thu · 00:'+pad(Math.min(59,Math.floor((Date.now()-REC.t)/1000)))},250);
+  const ac=AC();                                          // mở khoá âm thanh trong lúc chạm
+  let beat=null;
+  if(D.song?.beat_path){
+   const el=document.getElementById('du-st');if(el)el.textContent='Đang tải nhạc…';
+   try{beat=await getBuf(D.song.beat_path)}catch(e){D.err=e.message;rerender();return}
+  }
+  try{REC.h=await startRecording()}catch(e){D.err='Chưa dùng được micro. Cho phép micro rồi thử lại.';rerender();if(window.MIC&&MIC.open)MIC.open();return}
+  const recAt=ac.currentTime;REC.t=Date.now();REC.off=0;REC.cue=0;
+  if(beat){
+   // Phát beat từ 1,5 giây trước câu (nhạc dạo) đến hết câu; tự dừng thu khi hết đoạn
+   const off=D.song.beat_offset_ms||0,bs=line.start_ms-off,lead=Math.min(1500,Math.max(0,bs));
+   const p=playSeg(beat,bs-lead,line.end_ms-off+400,0.15);
+   REC.off=Math.round((p.at-recAt)*1000+lead);            // vị trí đầu câu trong bản thu, bài 6 dùng để ráp
+   REC.cue=Date.now()+REC.off;
+   REC.auto=setTimeout(()=>{if(REC.h)rec()},REC.off+(line.end_ms-line.start_ms)+700);
+  }
+  rerender();
+  REC.iv=setInterval(()=>{const el=document.getElementById('du-st');if(!el)return;const now=Date.now();
+   el.textContent=REC.cue&&now<REC.cue?`Nhạc dạo… vào sau ${Math.ceil((REC.cue-now)/1000)}`:REC.cue?'● Hát đi!':'● Đang thu · 00:'+pad(Math.min(59,Math.floor((now-REC.t)/1000)))},150);
   return;
  }
- const h=REC.h;stopRec(false);REC.h=null;REC.busy=true;rerender();
+ const h=REC.h,off=REC.off||0;clearTimeout(REC.auto);stopRec(false);stopPlay();REC.h=null;REC.busy=true;rerender();
  try{
   const {blob,text}=await h.stop();
   const {score,wrong}=canScore?scoreWords(line.text,text):{score:null,wrong:[]};
@@ -337,7 +488,7 @@ async function rec(){
   const path=`${D.room.id}/${user().id}/line-${pad(line.idx)}-${Date.now()}.${ext}`;
   const up=await SB().storage.from(BUCKET).upload(path,blob,{contentType:blob.type});
   if(up.error)throw new Error('Tải bản thu lỗi: '+up.error.message);
-  const ins=await SB().from('duet_takes').insert({room_id:D.room.id,line_id:line.id,user_id:user().id,audio_path:path,score_words:score,score_total:score,wrong_words:wrong});
+  const ins=await SB().from('duet_takes').insert({room_id:D.room.id,line_id:line.id,user_id:user().id,audio_path:path,offset_ms:off,score_words:score,score_total:score,wrong_words:wrong});
   if(ins.error)throw new Error(ins.error.message);
   toast(score==null?'Đã thu xong':`Được ${score} điểm${wrong.length?' · luyện lại: '+wrong.slice(0,3).join(', '):''}`);
  }catch(e){D.err=e.message||'Thu âm lỗi'}
@@ -376,10 +527,14 @@ st.textContent=`.duet-hero{border-radius:18px;padding:18px;color:#fff;background
 .duet-micbtn:disabled{opacity:.6}
 .duet-micbtn.live{animation:duetwave 1.2s ease-out infinite}
 @keyframes duetwave{from{box-shadow:0 0 0 0 rgba(200,67,58,.45)}to{box-shadow:0 0 0 22px rgba(200,67,58,0)}}
-@media (prefers-reduced-motion:reduce){.duet-micbtn.live{animation:none}}`;
+@media (prefers-reduced-motion:reduce){.duet-micbtn.live{animation:none}}
+.duet-tune{border-top:1px solid var(--line);padding:8px 0;display:flex;flex-direction:column;gap:6px}
+.duet-play{width:44px;height:44px;border-radius:99px;border:1px solid var(--line);background:var(--soft);color:var(--ink);display:grid;place-items:center;cursor:pointer;flex:none}
+.duet-adj{gap:6px}.duet-adj button{min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:1.1rem;cursor:pointer}
+#app form.card input[type=file]{padding:8px}`;
 document.head.appendChild(st);
 
 window.vDuet=vDuet;window.duetCard=duetCard;
-window.DUET={join,create,leave,invite,saveSong,autoAssign,cycle,removeSong,start,skip,stopGame,backToLobby,say,rec,reload:load,state:D};
+window.DUET={toggleTune,preview,nudge,join,create,leave,invite,saveSong,autoAssign,cycle,removeSong,start,skip,stopGame,backToLobby,say,rec,reload:load,state:D};
 watch();
 })();
