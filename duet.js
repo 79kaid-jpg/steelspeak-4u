@@ -66,6 +66,7 @@ const member=uid=>D.members.find(m=>m.user_id===uid);
 const assignOf=line=>D.assigns.find(a=>a.line_id===line.id);
 // user_id null = cả nhóm (admin thu đại diện); undefined = chưa chia
 const singerOf=line=>{const a=line&&assignOf(line);return a?a.user_id:undefined};
+const singers=()=>D.members.filter(m=>!(D.room?.admin_sings===false&&m.user_id===D.room.admin_id));
 const nameOf=uid=>{if(uid===null)return 'Cả nhóm';const m=member(uid);return m?`${m.slot} · ${m.nickname}`:'—'};
 const lastTake=line=>{for(let i=D.takes.length-1;i>=0;i--)if(line&&D.takes[i].line_id===line.id)return D.takes[i];return null};
 
@@ -82,7 +83,8 @@ function vLobby(){
   </section>
   <section class="card stack">
    <b>Người chơi · ${D.members.length}</b>
-   <div class="duet-chips">${D.members.map(m=>`<span class="duet-chip${m.user_id===R.admin_id?' on':''}">${esc(m.slot)} · ${esc(m.nickname)}${m.user_id===R.admin_id?' (admin)':''}${m.user_id===me?' · bạn':''}</span>`).join('')}</div>
+   <div class="duet-chips">${D.members.map(m=>`<span class="duet-chip${m.user_id===R.admin_id?' on':''}">${esc(m.slot)} · ${esc(m.nickname)}${m.user_id===R.admin_id?(R.admin_sings===false?' (admin, không hát)':' (admin)'):''}${m.user_id===me?' · bạn':''}${isAdmin()&&m.user_id!==R.admin_id?`<button class="duet-x" onclick="DUET.kick('${m.user_id}')" aria-label="Xoá ${esc(m.nickname)} khỏi phòng">✕</button>`:''}</span>`).join('')}</div>
+   ${isAdmin()?`<label class="duet-row duet-check"><input type="checkbox" ${R.admin_sings!==false?'checked':''} onchange="DUET.setAdminSings(this.checked)"> Admin cũng hát</label>`:''}
    <p class="mut" style="margin:0;font-size:.82rem">Tối đa 6 người. Danh sách tự cập nhật khi có bạn vào.</p>
   </section>
   ${vSong()}
@@ -159,9 +161,25 @@ function scoreTag(v){if(v==null)return '';const n=Math.round(+v),c=n>=80?'good':
 
 /* ---------- 3 · Hết bài (bài 6 làm bảng điểm + bản ráp) ---------- */
 function vDone(){
- const rows=D.lines.map(l=>{const t=lastTake(l);return `<li class="duet-row" style="border-top:1px solid var(--line);padding:8px 0"><span class="duet-n">${pad(l.idx)}</span><span style="flex:1">${esc(l.text)}<br><small class="mut">${esc(nameOf(t?t.user_id:singerOf(l)))}${t&&t.wrong_words?.length?' · sai: '+esc(t.wrong_words.join(', ')):''}</small></span>${t?scoreTag(t.score_total):'<span class="mut">—</span>'}</li>`}).join('');
- return `<section class="duet-hero"><span class="duet-lbl">HOÀN THÀNH</span><h1>${esc(D.room.name)}</h1><p>Bài 6 sẽ ráp các đoạn thu thành một bài và xếp hạng từng người.</p></section>
-  <section class="card"><b>Điểm từng câu</b><ol class="duet-lines">${rows}</ol></section>
+ const R=D.room;
+ // Bảng điểm: lấy bản thu mới nhất của mỗi câu trong lượt này, gom theo người hát
+ const per={};
+ D.lines.forEach(l=>{const t=lastTake(l);if(!t)return;const p=per[t.user_id]||(per[t.user_id]={uid:t.user_id,sum:0,n:0,scored:0,best:null,wrong:new Set()});
+  p.n++;if(t.score_total!=null){p.sum+=+t.score_total;p.scored++;if(!p.best||+t.score_total>+p.best.t.score_total)p.best={t,l}}
+  (t.wrong_words||[]).forEach(w=>p.wrong.add(w))});
+ const rank=Object.values(per).map(p=>({...p,avg:p.scored?Math.round(p.sum/p.scored):null})).sort((a,b)=>(b.avg??-1)-(a.avg??-1));
+ const player=R.status==='mixing'?`<p style="margin:0">AI đang ráp các giọng hát lên nền nhạc…</p>`
+  :D.mixUrl?`<audio controls preload="auto" src="${esc(D.mixUrl)}" style="width:100%"></audio>`
+  :R.mix_path?`<p style="margin:0">Đang tải bản ráp…</p>`:`<p style="margin:0">Chưa ráp được bản nghe lại.</p>`;
+ return `<section class="duet-hero"><span class="duet-lbl">HOÀN THÀNH · ${esc((D.song?.title||'').toUpperCase())}</span><h1>${esc(R.name)}</h1>${player}</section>
+  <h2 style="margin:4px 0 8px">Bảng điểm</h2>
+  ${rank.length?rank.map((p,i)=>`<section class="card stack" style="margin-bottom:10px">
+   <div class="duet-row"><span class="duet-rank">${i+1}</span><span style="flex:1"><b>${esc(nameOf(p.uid))}</b><br><small class="mut">${p.n} câu${p.best?' · hay nhất: '+esc(p.best.l.text):''}</small></span>${p.avg!=null?`<span class="duet-big">${scoreTag(p.avg)}</span>`:'<span class="mut">chưa chấm</span>'}</div>
+   ${p.wrong.size?`<span class="warn" style="font-size:.86rem">Luyện lại: <b>${esc([...p.wrong].slice(0,6).join(', '))}</b></span>`:p.scored?`<span class="good" style="font-size:.86rem">✓ Không có từ sai</span>`:''}
+  </section>`).join(''):'<p class="mut">Chưa có ai thu âm trong lượt này.</p>'}
+  <details class="card"><summary><b>Điểm từng câu</b></summary><ol class="duet-lines">${D.lines.map(l=>{const t=lastTake(l);return `<li class="duet-row" style="border-top:1px solid var(--line);padding:8px 0"><span class="duet-n">${pad(l.idx)}</span><span style="flex:1">${esc(l.text)}<br><small class="mut">${esc(nameOf(t?t.user_id:singerOf(l)))}${t&&t.wrong_words?.length?' · sai: '+esc(t.wrong_words.join(', ')):''}</small></span>${t?scoreTag(t.score_total):'<span class="mut">—</span>'}</li>`}).join('')}</ol></details>
+  <p class="mut" style="font-size:.82rem">Điểm tính theo độ đúng lời. Chấm cao độ và nhịp sẽ thêm sau.</p>
+  ${errBox()}
   ${isAdmin()?`<button class="btn amber" style="width:100%;margin-top:12px" onclick="DUET.backToLobby()">Về phòng chờ, hát lại</button>`:''}
   <button class="btn ghost" style="width:100%;margin-top:12px" onclick="DUET.leave()">Rời phòng</button>`;
 }
@@ -183,13 +201,13 @@ async function load(){
   sid?SB().from('duet_songs').select('*').eq('id',sid).maybeSingle():{data:null},
   sid?SB().from('duet_lines').select('*').eq('song_id',sid).order('idx'):{data:[]},
   SB().from('duet_assignments').select('*').eq('room_id',D.roomId),
-  (()=>{let q=SB().from('duet_takes').select('id,line_id,user_id,score_total,wrong_words,created_at').eq('room_id',D.roomId);if(r.data.round_at)q=q.gte('created_at',r.data.round_at);return q.order('created_at')})()
+  (()=>{let q=SB().from('duet_takes').select('id,line_id,user_id,audio_path,offset_ms,score_total,wrong_words,created_at').eq('room_id',D.roomId);if(r.data.round_at)q=q.gte('created_at',r.data.round_at);return q.order('created_at')})()
  ]);
  const next={room:r.data,members:m.data||[],song:s.data,lines:l.data||[],assigns:a.data||[],takes:t.data||[]};
- const sig=JSON.stringify(next);if(sig===D.sig)return; // không đổi thì không vẽ lại (giữ chữ đang gõ)
+ const sig=JSON.stringify(next);if(sig===D.sig){adminMix();return} // không đổi thì không vẽ lại (giữ chữ đang gõ)
  Object.assign(D,next,{sig,err:''});
  if(!REC.h)rerender();
- adminStep();
+ adminStep();adminMix();signMix();
 }
 // Tạm hỏi lại máy chủ: 2 giây khi đang hát, 5 giây khi chờ. Bài 4 thay bằng realtime.
 let timer=null;
@@ -202,7 +220,23 @@ function adminStep(){
  if(!isAdmin()||stepping||D.room.status!=='singing')return;
  const idx=D.room.current_line,line=D.lines.find(l=>l.idx===idx);
  if(line&&lastTake(line)){stepping=true;setTimeout(async()=>{await SB().from('duet_rooms').update({current_line:idx+1}).eq('id',D.room.id).eq('current_line',idx);stepping=false;load()},1500)}
- else if(!line&&D.lines.length){stepping=true;SB().from('duet_rooms').update({status:'done'}).eq('id',D.room.id).then(()=>{stepping=false;load()})}
+ else if(!line&&D.lines.length){stepping=true;SB().from('duet_rooms').update({status:'mixing'}).eq('id',D.room.id).then(()=>{stepping=false;load()})}
+}
+/* Admin ráp bài khi phòng ở trạng thái 'mixing' */
+let mixing=false;
+async function adminMix(){
+ if(!isAdmin()||mixing||D.room?.status!=='mixing')return;
+ mixing=true;
+ try{
+  const wav=await buildMix(),path=`${D.room.id}/mix/mix-${Date.now()}.wav`;
+  const up=await SB().storage.from(BUCKET).upload(path,wav,{contentType:'audio/wav'});
+  if(up.error)throw new Error(up.error.message);
+  await SB().from('duet_rooms').update({status:'done',mix_path:path}).eq('id',D.room.id);
+ }catch(e){
+  D.err='Ráp bài lỗi: '+(e.message||e);
+  await SB().from('duet_rooms').update({status:'done',mix_path:null}).eq('id',D.room.id);
+ }
+ mixing=false;load();
 }
 
 /* ==================== HÀNH ĐỘNG ==================== */
@@ -311,15 +345,16 @@ async function nudge(idx,key,d){
  preview(idx);
 }
 async function autoAssign(quiet){
- if(!D.members.length||!D.lines.length)return;
- const rows=D.lines.map((l,i)=>({room_id:D.room.id,line_id:l.id,user_id:D.members[i%D.members.length].user_id}));
+ const P=singers();if(!D.lines.length)return;
+ if(!P.length)return fail('Chưa có ai để chia câu. Mời bạn vào phòng hoặc bật "Admin cũng hát".');
+ const rows=D.lines.map((l,i)=>({room_id:D.room.id,line_id:l.id,user_id:P[i%P.length].user_id}));
  const {error}=await SB().from('duet_assignments').upsert(rows);
  if(error)return fail('Chưa chia được câu',error);
  if(quiet!==true){toast('Đã chia luân phiên');load()}
 }
 async function cycle(lineId){
  const line=D.lines.find(l=>l.id===lineId);if(!line||!isAdmin())return;
- const order=[...D.members.map(m=>m.user_id),null],cur=singerOf(line);
+ const order=[...singers().map(m=>m.user_id),...(D.room.admin_sings===false?[]:[null])],cur=singerOf(line);
  const nextU=order[(order.indexOf(cur===undefined?null:cur)+1)%order.length];
  const {error}=await SB().from('duet_assignments').upsert({room_id:D.room.id,line_id:line.id,user_id:nextU});
  if(error)return fail('Chưa đổi được',error);
@@ -341,7 +376,7 @@ async function start(){
 const setRoomRow=async(patch)=>{const {error}=await SB().from('duet_rooms').update(patch).eq('id',D.room.id);if(error)fail('Chưa cập nhật được phòng',error);else load()};
 const skip=()=>setRoomRow({current_line:D.room.current_line+1});
 const stopGame=()=>{stopRec(true);setRoomRow({status:'waiting',current_line:0})};
-const backToLobby=()=>setRoomRow({status:'waiting',current_line:0});
+const backToLobby=()=>{D.mixUrl='';D.mixFor='';setRoomRow({status:'waiting',current_line:0,mix_path:null})};
 
 /* ==================== NHẠC: TẢI, TÁCH CÂU, PHÁT ==================== */
 let _ac=null;
@@ -495,6 +530,68 @@ async function rec(){
  REC.busy=false;load().then(rerender);
 }
 
+/* ==================== QUẢN LÝ NGƯỜI CHƠI (admin) ==================== */
+async function kick(uid){
+ const m=member(uid);if(!m||!isAdmin())return;
+ if(!confirmKick(m))return;
+ const {error}=await SB().from('duet_members').delete().eq('room_id',D.room.id).eq('user_id',uid);
+ if(error)return fail('Chưa xoá được. Bạn đã chạy duet_admin.sql chưa?',error);
+ D.members=D.members.filter(x=>x.user_id!==uid);
+ // Câu của người bị xoá: ở phòng chờ thì chia lại, đang hát thì chuyển cho admin (Cả nhóm)
+ if(D.room.status==='waiting'&&D.lines.length)await autoAssign(true);
+ else{const rows=D.assigns.filter(a=>a.user_id===uid).map(a=>({...a,user_id:null}));if(rows.length)await SB().from('duet_assignments').upsert(rows)}
+ toast('Đã xoá '+m.nickname+' khỏi phòng');load();
+}
+// Hỏi lại bằng nút trong trang thay vì confirm() của trình duyệt
+let kickArm='';
+function confirmKick(m){if(kickArm===m.user_id){kickArm='';return true}kickArm=m.user_id;toast('Chạm ✕ lần nữa để xoá '+m.nickname);setTimeout(()=>{if(kickArm===m.user_id)kickArm=''},3000);return false}
+async function setAdminSings(on){
+ const {error}=await SB().from('duet_rooms').update({admin_sings:on}).eq('id',D.room.id);
+ if(error)return fail('Chưa đổi được. Bạn đã chạy duet_admin.sql chưa?',error);
+ D.room.admin_sings=on;
+ if(D.lines.length)await autoAssign(true);
+ toast(on?'Admin cùng hát':'Admin chỉ điều khiển, không hát');load();
+}
+
+/* ==================== RÁP BÀI ==================== */
+async function buildMix(){
+ const rate=22050,beat=D.song?.beat_path?await getBuf(D.song.beat_path):null,off=D.song?.beat_offset_ms||0;
+ const parts=[];
+ for(const l of D.lines){const t=lastTake(l);if(!t||!t.audio_path)continue;
+  const {data,error}=await SB().storage.from(BUCKET).download(t.audio_path);if(error)continue;
+  try{parts.push({l,t,buf:await AC().decodeAudioData(await data.arrayBuffer())})}catch(e){}}
+ if(!parts.length)throw new Error('chưa có bản thu nào');
+ // Có beat: đặt mỗi giọng đúng chỗ câu trên nền beat. Không có beat: nối liền các câu.
+ let total,place;
+ if(beat){total=beat.duration;place=p=>Math.max(0,(p.l.start_ms-off-(p.t.offset_ms||0))/1000)}
+ else{let cur=0;const at=new Map();parts.forEach(p=>{at.set(p,cur);cur+=p.buf.duration+.25});total=cur;place=p=>at.get(p)}
+ const end=Math.max(total,...parts.map(p=>place(p)+p.buf.duration))+.5;
+ const oc=new OfflineAudioContext(1,Math.ceil(end*rate),rate);
+ if(beat){const s=oc.createBufferSource(),g=oc.createGain();s.buffer=beat;g.gain.value=.55;s.connect(g).connect(oc.destination);s.start(0)}
+ for(const p of parts){
+  const d=p.buf.getChannelData(0);let pk=0;for(let i=0;i<d.length;i+=32)pk=Math.max(pk,Math.abs(d[i]));
+  const lv=Math.min(4,.85/Math.max(.05,pk)),a=place(p),b=a+p.buf.duration,f=.03;   // cân âm lượng từng giọng
+  const s=oc.createBufferSource(),g=oc.createGain();s.buffer=p.buf;
+  g.gain.setValueAtTime(0,a);g.gain.linearRampToValueAtTime(lv,a+f);g.gain.setValueAtTime(lv,Math.max(a+f,b-f));g.gain.linearRampToValueAtTime(0,b);
+  s.connect(g).connect(oc.destination);s.start(a);
+ }
+ return toWav(await oc.startRendering());
+}
+function toWav(buf){
+ const x=buf.getChannelData(0);let pk=0;for(let i=0;i<x.length;i++)pk=Math.max(pk,Math.abs(x[i]));const k=pk>.98?.98/pk:1;
+ const v=new DataView(new ArrayBuffer(44+x.length*2)),w=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};
+ w(0,'RIFF');v.setUint32(4,36+x.length*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+ v.setUint32(24,buf.sampleRate,true);v.setUint32(28,buf.sampleRate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,x.length*2,true);
+ for(let i=0;i<x.length;i++){const s=Math.max(-1,Math.min(1,x[i]*k));v.setInt16(44+i*2,s<0?s*32768:s*32767,true)}
+ return new Blob([v],{type:'audio/wav'});
+}
+// Link nghe bản ráp (riêng tư, hết hạn sau 1 giờ)
+async function signMix(){
+ const p=D.room?.mix_path;if(!p||D.mixFor===p)return;D.mixFor=p;
+ const {data}=await SB().storage.from(BUCKET).createSignedUrl(p,3600);
+ D.mixUrl=data?.signedUrl||'';rerender();
+}
+
 /* ---------- Thẻ lối vào trên trang Học ---------- */
 function duetCard(){
  return `<button class="card login-nudge" onclick="go('duet')"><span class="tile2-ic" style="background:var(--soft);color:var(--steel2)">${ic('mic',20)}</span><span style="flex:1;text-align:left"><b>Hát nối cùng bạn bè</b><small>Mỗi người một câu, AI chấm điểm từng người</small></span><span class="chev">›</span></button>`;
@@ -531,10 +628,15 @@ st.textContent=`.duet-hero{border-radius:18px;padding:18px;color:#fff;background
 .duet-tune{border-top:1px solid var(--line);padding:8px 0;display:flex;flex-direction:column;gap:6px}
 .duet-play{width:44px;height:44px;border-radius:99px;border:1px solid var(--line);background:var(--soft);color:var(--ink);display:grid;place-items:center;cursor:pointer;flex:none}
 .duet-adj{gap:6px}.duet-adj button{min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:1.1rem;cursor:pointer}
-#app form.card input[type=file]{padding:8px}`;
+#app form.card input[type=file]{padding:8px}
+.duet-x{margin-left:6px;min-width:28px;min-height:28px;border-radius:99px;border:0;background:transparent;color:inherit;cursor:pointer;font-size:.9rem;position:relative}
+.duet-x::after{content:'';position:absolute;inset:-8px}
+.duet-check{gap:10px;min-height:44px;font-size:.9rem}.duet-check input{width:20px;height:20px;min-height:0}
+.duet-rank{font-size:1.4rem;font-weight:700;color:var(--mut);width:22px}
+.duet-big{font-size:1.6rem}`;
 document.head.appendChild(st);
 
 window.vDuet=vDuet;window.duetCard=duetCard;
-window.DUET={toggleTune,preview,nudge,join,create,leave,invite,saveSong,autoAssign,cycle,removeSong,start,skip,stopGame,backToLobby,say,rec,reload:load,state:D};
+window.DUET={kick,setAdminSings,toggleTune,preview,nudge,join,create,leave,invite,saveSong,autoAssign,cycle,removeSong,start,skip,stopGame,backToLobby,say,rec,reload:load,state:D};
 watch();
 })();
