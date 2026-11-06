@@ -3,7 +3,7 @@
  Máy chủ: supabase/duet.sql (bảng duet_*, bucket 'duet').
  Bài 2: khung · Bài 3: tạo/vào phòng · Bài 5: bài hát, chia câu, thu âm, chấm điểm.
  Nhạc: admin tải bản có lời + beat, app tự tách câu (trừ beat → còn giọng → tìm chỗ ngắt), admin chỉnh mốc.
- Còn lại: bài 4 realtime (đang tạm hỏi lại máy chủ), bài 6 ráp bài + bảng điểm. */
+ Bài 4: realtime · Bài 6: ráp bài + bảng điểm. */
 (function(){
 /* Trạng thái riêng của module, không lẫn với S của app */
 const D={roomId:null,room:null,members:[],song:null,lines:[],assigns:[],takes:[],err:'',sig:''};
@@ -209,10 +209,25 @@ async function load(){
  if(!REC.h)rerender();
  adminStep();adminMix();signMix();
 }
-// Tạm hỏi lại máy chủ: 2 giây khi đang hát, 5 giây khi chờ. Bài 4 thay bằng realtime.
-let timer=null;
-function watch(){clearTimeout(timer);timer=null;if(!D.roomId)return;
- const tick=async()=>{try{if(S.tab==='duet')await load()}catch(e){}timer=setTimeout(tick,D.room?.status==='singing'?2000:5000)};tick()}
+/* Bài 4 · Realtime: máy chủ báo ngay khi phòng, người chơi, phân câu hoặc bản thu thay đổi.
+   Vẫn hỏi lại định kỳ để dự phòng: 30 giây khi realtime đang chạy, 2–5 giây khi mất kết nối. */
+let timer=null,chan=null,live=false,soon=null;
+const poke=()=>{clearTimeout(soon);soon=setTimeout(()=>{if(S.tab==='duet')load()},150)};   // gom nhiều sự kiện liền nhau thành 1 lần tải
+function listen(){
+ if(chan||!D.roomId||!SB()||!user())return;
+ const id=D.roomId;
+ chan=SB().channel('duet-'+id)
+  .on('postgres_changes',{event:'*',schema:'public',table:'duet_rooms',filter:`id=eq.${id}`},poke)
+  .on('postgres_changes',{event:'*',schema:'public',table:'duet_takes',filter:`room_id=eq.${id}`},poke)
+  .on('postgres_changes',{event:'*',schema:'public',table:'duet_assignments',filter:`room_id=eq.${id}`},poke)
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'duet_members',filter:`room_id=eq.${id}`},poke)
+  .on('postgres_changes',{event:'DELETE',schema:'public',table:'duet_members'},poke)   // sự kiện xoá không lọc theo phòng được
+  .subscribe(st=>{live=st==='SUBSCRIBED';if(live)poke()});
+}
+function unlisten(){if(chan){try{SB().removeChannel(chan)}catch(e){}}chan=null;live=false}
+function watch(){clearTimeout(timer);timer=null;unlisten();if(!D.roomId)return;
+ const tick=async()=>{try{listen();if(S.tab==='duet')await load()}catch(e){}
+  timer=setTimeout(tick,live?30000:D.room?.status==='singing'?2000:5000)};tick()}
 
 /* Admin là "người điều khiển": thấy câu hiện tại đã có bản thu thì chuyển câu, hết câu thì kết thúc */
 let stepping=false;
