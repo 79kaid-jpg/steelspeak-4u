@@ -707,6 +707,7 @@ html,body{max-width:100%;overflow-x:hidden}@supports (overflow:clip){html,body{o
 <script src="badges.js"></script>
 <script src="challenge.js"></script>
 <script src="lucky.js"></script>
+<script src="duet.js"></script>
 <script src="mic.js"></script>
 <script src="install.js"></script>
 <script src="update.js"></script>
@@ -1015,7 +1016,7 @@ const slow=(t)=>`<button class="ic" aria-label="Nghe chậm" onclick="event.stop
 const TABS=[['home','Học','home'],['vocab','Từ vựng','book'],['saga','Đua level','trophy'],['read','Đọc truyện','story'],['make','Tạo bài','plus'],['me','Tài khoản','user']];
 function go(t){S.tab=t;S.game=null;render();scrollTo(0,0)}
 function render(){document.body.classList.toggle('in-game',!!(S.game&&!S.game.saga));const onMap=S.tab=='saga'&&!S.game&&SG.view!='board'&&SG.view!='friends';document.documentElement.style.background=onMap?mapBottomColor():'';try{musicSync()}catch(e){}$('#nav').innerHTML=TABS.map(([k,n,i])=>`<button class="${S.tab==k?'on':''} t-${k}" onclick="go('${k}')" style="position:relative" aria-label="${n}"${S.tab==k?' aria-current="page"':''}><span class="nv-ic">${navIcon(k)||svg(i)}</span><span class="nv-t">${n}</span>${k=='me'&&(ADMN.total||window.MSGU)?`<span class="nav-dot" aria-label="${ADMN.total} việc quản trị chờ xử lý"></span>`:''}</button>`).join('');
-const GATED=['vocab','speak','make','saga','contrib'];$('#app').innerHTML=S.game?vGame():(GATED.includes(S.tab)&&!canLearn()?trackBar()+vGate():({home:vHome,vocab:vVocab,speak:vSpeak,make:vMake,spec:vSpec,me:vMe,admin:vAdmin,saga:vSaga,tracks:vTracks,contrib:vContrib,ielts:vIelts,cert:vCert,read:vRead,tl:vTopic,msg:vMsg,badges:vBadgeShelf,duel:vDuel,lucky:vLucky,luckyadm:vLuckyAdmin,greetadm:()=>window.vGreetAdmin?vGreetAdmin():""})[S.tab]())}
+const GATED=['vocab','speak','make','saga','contrib'];$('#app').innerHTML=S.game?vGame():(GATED.includes(S.tab)&&!canLearn()?trackBar()+vGate():({home:vHome,vocab:vVocab,speak:vSpeak,make:vMake,spec:vSpec,me:vMe,admin:vAdmin,saga:vSaga,tracks:vTracks,contrib:vContrib,ielts:vIelts,cert:vCert,read:vRead,tl:vTopic,msg:vMsg,badges:vBadgeShelf,duel:vDuel,lucky:vLucky,luckyadm:vLuckyAdmin,greetadm:()=>window.vGreetAdmin?vGreetAdmin():"",duet:()=>window.vDuet?vDuet():""})[S.tab]())}
 /* ---- home ---- */
 const PATH_STEEL=[['coat','Cấu trúc thép phủ màu'],['qual','Thử nghiệm & khiếu nại'],['nspe','Quy trình NSPE'],['colr','Pha màu & chạy thử'],['npd','Phát triển sản phẩm mới'],['talk','Họp & email với CFT']];
 function pathList(){const tr=curTrack();if(!tr||tr.slug=='steel')return PATH_STEEL;const used=new Set(TERMS.map(x=>x.cat));return Object.entries(tr.cats||{}).filter(([k])=>used.has(k)).map(([k,v])=>[k,v])}
@@ -1033,6 +1034,7 @@ function vHomeMain(){const PATH=pathState(),nowP=PATH.find(p=>p[2]=='now'),W=wro
   <button class="ring" onclick="setGoal()" aria-label="Mục tiêu ngày ${txp}/${goal} XP, chạm để đổi"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="${R}" class="ring-bg"/><circle cx="40" cy="40" r="${R}" class="ring-fg" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-pct)}"/></svg><span><b>${txp}</b><small>/${goal} XP</small></span></button></section>
  ${nowP?`<button class="btn amber cta-big" onclick="start({path:'${nowP[0]}',cats:['${nowP[0]}'],mode:'quiz',n:8,name:'${esc(nowP[1])}'})"><span class="cta-ic">▶</span><span><small>Học tiếp</small>${esc(nowP[1])}</span></button>`:'<div class="card"><b>Bạn đã hoàn thành cả lộ trình!</b></div>'}
  ${examHome()}${isIelts()?ieltsHomeCard():''}
+ ${window.duetCard?duetCard():''}
  <div class="sec-h"><h2>Ôn tập</h2></div>
  <div class="tiles">
   <button class="tile2 ${W.length?'warn':''}" onclick="${W.length?'reviewWrong()':"toast('Chưa có từ sai')"}"><span class="tile2-ic">✕</span><b>${W.length}</b><span>Từ sai cần ôn</span></button>
