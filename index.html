@@ -63,7 +63,7 @@ h1{font-size:1.9rem;font-weight:700}h2{font-size:1.35rem;font-weight:600;margin-
 input[type=text],select,textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);z-index:5}
 nav>div{max-width:480px;margin:0 auto;display:flex}
-nav button{flex:1;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.7rem;color:var(--mut)}
+nav button{flex:1;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.75rem;color:var(--mut)}
 nav button svg{width:22px;height:22px}nav button.on{color:var(--steel);font-weight:600}
 .note{border-left:3px solid var(--amber);padding:8px 12px;background:var(--soft);border-radius:0 10px 10px 0;font-size:.86rem}
 table{border-collapse:collapse;width:100%;font-size:.84rem}td,th{border-bottom:1px solid var(--line);padding:7px 6px;text-align:left;vertical-align:top}th{font-family:var(--fd);font-weight:600}
@@ -120,7 +120,7 @@ nav button.on::before{content:"";position:absolute;top:0;left:28%;right:28%;heig
 .fc-grades{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
 .fc-grade{min-height:58px;border-radius:12px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--line);background:var(--card);transition:transform .12s}
 .fc-grade:active{transform:scale(.96)}
-.fc-grade b{font-family:var(--fd);font-size:1rem}.fc-grade span{font-size:.72rem;color:var(--mut);font-family:var(--fm)}
+.fc-grade b{font-family:var(--fd);font-size:1rem}.fc-grade span{font-size:.75rem;color:var(--mut);font-family:var(--fm)}
 .fc-grade.g0 b{color:var(--bad)}.fc-grade.g1 b{color:var(--warn)}.fc-grade.g2 b{color:var(--good)}.fc-grade.g3 b{color:var(--steel)}
 .fc-grade.g2{background:color-mix(in srgb,var(--good) 10%,var(--card));border-color:color-mix(in srgb,var(--good) 40%,var(--line))}
 .fc-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}
@@ -202,7 +202,7 @@ nav button .nv-t{line-height:1.1}
 .league-badge{flex:none;width:52px;height:52px;border-radius:14px;transform:rotate(45deg);display:grid;place-items:center;background:var(--tier);border:3px solid rgba(255,255,255,.7);font:700 1.3rem var(--fd)}
 .league-badge>*{transform:rotate(-45deg)}
 .podium{display:grid;grid-template-columns:1fr 1fr 1fr;align-items:end;gap:8px;margin:18px 0 12px}
-.pod{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;min-width:0}.pod b{font-size:.84rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pod span{font-size:.74rem;color:var(--mut)}
+.pod{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;min-width:0}.pod b{font-size:.84rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pod span{font-size:.75rem;color:var(--mut)}
 .pod-av{position:relative;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font:700 1.05rem var(--fd);background:var(--soft);color:var(--steel);border:3px solid var(--zinc)}
 .pod1 .pod-av{width:64px;height:64px;border-color:#ffcf4a}.pod2 .pod-av{border-color:#b9c4cf}.pod3 .pod-av{border-color:#c98a55}
 .crown{position:absolute;top:-20px;font-size:1.3rem;color:#e3a51a}
@@ -309,7 +309,7 @@ button:focus-visible,label.btn:focus-within,.link:focus-visible{outline:3px soli
 .contrib-ic{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:1.3rem;font-weight:700;color:var(--onsteel);background:var(--steel)}
 .ct-res{border-radius:12px;padding:10px 12px;background:var(--soft);border-left:4px solid var(--steel)}.ct-res.approved{border-color:var(--good);background:color-mix(in srgb,var(--good) 10%,var(--card))}
 .sug{display:flex;flex-direction:column;gap:8px}.sug-term{font-family:var(--fd);font-size:1.25rem}.sug-ex{font-size:.9rem}
-.sug-st{flex:none;min-height:28px;padding:3px 10px;font-size:.74rem}.sug-st.approved{background:var(--good);color:#fff;border-color:var(--good)}.sug-st.needs_admin{color:var(--warn);border-color:var(--amber)}.sug-st.rejected{color:var(--bad)}
+.sug-st{flex:none;min-height:28px;padding:3px 10px;font-size:.75rem}.sug-st.approved{background:var(--good);color:#fff;border-color:var(--good)}.sug-st.needs_admin{color:var(--warn);border-color:var(--amber)}.sug-st.rejected{color:var(--bad)}
 .sug-lv{display:flex;gap:6px;flex-wrap:wrap}.lv-chip{font-size:.78rem;padding:4px 10px;border-radius:99px;background:var(--soft)}.lv-chip.ai{background:color-mix(in srgb,var(--steel) 12%,var(--card))}.lv-chip.ai.ok{background:color-mix(in srgb,var(--good) 18%,var(--card));color:var(--good)}
 .sug-vote{display:flex;align-items:center;gap:8px}
 .vote{min-width:64px;min-height:44px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);font-weight:700;cursor:pointer}.vote:disabled{opacity:.4;cursor:not-allowed}
@@ -457,7 +457,7 @@ button:focus-visible,label.btn:focus-within,.link:focus-visible{outline:3px soli
 .qbar{flex:1;height:14px;border-radius:99px;background:var(--soft);overflow:hidden}.qbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(180deg,#ffd27a,var(--amber));box-shadow:inset 0 -3px 0 rgba(0,0,0,.12);transition:width .35s ease-out}.qn{font:600 .85rem var(--fd);color:var(--mut)}
 .done2{text-align:center;padding-top:24px}.done2-badge{width:88px;height:88px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;font-size:2.4rem;font-weight:700;color:#fff;background:var(--mut);animation:pop .45s cubic-bezier(.2,1.4,.4,1)}.done2-badge.ok{background:var(--good)}
 @keyframes pop{from{transform:scale(.4);opacity:0}}
-.done2-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0 14px}.done2-stats div{padding:12px 6px;border-radius:16px;border:1px solid var(--line);background:var(--card)}.done2-stats small{display:block;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}.done2-stats b{font:700 1.5rem var(--fd)}.done2-stats .xp{color:var(--warn)}.done2-stats .good{color:var(--good)}.done2-stats .bad{color:var(--bad)}
+.done2-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0 14px}.done2-stats div{padding:12px 6px;border-radius:16px;border:1px solid var(--line);background:var(--card)}.done2-stats small{display:block;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--mut)}.done2-stats b{font:700 1.5rem var(--fd)}.done2-stats .xp{color:var(--warn)}.done2-stats .good{color:var(--good)}.done2-stats .bad{color:var(--bad)}
 details.set{margin-top:12px;border:1px solid var(--line);border-radius:16px;background:var(--card);overflow:hidden}details.set summary{list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:52px;padding:0 16px;font-weight:600;cursor:pointer}details.set summary::-webkit-details-marker{display:none}details.set .chev{transition:transform .2s}details.set[open] .chev{transform:rotate(90deg)}details.set>.stack{padding:0 16px 16px}
 @media (prefers-reduced-motion:reduce){.done2-badge{animation:none}.qbar i{transition:none}}
 body.in-game #nav{display:none}
@@ -484,14 +484,14 @@ body.in-game #nav{display:none}
 
 .up-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:10px 0}
 .up-tile{display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 6px;border-radius:16px;border:1.5px dashed var(--line);background:var(--card);cursor:pointer;text-align:center;min-height:96px;justify-content:center}
-.up-tile:active{transform:scale(.98)}.up-ic{font-size:1.5rem}.up-tile small{color:var(--mut);font-size:.72rem}
+.up-tile:active{transform:scale(.98)}.up-ic{font-size:1.5rem}.up-tile small{color:var(--mut);font-size:.75rem}
 .thumbs{display:flex;gap:8px;overflow-x:auto;margin-bottom:8px}.thumbs img{height:72px;border-radius:10px;border:1px solid var(--line)}
 
 .ie-tiles .tile2{min-height:118px}.band-pill{font:700 .8rem var(--fd);padding:4px 10px;border-radius:99px;background:color-mix(in srgb,var(--amber) 25%,var(--card));color:var(--warn)}
 .ie-passage h3{margin:0 0 8px}.ie-passage p{line-height:1.65;margin:0 0 10px}
 .ie-q.good{border-color:var(--good)}.ie-q.bad{border-color:var(--bad)}.chip.ok{background:var(--good);color:#fff;border-color:var(--good)}.ok-ans{color:var(--good)}
-.ie-res{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;margin:8px 0}.ie-res>div{padding:10px;border-radius:14px;background:var(--card);border:1px solid var(--line);text-align:center}.ie-res small{display:block;color:var(--mut);font-size:.72rem;text-transform:uppercase}.ie-res b{font:700 1.4rem var(--fd)}.ie-res .xp{color:var(--warn)}
-.ie-crit{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.ie-crit div{padding:8px 4px;border-radius:12px;background:var(--soft);text-align:center}.ie-crit small{display:block;font-size:.7rem;color:var(--mut)}.ie-crit b{font:700 1.2rem var(--fd)}
+.ie-res{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;margin:8px 0}.ie-res>div{padding:10px;border-radius:14px;background:var(--card);border:1px solid var(--line);text-align:center}.ie-res small{display:block;color:var(--mut);font-size:.75rem;text-transform:uppercase}.ie-res b{font:700 1.4rem var(--fd)}.ie-res .xp{color:var(--warn)}
+.ie-crit{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.ie-crit div{padding:8px 4px;border-radius:12px;background:var(--soft);text-align:center}.ie-crit small{display:block;font-size:.75rem;color:var(--mut)}.ie-crit b{font:700 1.2rem var(--fd)}
 .band-big{font:700 2.6rem/1 var(--fd);color:var(--warn)}.ie-band ul{margin:4px 0 0;padding-left:20px}.corr{display:flex;flex-wrap:wrap;gap:4px;align-items:baseline}.corr small{flex-basis:100%}
 .spin{width:32px;height:32px;margin:6px auto;border-radius:50%;border:3px solid var(--line);border-top-color:var(--steel);animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 .opt.picked{border-color:var(--steel);background:color-mix(in srgb,var(--steel) 12%,var(--card));box-shadow:inset 0 0 0 1px var(--steel)}.opt.no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--card))}
@@ -543,7 +543,7 @@ body.in-game #nav{display:none}
 .mt-cell.ok{border-color:var(--good)!important}.mt-cell.no{border-color:var(--bad)!important}
 .mem-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px;perspective:800px}
 .mem-card{aspect-ratio:3/4;padding:0;border:0;background:none;cursor:pointer}.mem-in{position:relative;display:block;width:100%;height:100%;transition:transform .35s;transform-style:preserve-3d}
-.mem-card.up .mem-in{transform:rotateY(180deg)}.mem-back,.mem-front{position:absolute;inset:0;display:grid;place-items:center;border-radius:12px;backface-visibility:hidden;padding:4px;font-size:.72rem;line-height:1.2;text-align:center;overflow:hidden}
+.mem-card.up .mem-in{transform:rotateY(180deg)}.mem-back,.mem-front{position:absolute;inset:0;display:grid;place-items:center;border-radius:12px;backface-visibility:hidden;padding:4px;font-size:.75rem;line-height:1.2;text-align:center;overflow:hidden}
 .mem-back{background:repeating-linear-gradient(45deg,#1f4e79 0 8px,#2f6ea8 8px 16px);color:#fff;font:700 1.6rem var(--fd);border:2px solid #fff;box-shadow:0 3px 6px rgba(0,0,0,.2)}
 .mem-front{transform:rotateY(180deg);background:var(--card);border:2px solid var(--line);color:var(--ink)}.mem-front.en{font-weight:700;color:var(--steel)}
 .mem-card.found .mem-front{border-color:var(--good);background:color-mix(in srgb,var(--good) 12%,var(--card))}
@@ -573,7 +573,7 @@ body.in-game .saga-fab{display:none}
 .rd-cov.pic{background:#f6f1e4;padding:4px}.rd-cov img{width:100%;height:100%;object-fit:contain}
 .rd-info{display:flex;flex-direction:column;gap:3px;min-width:0}.rd-info b{font-family:var(--fd);font-size:1.12rem}
 .rd-lv{font:700 .72rem var(--fm);padding:2px 7px;border-radius:6px;background:var(--steel);color:var(--onsteel)}
-.rd-tag{font-size:.7rem;padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--mut);font-weight:600}.rd-tag.kid{background:color-mix(in srgb,var(--amber) 25%,transparent);color:var(--warn)}
+.rd-tag{font-size:.75rem;padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--mut);font-weight:600}.rd-tag.kid{background:color-mix(in srgb,var(--amber) 25%,transparent);color:var(--warn)}
 .rd-prog{font-size:.78rem;color:var(--steel);font-weight:600}.rd-prog.ok{color:var(--good)}
 body.rd-open{overflow:hidden}body.rd-open nav{display:none}
 #rd-ov{position:fixed;inset:0;z-index:2147483646;background:#23201c;display:flex;flex-direction:column;align-items:center;padding:calc(6px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));gap:6px}
@@ -676,7 +676,7 @@ body.rd-open{overflow:hidden}body.rd-open nav{display:none}
 .au-btn{border:0;cursor:pointer;background:var(--bg);color:var(--steel);font:700 1rem inherit;font-family:inherit;padding:15px;border-radius:15px;min-height:48px;box-shadow:7px 7px 14px var(--au-lo),-7px -7px 14px var(--au-hi);transition:transform .3s,box-shadow .3s,background .3s,color .3s}
 .au-btn:hover,.au-btn:focus-visible{background:var(--steel);color:var(--onsteel);transform:translateY(-4px);outline:0;box-shadow:0 12px 24px color-mix(in srgb,var(--steel) 40%,transparent),-6px -6px 14px var(--au-hi)}
 .au-btn:active{transform:translateY(1px);box-shadow:inset 5px 5px 10px var(--au-lo),inset -4px -4px 8px var(--au-hi)}
-.au-or{display:flex;align-items:center;gap:10px;font-size:.74rem;color:var(--mut);text-transform:uppercase;letter-spacing:.08em}
+.au-or{display:flex;align-items:center;gap:10px;font-size:.75rem;color:var(--mut);text-transform:uppercase;letter-spacing:.08em}
 .au-or::before,.au-or::after{content:"";flex:1;height:2px;border-radius:2px;box-shadow:inset 1px 1px 2px var(--au-lo),inset -1px -1px 2px var(--au-hi)}
 .au-social{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .au-soc{border:0;cursor:pointer;background:var(--bg);color:var(--ink);font:600 .78rem inherit;font-family:inherit;padding:10px 4px;min-height:60px;border-radius:14px;display:flex;flex-direction:column;align-items:center;gap:5px;box-shadow:5px 5px 10px var(--au-lo),-5px -5px 10px var(--au-hi);transition:transform .3s,box-shadow .3s,color .3s}
@@ -693,6 +693,31 @@ body.rd-open{overflow:hidden}body.rd-open nav{display:none}
 /* iOS tự phóng to khi chữ trong ô nhập < 16px, rồi giữ nguyên zoom sau khi đăng nhập */
 input,select,textarea{font-size:max(16px,1em)!important}
 html,body{max-width:100%;overflow-x:hidden}@supports (overflow:clip){html,body{overflow-x:clip}}
+
+/* ===== UI polish theo chuẩn WCAG 2.2 / Apple HIG / Material 3 ===== */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased}
+button,a,.chip,.btn,[onclick]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+/* Vùng chạm tối thiểu 44×44 (HIG) */
+.chip{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+.ic{width:44px;height:44px;flex:none}
+.link{min-height:44px;display:inline-flex;align-items:center}
+nav button{min-height:56px;font-size:.75rem}
+/* Focus luôn thấy được khi dùng bàn phím, kể cả phần tử tùy biến */
+a:focus-visible,[tabindex]:focus-visible,[onclick]:focus-visible,summary:focus-visible,.au-btn:focus-visible,.au-switch:focus-visible{outline:2px solid var(--amber)!important;outline-offset:2px}
+/* Phản hồi khi chạm */
+.btn,.chip,.ic,nav button{transition:transform .12s ease-out,background-color .15s,color .15s,opacity .15s}
+.chip:active,.ic:active,nav button:active{transform:scale(.96)}
+.btn:disabled,button:disabled{cursor:not-allowed}
+/* Số liệu không nhảy khi đổi giá trị */
+.score,.gauge b,.lbl,[class*="xp"],[class*="streak"]{font-variant-numeric:tabular-nums}
+/* Đọc dễ: đoạn văn dài không quá rộng, xuống dòng cân */
+p{max-width:68ch}h1,h2,h3{text-wrap:balance}p,li{text-wrap:pretty}
+img,video,canvas,svg{max-width:100%}
+/* Tôn trọng cài đặt giảm chuyển động của hệ điều hành */
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+/* Màn hình có chế độ tương phản cao */
+@media (prefers-contrast:more){:root{--mut:var(--ink);--line:var(--ink)}.btn.ghost{box-shadow:inset 0 0 0 2px var(--ink)}}
 </style>
 <script>/* Áp theme mùa ngay khi mở app, tránh nháy giao diện gốc */(function(){try{var p=sessionStorage.getItem('ss-season-preview'),k=p!=null?p:localStorage.getItem('ss-season-cur'),c=localStorage.getItem('ss-season-css');if(k&&c){var s=document.createElement('style');s.id='ss-season-css';s.textContent=c;document.head.appendChild(s);document.documentElement.setAttribute('data-season',k);var m=document.querySelector('meta[name=theme-color]');if(m){m.dataset.orig=m.content;m.content=k=='noel'?'#0f2a1f':k=='tet'?'#c8102e':m.content}}}catch(e){}})()</script>
 <script>/* Ghi âm cần chế độ âm thanh "phát + thu"; chế độ "chỉ phát" sẽ chặn micro trên iPhone */(function(){try{var md=navigator.mediaDevices;if(!md||!md.getUserMedia||md.__w)return;var g=md.getUserMedia.bind(md);md.__w=1;md.getUserMedia=function(c){if(c&&c.audio){window.__rec=(window.__rec||0)+1;try{if(navigator.audioSession)navigator.audioSession.type='play-and-record'}catch(e){}}return g(c).then(function(s){if(c&&c.audio){var left=s.getAudioTracks().length;s.getAudioTracks().forEach(function(t){var end=function(){if(--left<=0){window.__rec=Math.max(0,(window.__rec||1)-1);if(!window.__rec)try{navigator.audioSession.type='auto'}catch(e){}}};t.addEventListener('ended',end);var st=t.stop.bind(t);t.stop=function(){st();end()}})}return s},function(e){if(c&&c.audio){window.__rec=Math.max(0,(window.__rec||1)-1);try{if(!window.__rec&&navigator.audioSession)navigator.audioSession.type='auto'}catch(x){}}throw e})}}catch(e){}})()</script>
@@ -1475,7 +1500,7 @@ function certMedal(score,sz=44){const tier=score>=90?['#f7d774','#d4a017','#8a65
  <path d="M24 22.5l2 4.1 4.5.6-3.3 3.1.8 4.5-4-2.2-4 2.2.8-4.5-3.3-3.1 4.5-.6z" fill="${tier[2]}"/></svg>`}
 function vCerts(){if(!USER)return '';if(CERT.for!=='all')certLoad();const L=(CERT.list||[]).slice().sort((a,b)=>new Date(b.issued_at)-new Date(a.issued_at));
  const best=L.length?Math.max(...L.map(c=>c.score)):0;
- const tile=c=>`<button onclick="certOpen('${c.code}')" aria-label="Xem chứng chỉ ${esc(c.level_name)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;min-height:44px;border-radius:14px;background:var(--card);border:1px solid var(--line);text-align:center;min-width:0">${certMedal(c.score)}<b style="font-size:.86rem;line-height:1.2;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(c.level_name)}</b><small class="mut" style="font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${esc(shortName({name:c.track_name}))} · ${new Date(c.issued_at).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'2-digit'})}</small><span class="mono" style="font-size:.72rem;padding:1px 8px;border-radius:99px;background:var(--soft);color:var(--steel)">${c.score}%</span></button>`;
+ const tile=c=>`<button onclick="certOpen('${c.code}')" aria-label="Xem chứng chỉ ${esc(c.level_name)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;min-height:44px;border-radius:14px;background:var(--card);border:1px solid var(--line);text-align:center;min-width:0">${certMedal(c.score)}<b style="font-size:.86rem;line-height:1.2;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(c.level_name)}</b><small class="mut" style="font-size:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">${esc(shortName({name:c.track_name}))} · ${new Date(c.issued_at).toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'2-digit'})}</small><span class="mono" style="font-size:.75rem;padding:1px 8px;border-radius:99px;background:var(--soft);color:var(--steel)">${c.score}%</span></button>`;
  const head=`<div class="sec-h" style="align-items:baseline"><h2>Chứng chỉ</h2>${L.length?`<span class="mut" style="font-size:.84rem">${L.length} chứng chỉ · cao nhất ${best}%</span>`:''}</div>`;
  if(!L.length)return head+`<div class="card row" style="flex-wrap:nowrap;gap:12px;opacity:.95">${certMedal(0,40).replace('<svg','<svg style="filter:grayscale(1);opacity:.45"')}<p class="mut" style="margin:0;font-size:.88rem">Qua đủ 4 level của một khu trong Đua level để mở bài thi lấy chứng chỉ.</p></div>`;
  const show=CERTX?L:L.slice(0,3);
@@ -1490,8 +1515,8 @@ ${inp('ap','',e&&e.id?'Mật khẩu mới (để trống nếu không đổi)':'
 <div class="row"><button class="chip" onclick="$('#ap').value=genPw()">Tạo mật khẩu ngẫu nhiên</button><label class="row" style="gap:6px;font-size:.86rem"><input type="checkbox" id="aa" ${e?.is_admin?'checked':''}> Quyền admin</label></div>
 <div class="row" style="flex-wrap:nowrap"><button class="btn" style="flex:1" onclick="admSave()">${e&&e.id?'Lưu thay đổi':'Tạo tài khoản'}</button>${e&&e.id?`<button class="btn ghost" onclick="ADM.edit=null;render()">Huỷ</button>`:''}</div><div id="ast" class="mut" style="font-size:.84rem"></div></div>
 <h2>${ADM.list.length} người dùng</h2>${inp('aq',ADM.q,'Tìm theo tên, email, phòng ban')}
-<div class="card" style="padding:0;margin-top:10px">${L.map(u=>`<div class="term" style="border-bottom:1px solid var(--line);grid-template-columns:1fr auto"><div style="min-width:0"><div class="en">${esc(u.full_name||'(chưa có tên)')} ${u.is_admin?'<span class="chip on" style="padding:1px 8px;font-size:.7rem">Admin</span>':''} ${u.banned?'<span class="chip" style="padding:1px 8px;font-size:.7rem;color:var(--bad)">Đã khoá</span>':''}</div>
-<div class="vi" style="overflow-wrap:anywhere">${esc(u.email)} · ${esc(u.role||'')}${u.department?' · '+esc(u.department):''}</div><div class="mono mut" style="font-size:.74rem">${u.xp||0} XP · ${u.wrong||0} từ sai · ${u.done||0}/6 chặng · ${u.last_sign_in?'vào lần cuối '+new Date(u.last_sign_in).toLocaleDateString('vi'):'chưa đăng nhập'}</div></div>
+<div class="card" style="padding:0;margin-top:10px">${L.map(u=>`<div class="term" style="border-bottom:1px solid var(--line);grid-template-columns:1fr auto"><div style="min-width:0"><div class="en">${esc(u.full_name||'(chưa có tên)')} ${u.is_admin?'<span class="chip on" style="padding:1px 8px;font-size:.75rem">Admin</span>':''} ${u.banned?'<span class="chip" style="padding:1px 8px;font-size:.75rem;color:var(--bad)">Đã khoá</span>':''}</div>
+<div class="vi" style="overflow-wrap:anywhere">${esc(u.email)} · ${esc(u.role||'')}${u.department?' · '+esc(u.department):''}</div><div class="mono mut" style="font-size:.75rem">${u.xp||0} XP · ${u.wrong||0} từ sai · ${u.done||0}/6 chặng · ${u.last_sign_in?'vào lần cuối '+new Date(u.last_sign_in).toLocaleDateString('vi'):'chưa đăng nhập'}</div></div>
 <div class="stack" style="gap:6px">${window.NTX?NTX.userBtns(u):''}<button class="chip" onclick="ADM.edit=ADM.list.find(x=>x.id=='${u.id}');render();scrollTo(0,0)">Sửa</button>${u.id!=USER.id?`<button class="chip ${u.banned?'':'danger'}" onclick="admBan('${u.id}',${!u.banned})">${u.banned?'Mở khoá':'Khoá'}</button>`:''}</div></div>`).join('')||'<p class="mut" style="padding:14px">Không có người dùng phù hợp.</p>'}</div>`}
 document.addEventListener('input',e=>{if(e.target.id=='aq'){ADM.q=e.target.value;const p=e.target.selectionStart;render();const x=$('#aq');x.focus();x.setSelectionRange(p,p)}});
 function genPw(){const c='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';const a=crypto.getRandomValues(new Uint32Array(10));return [...a].map(x=>c[x%c.length]).join('')+'!'}
@@ -1954,7 +1979,7 @@ const EA={list:null,all:false};
 async function eaLoad(){const {data,error}=await SB.rpc('admin_enrollments',{only_pending:!EA.all});EA.list=error?[]:data;EA.err=error?error.message:'';if(S.tab=='admin')render()}
 function vEnrAdmin(){if(TR.legacy||!TR.ready)return '';if(!EA.list){eaLoad();return '<h2>Đơn tham gia khóa học</h2><div class="skel-list" aria-busy="true" aria-label="Đang tải"><i></i><i></i><i></i></div>'}
  return `<button class="back" onclick="go('me')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Tài khoản</button><h1 style="margin-top:6px">Đơn tham gia khóa học</h1><div class="chips" style="margin:8px 0"><button class="chip ${!EA.all?'on':''}" onclick="EA.all=false;EA.list=null;render()">Chờ duyệt</button><button class="chip ${EA.all?'on':''}" onclick="EA.all=true;EA.list=null;render()">Tất cả</button></div>${EA.err?`<p class="note">${esc(EA.err)}</p>`:''}
- <div class="card" style="padding:0">${EA.list.map(r=>`<div class="term" style="grid-template-columns:1fr auto;border-bottom:1px solid var(--line)"><div style="min-width:0"><div class="en">${esc(r.full_name||r.email||'')}</div><div class="vi" style="overflow-wrap:anywhere">${esc(r.email||'')}${r.department?' · '+esc(r.department):''}</div><div class="mono mut" style="font-size:.74rem">${esc(r.track_name)} · ${new Date(r.requested_at).toLocaleString('vi')} · ${r.status}</div></div><div class="stack" style="gap:6px">${r.status!='approved'?`<button class="chip on" onclick="eaSet('${r.user_id}','${r.track_id}','approved')">Duyệt</button>`:''}${r.status!='rejected'?`<button class="chip danger" onclick="eaSet('${r.user_id}','${r.track_id}','rejected')">Từ chối</button>`:''}</div></div>`).join('')||'<p class="mut" style="padding:12px;margin:0">Không có đơn nào.</p>'}</div><div style="height:18px"></div>`}
+ <div class="card" style="padding:0">${EA.list.map(r=>`<div class="term" style="grid-template-columns:1fr auto;border-bottom:1px solid var(--line)"><div style="min-width:0"><div class="en">${esc(r.full_name||r.email||'')}</div><div class="vi" style="overflow-wrap:anywhere">${esc(r.email||'')}${r.department?' · '+esc(r.department):''}</div><div class="mono mut" style="font-size:.75rem">${esc(r.track_name)} · ${new Date(r.requested_at).toLocaleString('vi')} · ${r.status}</div></div><div class="stack" style="gap:6px">${r.status!='approved'?`<button class="chip on" onclick="eaSet('${r.user_id}','${r.track_id}','approved')">Duyệt</button>`:''}${r.status!='rejected'?`<button class="chip danger" onclick="eaSet('${r.user_id}','${r.track_id}','rejected')">Từ chối</button>`:''}</div></div>`).join('')||'<p class="mut" style="padding:12px;margin:0">Không có đơn nào.</p>'}</div><div style="height:18px"></div>`}
 async function eaSet(u,tid,s){const {error}=await SB.rpc('admin_set_enrollment',{u,t:tid,s});if(error)return toast(error.message);toast(s=='approved'?'Đã duyệt':'Đã từ chối');EA.list=null;render()}
 
 /* admin: quản lý khóa học */
@@ -2021,7 +2046,7 @@ function sugCard(tr,s){const th=tr.vote_threshold||3,net=s.up-s.down,pct=Math.ma
  <div class="sug-lv"><span class="lv-chip">Đề nghị: <b>${esc(lvName(tr,s.user_level))}</b></span><span class="lv-chip ai ${match?'ok':''}">AI: <b>${s.ai_level?esc(lvName(tr,s.ai_level)):'—'}</b>${s.ai_valid===false?' · chưa hợp lệ':''}</span></div>
  ${s.ai_note?`<div class="mut" style="font-size:.8rem">${esc(s.ai_note)}</div>`:''}
  ${s.status=='voting'?`<div class="sug-vote"><button class="vote up ${s.my_vote==1?'on':''}" ${s.mine?'disabled title="Không tự bình chọn"':''} onclick="ctVote(${s.id},1)" aria-label="Đồng ý thêm từ">▲ <b>${s.up}</b></button><div class="vote-bar" aria-label="Tiến độ đến ngưỡng duyệt"><i style="width:${pct}%"></i><span>${Math.max(0,net)}/${th} phiếu</span></div><button class="vote down ${s.my_vote==-1?'on':''}" ${s.mine?'disabled':''} onclick="ctVote(${s.id},-1)" aria-label="Không đồng ý">▼ <b>${s.down}</b></button></div>`:''}
- <div class="mut" style="font-size:.74rem">Góp bởi ${esc(s.author||'Người học')}${s.mine?' (bạn)':''} · ${new Date(s.created_at).toLocaleDateString('vi')}</div></div>`}
+ <div class="mut" style="font-size:.75rem">Góp bởi ${esc(s.author||'Người học')}${s.mine?' (bạn)':''} · ${new Date(s.created_at).toLocaleDateString('vi')}</div></div>`}
 async function ctSubmit(){const tr=curTrack();const term=$('#cw').value.trim(),meaning=$('#cm').value.trim(),example=$('#ce').value.trim(),level=$('#cl').value,cat=$('#cc')?$('#cc').value:level;
  if(term.length<2)return toast('Nhập từ tiếng Anh');if(!meaning)return toast('Nhập nghĩa tiếng Việt');CT.busy=true;CT.res=null;render();
  try{const {data:{session}}=await SB.auth.getSession();const r=await fetch(window.SS_CONFIG.SUPABASE_URL+'/functions/v1/suggest',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+session.access_token,apikey:window.SS_CONFIG.SUPABASE_ANON_KEY},body:JSON.stringify({track:tr.slug,term,meaning_vi:meaning,example,level,cat})});
