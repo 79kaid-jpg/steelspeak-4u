@@ -108,7 +108,11 @@ function vSong(){
    <p class="mut" style="margin:0;font-size:.82rem">App tự tách câu theo bản có lời, sau đó bạn nghe lại và chỉnh. Không có file nhạc thì app dùng giọng máy đọc lời. Mỗi file tối đa 20 MB.</p>
    ${D.prog?`<div class="note" style="margin:0">${esc(D.prog)}</div>`:''}
    <button class="btn ghost" ${D.prog?'disabled':''}>Lưu bài và tách câu</button>
-  </form>`;
+  </form>
+  <section class="card stack" style="margin-top:10px"><b>Hoặc dùng bài mẫu có nhạc</b>
+   <p class="mut" style="margin:0;font-size:.86rem">Twinkle, Twinkle, Little Star: beat piano + trống và giai điệu mẫu, đã chia sẵn 6 câu khớp nhạc. Dân ca, không vướng bản quyền.</p>
+   <button class="btn" onclick="DUET.useSample()" ${D.prog?'disabled':''}>${ic('play',18)} Dùng bài mẫu Twinkle</button>
+  </section>`;
  }
  const music=!!D.song.original_path,tune=D.tune&&isAdmin()&&music;
  return `<section class="card stack">
@@ -345,6 +349,24 @@ async function saveSong(){
   toast(fv?'Đã tách câu. Nghe lại và chỉnh mốc nếu cần.':'Đã lưu bài và chia câu');load();
  }catch(e){D.prog='';fail(e.message)}
 }
+/* Bài mẫu có nhạc: file nằm sẵn trong app, mốc câu tính đúng theo nhịp (100 BPM, mỗi câu 2 ô nhịp) */
+const TWINKLE_TIMES=[{"start": 2280, "end": 7050}, {"start": 7080, "end": 11850}, {"start": 11880, "end": 16650}, {"start": 16680, "end": 21450}, {"start": 21480, "end": 26250}, {"start": 26280, "end": 31050}];
+async function useSample(){
+ if(busy)return;D.err='';busy=true;
+ try{
+  const rows=SAMPLE.lyrics.split('\n');
+  const s=await SB().from('duet_songs').insert({room_id:D.room.id,title:SAMPLE.title,source:'public_domain',status:'ready'}).select('id').single();
+  if(s.error)throw new Error('Chưa lưu được bài: '+s.error.message);
+  const us=await SB().from('duet_songs').update({original_path:'builtin:twinkle-voc.mp3',beat_path:'builtin:twinkle-beat.mp3',beat_offset_ms:0}).eq('id',s.data.id);
+  if(us.error)throw new Error('Chưa gắn nhạc: '+us.error.message);
+  const l=await SB().from('duet_lines').insert(rows.map((text,i)=>({song_id:s.data.id,idx:i+1,text,start_ms:TWINKLE_TIMES[i].start,end_ms:TWINKLE_TIMES[i].end}))).select('*');
+  if(l.error)throw new Error('Chưa lưu được lời: '+l.error.message);
+  const u=await SB().from('duet_rooms').update({song_id:s.data.id}).eq('id',D.room.id);
+  if(u.error)throw new Error('Chưa gắn bài vào phòng: '+u.error.message);
+  D.lines=l.data.sort((a,b)=>a.idx-b.idx);await autoAssign(true);
+  busy=false;D.splitMode='';toast('Đã chọn bài mẫu có nhạc');load();
+ }catch(e){fail(e.message)}
+}
 function toggleTune(){D.tune=!D.tune;stopPlay();rerender()}
 async function preview(idx){
  const l=D.lines.find(x=>x.idx===idx);if(!l)return;
@@ -399,9 +421,14 @@ const AC=()=>{if(!_ac)_ac=new (window.AudioContext||window.webkitAudioContext)()
 const BUF={};                       // bộ nhớ đệm: đường dẫn → AudioBuffer đã giải mã
 async function getBuf(path){
  if(!path)return null;if(BUF[path])return BUF[path];
- const {data,error}=await SB().storage.from(BUCKET).download(path);
- if(error)throw new Error('Không tải được nhạc: '+error.message);
- return BUF[path]=await AC().decodeAudioData(await data.arrayBuffer());
+ let ab;
+ if(path.startsWith('builtin:')){                         // nhạc mẫu có sẵn trong app (assets/duet/)
+  const r=await fetch('assets/duet/'+path.slice(8));if(!r.ok)throw new Error('Không tải được nhạc mẫu');ab=await r.arrayBuffer();
+ }else{
+  const {data,error}=await SB().storage.from(BUCKET).download(path);
+  if(error)throw new Error('Không tải được nhạc: '+error.message);ab=await data.arrayBuffer();
+ }
+ return BUF[path]=await AC().decodeAudioData(ab);
 }
 function mono(buf){const n=buf.length,out=new Float32Array(n);for(let c=0;c<buf.numberOfChannels;c++){const d=buf.getChannelData(c);for(let i=0;i<n;i++)out[i]+=d[i]/buf.numberOfChannels}return out}
 
@@ -652,6 +679,6 @@ st.textContent=`.duet-hero{border-radius:18px;padding:18px;color:#fff;background
 document.head.appendChild(st);
 
 window.vDuet=vDuet;window.duetCard=duetCard;
-window.DUET={kick,setAdminSings,toggleTune,preview,nudge,join,create,leave,invite,saveSong,autoAssign,cycle,removeSong,start,skip,stopGame,backToLobby,say,rec,reload:load,state:D};
+window.DUET={useSample,kick,setAdminSings,toggleTune,preview,nudge,join,create,leave,invite,saveSong,autoAssign,cycle,removeSong,start,skip,stopGame,backToLobby,say,rec,reload:load,state:D};
 watch();
 })();
