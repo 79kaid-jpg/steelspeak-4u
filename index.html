@@ -991,7 +991,7 @@ function ttsGet(t,rate){t=ttsNorm(t);const k=(rate<0.8?'s|':'n|')+t.toLowerCase(
  TTSP.set(k,p);p.finally(()=>TTSP.delete(k));return p}
 function ttsPlay(b){const c=actx();try{TTSSRC&&TTSSRC.stop()}catch(e){}try{speechSynthesis.cancel()}catch(e){}const s=c.createBufferSource(),g=c.createGain();g.gain.value=1.4;s.buffer=b;s.connect(g).connect(c.destination);TTSSRC=s;return new Promise(r=>{s.onended=()=>{ALAST=Date.now();r()};s.start()})}
 function ttsReady(t,rate){const k=(rate<0.8?'s|':'n|')+ttsNorm(t).toLowerCase();return TTSB.get(k)}
-function say(t,rate=0.95){t=ttsNorm(t);if(!t)return Promise.resolve();try{const c=actx();if(c.state!=='running')c.resume()}catch(e){}
+function say(t,rate=0.95){t=ttsNorm(t);if(!t)return Promise.resolve();
  let off=false;try{off=localStorage.getItem('tts-off')==='1'}catch(e){}
  const b=!off&&ttsReady(t,rate);if(b&&ACX&&ACX.state==='running')return ttsPlay(b);
  // Chưa có giọng Gemini trong máy: đọc ngay bằng giọng của máy (luôn ổn định), đồng thời tải giọng Gemini cho lần sau
@@ -1002,9 +1002,11 @@ function sayDevice(t,rate=0.95){if(!('speechSynthesis' in window)){toast('Thiế
  let done,started=false,fin=false;const p=new Promise(r=>done=()=>{if(!fin){fin=true;ALAST=Date.now();r()}});window._sayP=p;setTimeout(done,Math.min(4000,900+t.length*90));
  const wire=x=>{x.onstart=()=>{started=true};x.onend=done;x.onerror=e=>{if(e.error=='interrupted'||e.error=='canceled')return done();if(!started)retry()}};
  const retry=()=>{if(started||fin||retry.n)return;retry.n=1;try{ss.cancel()}catch(e){}u=mk();window._utt=u;wire(u);setTimeout(()=>{ss.resume();ss.speak(u)},60);setTimeout(()=>{if(!started&&!fin)toast('Không phát được âm thanh. iPhone: gạt nút im lặng & tăng âm lượng.')},1800)};
- wire(u);if(ss.speaking||ss.pending)ss.cancel();ss.resume();ss.speak(u);TTS_WARM=1;
+ wire(u);try{TTSSRC&&TTSSRC.stop()}catch(e){}
+ // iOS bỏ qua câu nếu speak() ngay sau cancel(): đợi một nhịp ngắn rồi mới đọc
+ if(ss.speaking||ss.pending){ss.cancel();setTimeout(()=>{ss.resume();ss.speak(u)},120)}else{ss.resume();ss.speak(u)}TTS_WARM=1;
  // iOS đôi khi "kẹt" bộ đọc: sau 900ms chưa bắt đầu thì đọc lại một lần
- setTimeout(()=>{if(!started&&!fin&&!ss.speaking)retry()},900);return p}
+ setTimeout(()=>{if(!started&&!fin&&!ss.speaking)retry()},1100);return p}
 // Làm nóng bộ đọc ngay lần chạm đầu tiên (tránh mất chữ đầu, mở khóa âm thanh trên iPhone)
 let TTS_WARM=0;
 // Đánh thức đường ra âm thanh bằng tín hiệu gần như im lặng (không đọc ra chữ nào), rồi mới đọc
