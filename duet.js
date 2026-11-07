@@ -49,7 +49,7 @@ function vDuet(){
    <button class="btn ghost">${ic('plus',18)} Tạo phòng</button>
   </form>
   ${errBox()}
-  <p class="mut" style="font-size:.82rem">Nên dùng Chrome hoặc Edge để AI chấm được lời hát.</p>`;
+  <p class="mut" style="font-size:.82rem">AI chấm lời hát giống màn Luyện phát âm. Cần đăng nhập.</p>`;
 }
 
 /* ==================== TRONG PHÒNG ==================== */
@@ -149,7 +149,7 @@ function vTurn(){
    <button class="btn ghost" style="border-radius:99px" onclick="DUET.say(${idx})">${ic('vol',18)} Nghe câu mẫu</button>
    <div class="duet-mic">${mine&&!done?micUI():done?`<span class="good">✓ Đã thu${done.score_total!=null?` · ${Math.round(done.score_total)} điểm`:''}. Chuyển câu…</span>`:`<span class="mut">Đang chờ ${esc(nameOf(singer))} hát…</span>`}</div>
    ${mine&&D.song?.beat_path&&!done?`<span class="mut" style="font-size:.82rem">Đeo tai nghe để micro không thu lẫn tiếng nhạc. Beat tự chạy khi bạn chạm micro.</span>`:''}
-   ${mine&&!canScore?`<span class="mut" style="font-size:.82rem">Trình duyệt này chưa chấm lời được, vẫn thu âm bình thường. Dùng Chrome hoặc Edge để có điểm.</span>`:''}
+
   </section>
   ${next?`<section class="card duet-row" style="margin-top:10px;background:var(--soft)"><span class="mut" style="font-size:.82rem">Tiếp theo</span><span style="flex:1">${esc(next.text)}</span><span class="duet-who">${esc(nameOf(singerOf(next)))}</span></section>`:''}
   ${errBox()}
@@ -498,10 +498,10 @@ function playSeg(buf,fromMs,toMs,delay=0){
 const fmt=ms=>{const s=Math.max(0,ms)/1000;return Math.floor(s/60)+':'+(s%60).toFixed(1).padStart(4,'0')};
 
 /* ==================== THU ÂM + CHẤM ĐIỂM ==================== */
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-const canScore=!!SR;
+/* Chấm điểm bằng AI của SteelSpeak (giống màn Luyện phát âm): ghi âm xong mới gửi bản ghi lên chấm.
+   Không chạy nhận dạng giọng nói song song với ghi âm, vì iPhone không cho (lỗi InvalidStateError). */
+const canScore=()=>typeof ai==='function';   // kiểm tra lúc dùng: ai() nằm trong script chính, nạp sau duet.js
 const REC={h:null,busy:false,t:0,iv:0};
-
 async function say(idx){
  const l=D.lines.find(x=>x.idx===idx);if(!l)return;
  AC();                                                    // mở khoá âm thanh ngay trong lúc chạm (iPhone cần)
@@ -512,19 +512,23 @@ async function say(idx){
  speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(l.text);u.lang='en-US';u.rate=.9;speechSynthesis.speak(u);
 }
 async function startRecording(){
- const stream=await navigator.mediaDevices.getUserMedia({audio:true});
- const mr=new MediaRecorder(stream),chunks=[];
+ // Tạm dừng âm thanh của Hát nối trước khi xin micro, rồi mới mở lại (iPhone cần)
+ try{_ac&&_ac.state==='running'&&await _ac.suspend()}catch(e){}
+ const stream=typeof micGet==='function'?await micGet():await navigator.mediaDevices.getUserMedia({audio:true});
+ const mt=['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(x=>window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(x))||'';
+ const mr=new MediaRecorder(stream,mt?{mimeType:mt}:{}),chunks=[];
  mr.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
- let text='',sr=null;
- if(SR){sr=new SR();sr.lang='en-US';sr.continuous=true;sr.interimResults=false;
-  sr.onresult=e=>{for(let i=e.resultIndex;i<e.results.length;i++)if(e.results[i].isFinal)text+=' '+e.results[i][0].transcript};
-  sr.onerror=()=>{};try{sr.start()}catch(e){sr=null}}
  mr.start();
- return {stop:()=>new Promise(res=>{
-  mr.onstop=()=>{stream.getTracks().forEach(t=>t.stop());const blob=new Blob(chunks,{type:mr.mimeType||'audio/webm'});
-   setTimeout(()=>res({blob,text:text.trim()}),sr?700:0)};   // chờ nhận dạng trả nốt kết quả cuối
-  try{sr&&sr.stop()}catch(e){}mr.stop()}),
-  cancel:()=>{try{sr&&sr.abort()}catch(e){}try{mr.stop()}catch(e){}stream.getTracks().forEach(t=>t.stop())}};
+ try{_ac&&await _ac.resume()}catch(e){}
+ const end=()=>stream.getTracks().forEach(t=>t.stop());
+ return {stop:()=>new Promise(res=>{mr.onstop=()=>{end();res({blob:new Blob(chunks,{type:mr.mimeType||mt||'audio/mp4'})})};try{mr.stop()}catch(e){end();res({blob:new Blob(chunks)})}}),
+  cancel:()=>{try{mr.state!=='inactive'&&mr.stop()}catch(e){}end()}};
+}
+async function heardText(blob,target){
+ const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]);fr.onerror=no;fr.readAsDataURL(blob)});
+ const r=await ai('pron',{audio:b64,mime:(blob.type||'audio/mp4').split(';')[0],target});
+ if(r&&r.error)throw new Error(r.error);
+ return String(r?.heard||'').trim();
 }
 // So từng từ của câu mẫu với lời nhận dạng được → điểm % và danh sách từ sai
 const norm=s=>s.toLowerCase().replace(/[’']/g,"'").replace(/[^a-z' ]+/g,' ').split(/\s+/).filter(Boolean);
@@ -539,14 +543,15 @@ async function rec(){
  D.err='';
  const line=D.lines.find(l=>l.idx===D.room?.current_line);if(!line||REC.busy)return;
  if(!REC.h){
-  const ac=AC();                                          // mở khoá âm thanh trong lúc chạm
+  AC();                                                   // mở khoá âm thanh trong lúc chạm
   let beat=null;
   if(D.song?.beat_path){
    const el=document.getElementById('du-st');if(el)el.textContent='Đang tải nhạc…';
    try{beat=await getBuf(D.song.beat_path)}catch(e){D.err=e.message;rerender();return}
   }
-  try{REC.h=await startRecording()}catch(e){D.err='Chưa dùng được micro. Cho phép micro rồi thử lại.';rerender();if(window.MIC&&MIC.open)MIC.open();return}
-  const recAt=ac.currentTime;REC.t=Date.now();REC.off=0;REC.cue=0;
+  stopPlay();try{speechSynthesis.cancel()}catch(e){}
+  try{REC.h=await startRecording()}catch(e){D.err='Chưa dùng được micro ('+(e.name||'lỗi')+'). Tắt hẳn app rồi mở lại và thử lại.';rerender();if(window.MIC&&MIC.open)MIC.open();return}
+  const ac=AC(),recAt=ac.currentTime;REC.t=Date.now();REC.off=0;REC.cue=0;
   if(beat){
    // Phát beat từ 1,5 giây trước câu (nhạc dạo) đến hết câu; tự dừng thu khi hết đoạn
    const off=D.song.beat_offset_ms||0,bs=line.start_ms-off,lead=Math.min(1500,Math.max(0,bs));
@@ -562,8 +567,11 @@ async function rec(){
  }
  const h=REC.h,off=REC.off||0;clearTimeout(REC.auto);stopRec(false);stopPlay();REC.h=null;REC.busy=true;rerender();
  try{
-  const {blob,text}=await h.stop();
-  const {score,wrong}=canScore?scoreWords(line.text,text):{score:null,wrong:[]};
+  const {blob}=await h.stop();
+  if(blob.size<1500)throw new Error('Bản thu quá ngắn. Chạm micro, hát rồi chờ app tự dừng.');
+  let score=null,wrong=[];
+  if(canScore()){const el=document.getElementById('du-st');if(el)el.textContent='AI đang chấm…';
+   try{const heard=await heardText(blob,line.text);({score,wrong}=scoreWords(line.text,heard))}catch(e){toast('Chưa chấm được, vẫn lưu bản thu')}}
   const ext=blob.type.includes('mp4')?'m4a':'webm';
   const path=`${D.room.id}/${user().id}/line-${pad(line.idx)}-${Date.now()}.${ext}`;
   const up=await SB().storage.from(BUCKET).upload(path,blob,{contentType:blob.type});
