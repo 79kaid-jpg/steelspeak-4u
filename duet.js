@@ -111,9 +111,12 @@ function vSong(){
    ${D.prog?`<div class="note" style="margin:0">${esc(D.prog)}</div>`:''}
    <button class="btn ghost" ${D.prog?'disabled':''}>Lưu bài và tách câu</button>
   </form>
-  <section class="card stack" style="margin-top:10px"><b>Hoặc dùng bài mẫu có nhạc</b>
-   <p class="mut" style="margin:0;font-size:.86rem">Twinkle, Twinkle, Little Star: beat piano + trống và giai điệu mẫu, đã chia sẵn 6 câu khớp nhạc. Dân ca, không vướng bản quyền.</p>
-   <button class="btn" onclick="DUET.useSample()" ${D.prog?'disabled':''}>${ic('play',18)} Dùng bài mẫu Twinkle</button>
+  <section class="card stack" style="margin-top:10px"><b>Hoặc chọn bài mẫu có nhạc</b>
+   <p class="mut" style="margin:0;font-size:.86rem">10 bài dân ca và bài cổ đã hết bản quyền. Mỗi bài có beat, giai điệu mẫu và chia sẵn câu khớp nhạc.</p>
+   ${CAT?`<label class="mut" for="du-cat" style="font-size:.86rem">Bài mẫu</label>
+   <select id="du-cat" class="duet-ta">${CAT.map(c=>`<option value="${esc(c.id)}">${esc(c.title)} · ${c.lines.length} câu · ${c.secs}s</option>`).join('')}</select>
+   <div class="duet-row"><button class="btn ghost" style="flex:1" onclick="DUET.hearSample()">${ic('vol',18)} Nghe thử</button><button class="btn" style="flex:1" onclick="DUET.useSample()" ${D.prog?'disabled':''}>${ic('play',18)} Chọn bài này</button></div>`
+   :`<p class="mut" style="margin:0">Đang tải danh sách…</p>`}
   </section>`;
  }
  const music=!!D.song.original_path,tune=D.tune&&isAdmin()&&music;
@@ -351,22 +354,29 @@ async function saveSong(){
   toast(fv?'Đã tách câu. Nghe lại và chỉnh mốc nếu cần.':'Đã lưu bài và chia câu');load();
  }catch(e){D.prog='';fail(e.message)}
 }
-/* Bài mẫu có nhạc: file nằm sẵn trong app, mốc câu tính đúng theo nhịp (100 BPM, mỗi câu 2 ô nhịp) */
-const TWINKLE_TIMES=[{"start": 2280, "end": 7050}, {"start": 7080, "end": 11850}, {"start": 11880, "end": 16650}, {"start": 16680, "end": 21450}, {"start": 21480, "end": 26250}, {"start": 26280, "end": 31050}];
+/* Bài mẫu có nhạc: danh sách trong assets/duet/songs.json, file nhạc nằm sẵn trong app.
+   Mốc câu tính đúng theo nhịp (mỗi câu 2 ô nhịp) nên không cần tách. */
+let CAT=null;
+fetch('assets/duet/songs.json').then(r=>r.json()).then(c=>{CAT=c;if(D.room&&!D.song)rerender()}).catch(()=>{});
+const pickCat=()=>CAT&&CAT.find(c=>c.id===(document.getElementById('du-cat')?.value||CAT[0].id));
+async function hearSample(){
+ const c=pickCat();if(!c)return;AC();
+ if(PLAY){stopPlay();return}
+ try{const b=await getBuf('builtin:'+c.id+'-voc.mp3');playSeg(b,0,Math.min(c.times[1]?.end||15000,15000))}catch(e){fail(e.message)}
+}
 async function useSample(){
- if(busy)return;D.err='';busy=true;
+ const c=pickCat();if(busy||!c)return;D.err='';busy=true;stopPlay();
  try{
-  const rows=SAMPLE.lyrics.split('\n');
-  const s=await SB().from('duet_songs').insert({room_id:D.room.id,title:SAMPLE.title,source:'public_domain',status:'ready'}).select('id').single();
+  const s=await SB().from('duet_songs').insert({room_id:D.room.id,title:c.title,level:c.level,source:'public_domain',status:'ready'}).select('id').single();
   if(s.error)throw new Error('Chưa lưu được bài: '+s.error.message);
-  const us=await SB().from('duet_songs').update({original_path:'builtin:twinkle-voc.mp3',beat_path:'builtin:twinkle-beat.mp3',beat_offset_ms:0}).eq('id',s.data.id);
+  const us=await SB().from('duet_songs').update({original_path:`builtin:${c.id}-voc.mp3`,beat_path:`builtin:${c.id}-beat.mp3`,beat_offset_ms:0}).eq('id',s.data.id);
   if(us.error)throw new Error('Chưa gắn nhạc: '+us.error.message);
-  const l=await SB().from('duet_lines').insert(rows.map((text,i)=>({song_id:s.data.id,idx:i+1,text,start_ms:TWINKLE_TIMES[i].start,end_ms:TWINKLE_TIMES[i].end}))).select('*');
+  const l=await SB().from('duet_lines').insert(c.lines.map((text,i)=>({song_id:s.data.id,idx:i+1,text,start_ms:c.times[i].start,end_ms:c.times[i].end}))).select('*');
   if(l.error)throw new Error('Chưa lưu được lời: '+l.error.message);
   const u=await SB().from('duet_rooms').update({song_id:s.data.id}).eq('id',D.room.id);
   if(u.error)throw new Error('Chưa gắn bài vào phòng: '+u.error.message);
   D.lines=l.data.sort((a,b)=>a.idx-b.idx);await autoAssign(true);
-  busy=false;D.splitMode='';toast('Đã chọn bài mẫu có nhạc');load();
+  busy=false;D.splitMode='';toast('Đã chọn '+c.title);load();
  }catch(e){fail(e.message)}
 }
 function toggleTune(){D.tune=!D.tune;stopPlay();rerender()}
@@ -690,6 +700,6 @@ st.textContent=`.duet-hero{border-radius:18px;padding:18px;color:#fff;background
 document.head.appendChild(st);
 
 window.vDuet=vDuet;window.duetCard=duetCard;
-window.DUET={useSample,kick,setAdminSings,toggleTune,preview,nudge,join,create,leave,invite,saveSong,autoAssign,cycle,removeSong,start,skip,stopGame,backToLobby,say,rec,reload:load,state:D};
+window.DUET={useSample,hearSample,kick,setAdminSings,toggleTune,preview,nudge,join,create,leave,invite,saveSong,autoAssign,cycle,removeSong,start,skip,stopGame,backToLobby,say,rec,reload:load,state:D};
 watch();
 })();
