@@ -1,5 +1,5 @@
 /* ===================== BÀI HỌC THEO CHỦ ĐỀ (General English) =====================
- Mỗi bài có 4 phần: Từ vựng · Đọc hiểu · Nghe · Phát âm.
+ Mỗi bài có 5 phần: Từ vựng · Đọc hiểu · Nghe · Phát âm · Shadowing.
  Thêm bài mới: thêm 1 object vào TOPIC_LESSONS theo đúng mẫu bên dưới.
  Tiến độ lưu trên máy (localStorage 'sstl'). */
 const TOPIC_LESSONS=[{
@@ -267,7 +267,7 @@ const TOPIC_LESSONS=[{
  shadow:[1,6,7,9]
 }];
 
-const TL_PARTS=[['vocab','Từ vựng'],['read','Đọc hiểu'],['listen','Nghe'],['pron','Phát âm']];
+const TL_PARTS=[['vocab','Từ vựng'],['read','Đọc hiểu'],['listen','Nghe'],['pron','Phát âm'],['shadow','Shadowing']];
 let TLS={id:null,part:'vocab',a:{}};
 const TLP=(()=>{try{return JSON.parse(localStorage.getItem('sstl')||'{}')}catch(e){return{}}})();TLP.done=TLP.done||{};TLP.best=TLP.best||{};
 function tlSave(){try{localStorage.setItem('sstl',JSON.stringify(TLP))}catch(e){}}
@@ -281,14 +281,14 @@ const tlNorm=s=>String(s||'').toLowerCase().replace(/[^a-z' ]/g,' ').replace(/\s
 /* Thẻ hiển thị trên trang Học */
 function vTopicHome(){if(typeof tkSlug=='function'&&tkSlug()=='steel')return '';
  return `<div class="sec-h"><h2>Bài học theo chủ đề</h2><span class="mut">${tlAll().filter(x=>String(x.id)[0]!='p').length} bài</span></div><div class="stack">${tlAll().filter(x=>String(x.id)[0]!='p').map(L=>{const n=TL_PARTS.filter(([p])=>tlDone(L.id,p)).length;
- return `<button class="card lesson2" onclick="tlOpen('${L.id}')"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(L.title)}</b><span class="chip">${L.level}</span></div><div class="mut" style="font-size:.84rem">${L.mine?'Bài của bạn'+(L.shared=='private'?' · ☁ đã lưu vào tài khoản':L.shared=='live'?' · ✓ đã chia sẻ':L.shared=='pending'?' · ⏳ chờ duyệt':L.shared=='rejected'?' · ✕ chưa được duyệt':'')+' · ':L.author?'Chia sẻ bởi '+esc(L.author)+' · ':''}${esc(L.vi)} · ${n}/4 phần xong</div><div class="row" style="gap:6px;margin-top:6px">${TL_PARTS.map(([p,nm])=>`<span class="chip ${tlDone(L.id,p)?'on':''}" style="font-size:.74rem">${tlDone(L.id,p)?'✓ ':''}${nm}</span>`).join('')}</div></button>`}).join('')}<button class="btn ghost" onclick="TLN.msg='';TLS={id:'__new',part:'vocab',a:{}};go('tl')">＋ Tạo bài từ truyện ngắn</button></div>`}
+ return `<button class="card lesson2" onclick="tlOpen('${L.id}')"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(L.title)}</b><span class="chip">${L.level}</span></div><div class="mut" style="font-size:.84rem">${L.mine?'Bài của bạn'+(L.shared=='private'?' · ☁ đã lưu vào tài khoản':L.shared=='live'?' · ✓ đã chia sẻ':L.shared=='pending'?' · ⏳ chờ duyệt':L.shared=='rejected'?' · ✕ chưa được duyệt':'')+' · ':L.author?'Chia sẻ bởi '+esc(L.author)+' · ':''}${esc(L.vi)} · ${n}/${TL_PARTS.length} phần xong</div><div class="row" style="gap:6px;margin-top:6px">${TL_PARTS.map(([p,nm])=>`<span class="chip ${tlDone(L.id,p)?'on':''}" style="font-size:.74rem">${tlDone(L.id,p)?'✓ ':''}${nm}</span>`).join('')}</div></button>`}).join('')}<button class="btn ghost" onclick="TLN.msg='';TLS={id:'__new',part:'vocab',a:{}};go('tl')">＋ Tạo bài từ truyện ngắn</button></div>`}
 
 function vTopic(){if(TLS.id=='__new')return vStoryForm();const L=tlLesson();if(typeof CATS!='undefined'&&!CATS.tl)CATS.tl={n:'Bài học chủ đề'};
  const tabs=`<div class="chips" style="margin:10px 0;flex-wrap:nowrap;overflow-x:auto">${TL_PARTS.map(([p,n])=>`<button class="chip ${TLS.part==p?'on':''}" onclick="tlPart('${p}')">${tlDone(L.id,p)?'✓ ':''}${n}</button>`).join('')}</div>`;
  const head=`<div class="row" style="justify-content:space-between"><button class="link" onclick="go('home')">‹ Trang Học</button>${L.mine?`<span>${!L.shared||L.shared=='private'||L.shared=='rejected'?`<button class="link" onclick="tlShare('${L.id}')">${PROF?.is_admin?'↗ Đăng cho cả khóa':'↗ Chia sẻ cho khóa'}</button> · `:''}<button class="link" onclick="tlDel('${L.id}')">Xóa</button></span>`:''}${typeof PROF!='undefined'&&PROF?.is_admin&&L.sid&&(L.status=='live'||L.shared=='live')?`<button class="link" style="color:var(--bad)" onclick="tlUnpub(${L.sid})">⊘ Gỡ khỏi khóa</button>`:''}</div><h1 style="margin-top:6px">${esc(L.title)}</h1><p class="mut">${esc(L.vi)} · General English ${L.level}</p>${tabs}`;
- const body={vocab:tlVocab,read:tlRead,listen:tlListen,pron:tlPron}[TLS.part](L);
+ const body={vocab:tlVocab,read:tlRead,listen:tlListen,pron:tlPron,shadow:tlShadow}[TLS.part](L);
  const i=TL_PARTS.findIndex(x=>x[0]==TLS.part);
- const foot=`<div class="row" style="flex-wrap:nowrap;margin-top:16px">${i>0?`<button class="btn ghost" style="flex:1" onclick="tlPart('${TL_PARTS[i-1][0]}')">‹ ${TL_PARTS[i-1][1]}</button>`:''}${i<3?`<button class="btn" style="flex:1" onclick="tlPart('${TL_PARTS[i+1][0]}')">${TL_PARTS[i+1][1]} ›</button>`:`<button class="btn" style="flex:1" onclick="go('home')">Hoàn thành bài</button>`}</div>`;
+ const foot=`<div class="row" style="flex-wrap:nowrap;margin-top:16px">${i>0?`<button class="btn ghost" style="flex:1" onclick="tlPart('${TL_PARTS[i-1][0]}')">‹ ${TL_PARTS[i-1][1]}</button>`:''}${i<TL_PARTS.length-1?`<button class="btn" style="flex:1" onclick="tlPart('${TL_PARTS[i+1][0]}')">${TL_PARTS[i+1][1]} ›</button>`:`<button class="btn" style="flex:1" onclick="go('home')">Hoàn thành bài</button>`}</div>`;
  return head+body+foot}
 
 /* ---- Bài tập chọn đáp án dùng chung ---- */
@@ -335,7 +335,8 @@ function tlListen(L){const all=L.text.map(x=>x[0]).join(' ');
 
 /* ---- 4. Phát âm ---- */
 function tlSpeak(i){const L=tlLesson();const s=L.text[i];S.speakItem={en:s[0],vi:s[1],ex:s[0],exvi:s[1],cat:'tl'};S.spMode='sent';TLS.a.sh=i;S.res=null;render();setTimeout(()=>{const m=document.getElementById('micb');m&&m.scrollIntoView({block:'center'})},60)}
-function tlPron(L){if(SH.on)return vShadow(L);
+function tlShadow(L){SH.on=true;return vShadow(L)}
+function tlPron(L){
  const snd=L.sounds.map(x=>`<div class="card"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b style="font-size:1.2rem">${esc(x.ipa)}</b></div><div class="mut" style="font-size:.86rem">${esc(x.tip)}</div><div class="row" style="gap:6px;margin-top:6px">${x.words.map(w=>`<button class="chip" onclick="say(${esc(JSON.stringify(w))},0.8)">🔊 ${esc(w)}</button>`).join('')}</div></div>`).join('');
  const link=`<div class="card">${L.linking.map(([a,b])=>`<div class="row" style="justify-content:space-between;flex-wrap:nowrap"><span><b>${esc(a.replace(' ','‿'))}</b> <span class="mut">${esc(b)}</span></span>${spk(a)}</div>`).join('')}</div>`;
  const st=`<div class="card">${L.stress.map(s=>`<div class="row" style="justify-content:space-between;flex-wrap:nowrap;align-items:flex-start"><div style="flex:1;min-width:0">${esc(s).replace(/\b([A-Z]{2,})\b/g,'<b style="color:var(--amber,#d97706)">$1</b>').replace(/\b([A-Z]{2,})\b/g,m=>m)}</div>${spk(s.toLowerCase().replace(/^./,c=>c.toUpperCase()))}</div>`).join('')}<p class="mut" style="font-size:.84rem;margin-top:6px">Từ in đậm đọc mạnh và dài hơn. Câu khích lệ dùng ngữ điệu xuống ↘ ở cuối.</p></div>`;
@@ -345,7 +346,6 @@ function tlPron(L){if(SH.on)return vShadow(L);
  const ok=L.shadow.filter(i=>(TLP.best[L.id+':'+i]||0)>=70).length;
  return `<div class="sec-h"><h2>Âm trọng tâm</h2></div><div class="stack">${snd}</div>
  <div class="sec-h"><h2>Nối âm</h2></div>${link}<div class="sec-h"><h2>Trọng âm câu</h2></div>${st}
- <button class="card login-nudge" style="margin-top:14px" onclick="shOpen()"><span class="tile2-ic">🎧</span><span style="flex:1;text-align:left"><b>Luyện Shadowing</b><small>Hiện cả bài, tô sáng từng câu để đọc theo, AI chấm toàn bộ bài đọc</small></span><span class="chev">›</span></button>
  <div class="sec-h"><h2>Đọc nhại & chấm điểm AI</h2><span class="mut">${ok}/${L.shadow.length} câu ≥ 70</span></div><div class="stack">${sh}</div>
  ${ok>=Math.ceil(L.shadow.length*.75)&&!tlDone(L.id,'pron')?`<button class="btn" style="width:100%;margin-top:12px" onclick="tlMark('pron')">Hoàn thành phần này (+20 XP)</button>`:''}`}
 
@@ -393,7 +393,7 @@ async function shFinish(){const L=tlLesson(),mr=SH.rec;if(!mr)return;clearTimeou
   const g=gradeSpeech(target,heard,.9,false);if(r.tip)g.aiTip=r.tip;
   let k=0;g.per=ss.map(s=>{const n=norm(s).length,ws=g.words.slice(k,k+n);k+=n;return{ws,score:ws.length?Math.round(ws.reduce((a,w)=>a+w.v,0)/ws.length*100):0}});
   g.partial=upto<L.text.length-1;SH.res=g;
-  if(g.score>=70){S.xp+=20;try{dispatchEvent(new Event('ss-shadow-done'))}catch(e){}toast('Hoàn thành shadowing cả bài! +20 XP')}
+  if(g.score>=70){try{dispatchEvent(new Event('ss-shadow-done'))}catch(e){}if(!tlDone(L.id,'shadow'))tlMark('shadow');else toast('Hoàn thành shadowing cả bài!')}
   try{tick();save()}catch(e){}}
  catch(e){SH.err=e&&e.code=='login'?'Cần đăng nhập để AI chấm cả bài.':'Chưa chấm được: '+(e.message||e)}
  SH.mode='done';render();setTimeout(()=>{const e=document.getElementById('shres');e&&e.scrollIntoView({block:'start',behavior:'smooth'})},60)}
@@ -404,7 +404,7 @@ function shSentHTML(L,k){const [en,vi]=L.text[k],cur=SH.i===k,res=SH.res&&SH.res
  const st=cur?'background:color-mix(in srgb,var(--steel) 22%,transparent);border-left:4px solid var(--steel);opacity:1':SH.mode=='rec'||SH.mode=='listen'?'border-left:4px solid transparent;opacity:'+(k<SH.i?'.45':'.7'):'border-left:4px solid transparent';
  return `<div id="shs${k}" style="padding:8px 10px;border-radius:10px;transition:all .2s;${st}" ${SH.mode=='idle'||SH.mode=='done'?`onclick="shCompare(${k})"`:''}><div style="font-size:${cur?'1.12rem':'1rem'};font-weight:${cur?700:500};line-height:1.5;letter-spacing:${SH.view=='hint'&&!res?'.03em':'0'}">${body}</div>${res?`<div class="mut" style="font-size:.78rem">Câu ${k+1}: <b class="${res.score>=80?'good':res.score>=60?'warn':'bad'}">${res.score}</b> · chạm để nghe mẫu</div>`:SH.mode!='rec'&&SH.view=='full'&&cur&&SH.mode=='listen'?`<div class="mut" style="font-size:.84rem">${esc(vi)}</div>`:''}</div>`}
 function vShadow(L){const m=SH.mode,n=L.text.length;
- return `<button class="link" onclick="shExit()">‹ Về phần Phát âm</button><h2 style="margin-top:6px">Shadowing cả bài</h2>
+ return `<h2 style="margin-top:6px">Shadowing cả bài</h2>
  <p class="mut" style="font-size:.88rem">${m=='rec'?'Đọc to câu đang tô sáng. Đọc xong chạm <b>Câu tiếp</b>.':'Nghe AI đọc mẫu trước, rồi bấm <b>Bắt đầu đọc</b>. App tô sáng từng câu, đọc hết bài AI sẽ chấm toàn bộ.'}</p>
  ${m=='idle'||m=='done'?`<div class="chips" style="margin:8px 0;flex-wrap:nowrap;overflow-x:auto">${SH_VIEW.map(([k,t])=>`<button class="chip ${SH.view==k?'on':''}" onclick="SH.view='${k}';render()">${t}</button>`).join('')}</div>
  <label class="mut" style="font-size:.84rem;display:block;margin-bottom:8px">Tốc độ giọng mẫu <select onchange="SH.rate=+this.value">${[[0.6,'Chậm'],[0.75,'Vừa'],[0.9,'Thường'],[1.05,'Nhanh']].map(([v,t])=>`<option value="${v}" ${SH.rate==v?'selected':''}>${t}</option>`).join('')}</select></label>`:''}
@@ -455,7 +455,7 @@ async function tlDel(id){const L=TLP.mine.find(x=>x.id==id);if(!L)return;
  if(L.sid&&typeof SB!='undefined'){const {error}=await SB.from('topic_lessons').delete().eq('id',L.sid);if(error)return toast('Chưa xóa được trên máy chủ: '+error.message)}
  TLP.mine=TLP.mine.filter(x=>x.id!=id);tlSave();TLC.for=null;go('home')}
 function vStoryForm(){return `<button class="link" onclick="go('home')">‹ Trang Học</button><h1 style="margin-top:6px">Tạo bài từ truyện ngắn</h1>
- <p class="mut">Dán một truyện hoặc đoạn văn tiếng Anh 40–400 từ. AI soạn đủ 4 phần: Từ vựng, Đọc hiểu, Nghe, Phát âm, kèm Shadowing.</p>
+ <p class="mut">Dán một truyện hoặc đoạn văn tiếng Anh 40–400 từ. AI soạn đủ 5 phần: Từ vựng, Đọc hiểu, Nghe, Phát âm, Shadowing.</p>
  <textarea id="tlstory" rows="10" style="width:100%" placeholder="Paste your English story here…" ${TLN.busy?'disabled':''}>${esc(TLN.draft||'')}</textarea>
  <div class="mut" style="font-size:.84rem;margin:6px 0">${esc(TLN.msg)}</div>
  <button class="btn" style="width:100%" ${TLN.busy?'disabled':''} onclick="tlBuild()">${TLN.busy?'Đang soạn…':'✨ AI tạo bài học'}</button>
