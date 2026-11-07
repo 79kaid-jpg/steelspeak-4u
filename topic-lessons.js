@@ -274,8 +274,8 @@ function tlSave(){try{localStorage.setItem('sstl',JSON.stringify(TLP))}catch(e){
 function tlLesson(){return tlAll().find(x=>x.id==TLS.id)||TOPIC_LESSONS[0]}
 function tlDone(id,p){return !!TLP.done[id+':'+p]}
 function tlMark(p){const L=tlLesson();if(!TLP.done[L.id+':'+p]){TLP.done[L.id+':'+p]=1;tlSave();S.xp+=20;try{tick()}catch(e){}toast('+20 XP · Xong phần '+TL_PARTS.find(x=>x[0]==p)[1])}save();render()}
-function tlOpen(id,p){SH.on=false;TLS={id,part:p||'vocab',a:{}};S.res=null;go('tl')}
-function tlPart(p){SH.on=false;TLS.part=p;TLS.a={};S.res=null;render();scrollTo(0,0)}
+function tlOpen(id,p){shReset();SH.on=false;TLS={id,part:p||'vocab',a:{}};S.res=null;go('tl')}
+function tlPart(p){shReset();SH.on=false;TLS.part=p;TLS.a={};S.res=null;render();scrollTo(0,0)}
 const tlNorm=s=>String(s||'').toLowerCase().replace(/[^a-z' ]/g,' ').replace(/\s+/g,' ').trim();
 
 /* Thẻ hiển thị trên trang Học */
@@ -345,47 +345,80 @@ function tlPron(L){if(SH.on)return vShadow(L);
  const ok=L.shadow.filter(i=>(TLP.best[L.id+':'+i]||0)>=70).length;
  return `<div class="sec-h"><h2>Âm trọng tâm</h2></div><div class="stack">${snd}</div>
  <div class="sec-h"><h2>Nối âm</h2></div>${link}<div class="sec-h"><h2>Trọng âm câu</h2></div>${st}
- <button class="card login-nudge" style="margin-top:14px" onclick="shOpen()"><span class="tile2-ic">🎧</span><span style="flex:1;text-align:left"><b>Luyện Shadowing</b><small>4 vòng: nghe hiểu → đọc theo → chữ gợi ý → ẩn chữ, kèm ghi âm để so sánh</small></span><span class="chev">›</span></button>
+ <button class="card login-nudge" style="margin-top:14px" onclick="shOpen()"><span class="tile2-ic">🎧</span><span style="flex:1;text-align:left"><b>Luyện Shadowing</b><small>Hiện cả bài, tô sáng từng câu để đọc theo, AI chấm toàn bộ bài đọc</small></span><span class="chev">›</span></button>
  <div class="sec-h"><h2>Đọc nhại & chấm điểm AI</h2><span class="mut">${ok}/${L.shadow.length} câu ≥ 70</span></div><div class="stack">${sh}</div>
  ${ok>=Math.ceil(L.shadow.length*.75)&&!tlDone(L.id,'pron')?`<button class="btn" style="width:100%;margin-top:12px" onclick="tlMark('pron')">Hoàn thành phần này (+20 XP)</button>`:''}`}
 
-/* ===================== SHADOWING (nói đuổi theo giọng mẫu) =====================
- 4 vòng: 1 Nghe hiểu (chữ + dịch) · 2 Đọc theo nhìn chữ · 3 Chữ gợi ý (chỉ chữ cái đầu) · 4 Ẩn chữ.
- Mỗi câu: phát lặp N lần, ghi âm giọng mình trong lúc nói theo, nghe lại bản ghi rồi nghe lại mẫu để so. */
-const SH_ROUNDS=[['Nghe hiểu','Nghe câu mẫu, đọc nghĩa. Chưa cần nói.'],['Đọc theo','Nhìn chữ, nói cùng lúc với giọng mẫu.'],['Chữ gợi ý','Chỉ còn chữ cái đầu. Nói đuổi theo, trễ khoảng nửa giây.'],['Ẩn chữ','Không nhìn chữ. Nói đuổi theo hoàn toàn bằng tai.']];
-let SH={on:false,i:0,round:0,rate:0.9,reps:2,busy:false,rec:null,url:null,stop:false};
+/* ===================== SHADOWING CẢ BÀI =====================
+ Hiện toàn bộ bài. Có thể nghe AI đọc trước (tô sáng từng câu đang đọc).
+ Khi đọc: ghi âm liên tục, app tô sáng câu hiện tại, người học đọc xong chạm “Câu tiếp”.
+ Đọc hết bài → gửi cả bản ghi cho AI (task 'pron', target = cả bài) → điểm tổng + điểm từng câu. */
+const SH_VIEW=[['full','Đủ chữ'],['hint','Chữ gợi ý'],['hide','Chỉ câu đang đọc']];
+let SH={on:false,i:-1,view:'full',rate:0.9,mode:'idle',stop:false,rec:null,stream:null,parts:[],url:null,res:null,err:''};
 function shUtter(t,rate){return new Promise(res=>{if(!('speechSynthesis' in window))return res();try{if(typeof VOICE!='undefined'&&!VOICE&&typeof pickVoice=='function')pickVoice()}catch(e){}
  const u=new SpeechSynthesisUtterance(t);u.lang='en-US';try{if(VOICE)u.voice=VOICE}catch(e){}u.rate=rate;let ok=false;const fin=()=>{if(!ok){ok=true;res()}};u.onend=fin;u.onerror=fin;setTimeout(fin,1500+t.length*110/rate);speechSynthesis.speak(u)})}
 const shWait=ms=>new Promise(r=>setTimeout(r,ms));
 function shMask(s){return s.split(' ').map(w=>w.replace(/^([A-Za-z])([A-Za-z']*)/,(m,a,b)=>a+b.replace(/[A-Za-z']/g,'_'))).join(' ')}
-function shOpen(){SH.on=true;SH.i=0;SH.round=0;shDrop();render();scrollTo(0,0)}
+const shSents=L=>L.text.map(x=>x[0]);
+function shOpen(){shReset();SH.on=true;render();scrollTo(0,0)}
 function shDrop(){if(SH.url){try{URL.revokeObjectURL(SH.url)}catch(e){}}SH.url=null}
-function shSet(k,v){SH[k]=v;if(k=='i'||k=='round')shDrop();render()}
-async function shPlay(withRec){const L=tlLesson(),s=L.text[L.shadow[SH.i]][0];if(SH.busy){SH.stop=true;try{speechSynthesis.cancel()}catch(e){}return}
- SH.busy=true;SH.stop=false;render();let rec=null,chunks=[],stream=null;
- if(withRec&&navigator.mediaDevices&&window.MediaRecorder){try{stream=await navigator.mediaDevices.getUserMedia({audio:true});rec=new MediaRecorder(stream);rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);rec.start()}catch(e){toast('Chưa mở được micro: hãy cho phép dùng micro rồi thử lại');rec=null}}
- for(let k=0;k<SH.reps&&!SH.stop;k++){const st=document.getElementById('shst');if(st)st.textContent=(rec?'● Đang ghi · ':'')+'Lần '+(k+1)+'/'+SH.reps;await shUtter(s,SH.rate);await shWait(rec?900:600)}
- if(rec){await new Promise(r=>{rec.onstop=r;rec.stop()});stream.getTracks().forEach(t=>t.stop());shDrop();SH.url=URL.createObjectURL(new Blob(chunks,{type:rec.mimeType||'audio/webm'}))}
- SH.busy=false;render()}
-async function shCompare(){if(!SH.url)return;const L=tlLesson(),s=L.text[L.shadow[SH.i]][0];const a=new Audio(SH.url);await new Promise(r=>{a.onended=r;a.onerror=r;a.play().catch(r)});await shWait(400);await shUtter(s,SH.rate)}
-function shNext(){const L=tlLesson();if(SH.i<L.shadow.length-1)shSet('i',SH.i+1);else if(SH.round<3){SH.i=0;shSet('round',SH.round+1);toast('Sang vòng '+(SH.round+1)+': '+SH_ROUNDS[SH.round][0])}else{SH.on=false;toast('Xong 4 vòng shadowing!');try{dispatchEvent(new Event('ss-shadow-done'))}catch(e){}render()}}
-function vShadow(L){const si=L.shadow[SH.i],[en,vi]=L.text[si],r=SH.round;
- const shown=r<2?en:r==2?shMask(en):'• • •';
- return `<button class="link" onclick="SH.on=false;try{speechSynthesis.cancel()}catch(e){};render()">‹ Về phần Phát âm</button><h2 style="margin-top:6px">Shadowing</h2>
- <div class="chips" style="margin:8px 0;flex-wrap:nowrap;overflow-x:auto">${SH_ROUNDS.map(([n],k)=>`<button class="chip ${r==k?'on':''}" onclick="shSet('round',${k})">${k+1}. ${n}</button>`).join('')}</div>
- <p class="mut" style="font-size:.88rem">${SH_ROUNDS[r][1]}</p>
- <div class="card flash" style="min-height:170px"><div class="lbl">Câu ${SH.i+1}/${L.shadow.length}</div><div class="big" style="font-size:1.25rem;letter-spacing:${r==2?'.04em':'0'}">${esc(shown)}</div>${r==0?`<div class="mut">${esc(vi)}</div>`:''}<div class="mut" id="shst" style="font-size:.84rem">${SH.busy?'Đang phát…':''}</div></div>
- <div class="row" style="flex-wrap:nowrap;margin-top:10px;gap:8px">
-  <label class="mut" style="flex:1;font-size:.84rem">Tốc độ <select onchange="SH.rate=+this.value">${[[0.6,'Chậm'],[0.75,'Vừa'],[0.9,'Thường'],[1.05,'Nhanh']].map(([v,n])=>`<option value="${v}" ${SH.rate==v?'selected':''}>${n}</option>`).join('')}</select></label>
-  <label class="mut" style="flex:1;font-size:.84rem">Lặp lại <select onchange="SH.reps=+this.value">${[1,2,3,5].map(v=>`<option value="${v}" ${SH.reps==v?'selected':''}>${v} lần</option>`).join('')}</select></label></div>
- <div class="stack" style="margin-top:12px">
-  <button class="btn ${r==0?'':'ghost'}" onclick="shPlay(false)">${SH.busy?'■ Dừng':'▶ Nghe mẫu'}</button>
-  ${r>0?`<button class="btn" onclick="shPlay(true)" ${SH.busy?'':''}>${SH.busy?'■ Dừng':'🎤 Nói theo & ghi âm'}</button>`:''}
-  ${SH.url&&!SH.busy?`<button class="btn ghost" onclick="shCompare()">⇄ So sánh: giọng mình → giọng mẫu</button><button class="btn ghost" onclick="new Audio(SH.url).play()">▶ Nghe lại giọng mình</button>`:''}
- </div>
- ${r>0?`<p class="mut" style="font-size:.82rem;margin-top:8px">Mẹo: đeo tai nghe để micro chỉ thu giọng bạn. Nói to, bắt chước cả chỗ nhấn và ngữ điệu, không chỉ từng từ.</p>`:''}
- <div class="row" style="flex-wrap:nowrap;margin-top:12px"><button class="btn ghost" style="flex:1" ${SH.i==0?'disabled':''} onclick="shSet('i',SH.i-1)">‹ Câu trước</button><button class="btn" style="flex:1" onclick="shNext()">${SH.i<L.shadow.length-1?'Câu tiếp ›':SH.round<3?'Vòng tiếp ›':'Hoàn thành'}</button></div>
- <button class="btn ghost" style="width:100%;margin-top:8px" onclick="SH.on=false;tlSpeak(${si})">Chấm điểm AI câu này</button>`}
+function shKill(){SH.stop=true;try{speechSynthesis.cancel()}catch(e){}try{SH.rec&&SH.rec.state!='inactive'&&(SH.rec.onstop=null,SH.rec.stop())}catch(e){}try{SH.stream&&SH.stream.getTracks().forEach(t=>t.stop())}catch(e){}SH.rec=null;SH.stream=null}
+function shReset(){shKill();shDrop();Object.assign(SH,{i:-1,mode:'idle',res:null,err:'',parts:[]})}
+function shExit(){shReset();SH.on=false;render()}
+function shFocus(){setTimeout(()=>{const e=document.getElementById('shs'+SH.i);e&&e.scrollIntoView({block:'center',behavior:'smooth'})},40)}
+/* Nghe AI đọc cả bài, tô sáng câu đang đọc */
+async function shListen(){if(SH.mode=='listen'){shKill();SH.mode='idle';SH.i=-1;render();return}
+ if(SH.mode!='idle'&&SH.mode!='done')return;const L=tlLesson(),ss=shSents(L);SH.stop=false;SH.mode='listen';SH.res=null;
+ for(let k=0;k<ss.length&&!SH.stop;k++){SH.i=k;render();shFocus();await shUtter(ss[k],SH.rate);await shWait(350)}
+ if(!SH.stop){SH.mode='idle';SH.i=-1;render()}}
+/* Bắt đầu đọc cả bài: ghi âm liên tục */
+async function shStart(){const L=tlLesson();if(SH.mode=='listen')shKill();shDrop();SH.res=null;SH.err='';SH.stop=false;
+ if(!navigator.mediaDevices||!window.MediaRecorder){SH.err='Trình duyệt này không ghi âm được. Hãy dùng Safari (iPhone) hoặc Chrome.';render();return}
+ let stream;try{stream=typeof micGet=='function'?await micGet():await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){SH.err='Chưa được dùng micro ('+(e.name||'lỗi')+').';render();try{window.MIC&&MIC.open()}catch(x){}return}
+ const mt=['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(x=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(x))||'';
+ const mr=new MediaRecorder(stream,mt?{mimeType:mt}:{});SH.parts=[];mr.ondataavailable=e=>e.data.size&&SH.parts.push(e.data);
+ SH.rec=mr;SH.stream=stream;SH.mime=mr.mimeType||mt||'audio/mp4';mr.start();SH.mode='rec';SH.i=0;SH.t0=Date.now();render();shFocus();
+ clearTimeout(SH.lim);SH.lim=setTimeout(()=>{if(SH.mode=='rec'){toast('Đã đủ 3 phút, AI chấm phần đã đọc');shFinish()}},180000)}
+function shNextSent(){const L=tlLesson();if(SH.mode!='rec')return;if(SH.i<L.text.length-1){SH.i++;render();shFocus()}else shFinish()}
+function shPrevSent(){if(SH.mode=='rec'&&SH.i>0){SH.i--;render();shFocus()}}
+async function shReplaySent(){if(SH.mode!='rec'||SH.i<0)return;const L=tlLesson();try{SH.rec.pause()}catch(e){}await shUtter(L.text[SH.i][0],SH.rate);try{SH.rec.resume()}catch(e){}}
+async function shFinish(){const L=tlLesson(),mr=SH.rec;if(!mr)return;clearTimeout(SH.lim);const upto=SH.i;
+ await new Promise(r=>{mr.onstop=r;try{mr.stop()}catch(e){r()}});try{SH.stream.getTracks().forEach(t=>t.stop())}catch(e){}SH.rec=null;SH.stream=null;
+ const blob=new Blob(SH.parts,{type:SH.mime});SH.url=URL.createObjectURL(blob);SH.mode='grade';SH.i=-1;render();
+ if(blob.size<3000){SH.mode='done';SH.err='Bản ghi quá ngắn. Hãy đọc to rồi thử lại.';render();return}
+ const ss=shSents(L).slice(0,upto+1),target=ss.join(' ');
+ try{const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]);fr.onerror=no;fr.readAsDataURL(blob)});
+  const r=await ai('pron',{audio:b64,mime:SH.mime.split(';')[0],target});if(r.error)throw new Error(r.error);
+  const heard=String(r.heard||'').trim();if(!/[a-z]/i.test(heard))throw new Error('AI chưa nghe rõ giọng bạn. Đọc to và gần máy hơn.');
+  const g=gradeSpeech(target,heard,.9,false);if(r.tip)g.aiTip=r.tip;
+  let k=0;g.per=ss.map(s=>{const n=norm(s).length,ws=g.words.slice(k,k+n);k+=n;return{ws,score:ws.length?Math.round(ws.reduce((a,w)=>a+w.v,0)/ws.length*100):0}});
+  g.partial=upto<L.text.length-1;SH.res=g;
+  if(g.score>=70){S.xp+=20;try{dispatchEvent(new Event('ss-shadow-done'))}catch(e){}toast('Hoàn thành shadowing cả bài! +20 XP')}
+  try{tick();save()}catch(e){}}
+ catch(e){SH.err=e&&e.code=='login'?'Cần đăng nhập để AI chấm cả bài.':'Chưa chấm được: '+(e.message||e)}
+ SH.mode='done';render();setTimeout(()=>{const e=document.getElementById('shres');e&&e.scrollIntoView({block:'start',behavior:'smooth'})},60)}
+async function shCompare(i){const L=tlLesson();await shUtter(L.text[i][0],SH.rate)}
+function shSentHTML(L,k){const [en,vi]=L.text[k],cur=SH.i===k,res=SH.res&&SH.res.per&&SH.res.per[k];
+ let body;if(res){body=res.ws.map(w=>`<span class="w ${w.s}">${esc(w.w)}</span>`).join(' ')}
+ else{const v=SH.view,txt=v=='full'||(cur&&SH.mode=='listen')?en:v=='hint'||cur?shMask(en):'• • •';body=esc(txt)}
+ const st=cur?'background:color-mix(in srgb,var(--steel) 22%,transparent);border-left:4px solid var(--steel);opacity:1':SH.mode=='rec'||SH.mode=='listen'?'border-left:4px solid transparent;opacity:'+(k<SH.i?'.45':'.7'):'border-left:4px solid transparent';
+ return `<div id="shs${k}" style="padding:8px 10px;border-radius:10px;transition:all .2s;${st}" ${SH.mode=='idle'||SH.mode=='done'?`onclick="shCompare(${k})"`:''}><div style="font-size:${cur?'1.12rem':'1rem'};font-weight:${cur?700:500};line-height:1.5;letter-spacing:${SH.view=='hint'&&!res?'.03em':'0'}">${body}</div>${res?`<div class="mut" style="font-size:.78rem">Câu ${k+1}: <b class="${res.score>=80?'good':res.score>=60?'warn':'bad'}">${res.score}</b> · chạm để nghe mẫu</div>`:SH.mode!='rec'&&SH.view=='full'&&cur&&SH.mode=='listen'?`<div class="mut" style="font-size:.84rem">${esc(vi)}</div>`:''}</div>`}
+function vShadow(L){const m=SH.mode,n=L.text.length;
+ return `<button class="link" onclick="shExit()">‹ Về phần Phát âm</button><h2 style="margin-top:6px">Shadowing cả bài</h2>
+ <p class="mut" style="font-size:.88rem">${m=='rec'?'Đọc to câu đang tô sáng. Đọc xong chạm <b>Câu tiếp</b>.':'Nghe AI đọc mẫu trước, rồi bấm <b>Bắt đầu đọc</b>. App tô sáng từng câu, đọc hết bài AI sẽ chấm toàn bộ.'}</p>
+ ${m=='idle'||m=='done'?`<div class="chips" style="margin:8px 0;flex-wrap:nowrap;overflow-x:auto">${SH_VIEW.map(([k,t])=>`<button class="chip ${SH.view==k?'on':''}" onclick="SH.view='${k}';render()">${t}</button>`).join('')}</div>
+ <label class="mut" style="font-size:.84rem;display:block;margin-bottom:8px">Tốc độ giọng mẫu <select onchange="SH.rate=+this.value">${[[0.6,'Chậm'],[0.75,'Vừa'],[0.9,'Thường'],[1.05,'Nhanh']].map(([v,t])=>`<option value="${v}" ${SH.rate==v?'selected':''}>${t}</option>`).join('')}</select></label>`:''}
+ ${m=='rec'?`<div class="lbl" style="color:var(--bad)">● Đang ghi âm · Câu ${SH.i+1}/${n}</div>`:''}
+ <div class="card stack" style="gap:4px;padding:8px">${L.text.map((_,k)=>shSentHTML(L,k)).join('')}</div>
+ ${m=='rec'?`<div style="position:sticky;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:5;margin-top:10px" class="stack">
+   <button class="btn" style="width:100%;min-height:56px;font-size:1.05rem" onclick="shNextSent()">${SH.i<n-1?'Câu tiếp ›':'✓ Đọc xong, AI chấm cả bài'}</button>
+   <div class="row" style="flex-wrap:nowrap;gap:8px"><button class="btn ghost" style="flex:1" ${SH.i==0?'disabled':''} onclick="shPrevSent()">‹ Câu trước</button><button class="btn ghost" style="flex:1" onclick="shReplaySent()">🔊 Nghe câu này</button><button class="btn ghost" style="flex:1" onclick="shFinish()">■ Dừng & chấm</button></div></div>`
+ :m=='grade'?`<p class="mut" style="text-align:center;margin-top:12px">AI đang nghe và chấm cả bài…</p>`
+ :`<div class="stack" style="margin-top:12px"><button class="btn ghost" onclick="shListen()">${m=='listen'?'■ Dừng':'▶ Nghe AI đọc cả bài'}</button>
+   ${m!='listen'?`<button class="btn" onclick="shStart()">🎤 ${SH.res?'Đọc lại cả bài':'Bắt đầu đọc'}</button>`:''}</div>
+   <p class="mut" style="font-size:.82rem;margin-top:8px">Mẹo: đeo tai nghe, nói to, bắt chước chỗ nhấn và ngữ điệu. Nghe câu mẫu trong lúc đọc sẽ tạm dừng ghi âm.</p>`}
+ ${SH.err?`<p class="note" style="margin-top:10px">${esc(SH.err)}</p>`:''}
+ ${SH.res?`<div id="shres" style="margin-top:12px">${SH.res.partial?'<p class="mut" style="font-size:.84rem">Chấm phần bạn đã đọc.</p>':''}${vRes({...SH.res,words:[]})}${SH.url?`<button class="btn ghost" style="width:100%;margin-top:8px" onclick="new Audio(SH.url).play()">▶ Nghe lại bài mình đọc</button>`:''}</div>`:''}`}
 
 /* ===================== NGƯỜI HỌC TỰ TẠO BÀI TỪ TRUYỆN NGẮN =====================
  Dán truyện 40–400 từ → AI (task 'story') soạn đủ 4 phần → kiểm tra, sửa lỗi → lưu trên máy (TLP.mine). */
