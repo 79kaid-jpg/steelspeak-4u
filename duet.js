@@ -65,7 +65,9 @@ const isAdmin=()=>D.room&&D.room.admin_id===user()?.id;
 const member=uid=>D.members.find(m=>m.user_id===uid);
 const assignOf=line=>D.assigns.find(a=>a.line_id===line.id);
 // user_id null = cả nhóm (admin thu đại diện); undefined = chưa chia
-const singerOf=line=>{const a=line&&assignOf(line);return a?a.user_id:undefined};
+const rawSinger=line=>{const a=line&&assignOf(line);return a?a.user_id:undefined};
+// Khi hát: câu chưa giao hoặc giao cho người đã rời phòng thì admin hát thay, để không bao giờ kẹt
+const singerOf=line=>{const u=rawSinger(line);if(D.room?.status==='singing'&&(u===undefined||(u!==null&&!member(u))))return null;return u};
 const singers=()=>D.members.filter(m=>!(D.room?.admin_sings===false&&m.user_id===D.room.admin_id));
 const nameOf=uid=>{if(uid===null)return 'Cả nhóm';const m=member(uid);return m?`${m.slot} · ${m.nickname}`:'—'};
 const lastTake=line=>{for(let i=D.takes.length-1;i>=0;i--)if(line&&D.takes[i].line_id===line.id)return D.takes[i];return null};
@@ -404,8 +406,9 @@ async function removeSong(){
 }
 async function start(){
  D.err='';
- if(D.members.length<1)return fail('Phòng chưa có ai.');
- if(D.lines.some(l=>singerOf(l)===undefined))await autoAssign(true);
+ if(!singers().length)return fail('Chưa có ai để hát. Mời bạn vào phòng hoặc bật "Admin cũng hát".');
+ // Câu chưa giao hoặc giao cho người đã rời phòng: chia lại trước khi bắt đầu
+ if(D.lines.some(l=>{const u=rawSinger(l);return u===undefined||(u!==null&&!member(u))}))await autoAssign(true);
  const {error}=await SB().from('duet_rooms').update({status:'singing',current_line:1}).eq('id',D.room.id);
  if(error)return fail('Chưa bắt đầu được',error);
  load();
