@@ -22,7 +22,7 @@ fetch('assets/duet/songs.json').then(r=>r.json()).then(c=>{SG.cat=c;if(S.tab=='s
 const esc2=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let _ac=null;const AC=()=>{if(!_ac)_ac=new (window.AudioContext||window.webkitAudioContext)();if(_ac.state=='suspended')_ac.resume();return _ac};
 const BUF={};async function buf(id,kind){const k=id+'-'+kind;if(BUF[k])return BUF[k];const r=await fetch('assets/duet/'+k+'.mp3');if(!r.ok)throw new Error('Không tải được nhạc');return BUF[k]=await AC().decodeAudioData(await r.arrayBuffer())}
-let PL=null,PT=0;function stop(){try{PL&&PL.stop()}catch(e){}PL=null;clearTimeout(PT);if(SG.play>=0){SG.play=-1;mark()}}
+let PL=null,PT=0;function stop(){try{PL&&PL.stop()}catch(e){}PL=null;try{PL2&&PL2.stop()}catch(e){}PL2=null;clearTimeout(PT);if(SG.play>=0){SG.play=-1;mark()}}
 function seg(b,from,to,delay=0){stop();const ac=AC(),s=ac.createBufferSource();s.buffer=b;s.connect(ac.destination);const at=ac.currentTime+delay;s.start(at,Math.max(0,from/1000),Math.max(.1,(to-from)/1000));PL=s;return at}
 const song=()=>SG.cat&&SG.cat.find(c=>c.id==SG.id);
 function mark(){document.querySelectorAll('.sl-line').forEach(el=>el.classList.toggle('on',+el.dataset.i===SG.play))}
@@ -30,9 +30,14 @@ function mark(){document.querySelectorAll('.sl-line').forEach(el=>el.classList.t
 /* nghe một câu (ca sĩ) */
 async function hear(i){const c=song();if(!c)return;AC();try{const b=await buf(c.id,'voc');const t=c.times[i];seg(b,t.start,t.end+150);SG.play=i;mark();PT=setTimeout(()=>{SG.play=-1;mark()},t.end-t.start+200)}catch(e){toast(e.message)}}
 /* nghe cả bài, câu đang hát sáng lên */
-async function hearAll(){const c=song();if(!c)return;if(PL){stop();render();return}AC();try{const b=await buf(c.id,'voc');const at0=_ac.currentTime;seg(b,0,c.secs*1000);
+let PL2=null;
+async function hearAll(mode){const c=song();if(!c)return;if(PL){const was=SG.mode;stop();try{PL2&&PL2.stop()}catch(e){}PL2=null;SG.mode=null;if(was===(mode||'voc')){render();return}}AC();try{const b=await buf(c.id,'voc');
+ /* file 'voc' = giọng + nhạc. Chỉ giọng: phát thêm beat đảo pha để triệt tiêu phần nhạc */
+ let bt=null;if(mode=='voc'){try{bt=await buf(c.id,'beat')}catch(e){}}
+ const at0=seg(b,0,c.secs*1000,.05);SG.mode=mode||'voc';
+ if(bt){const ac=AC(),s2=ac.createBufferSource(),g=ac.createGain();g.gain.value=-1;s2.buffer=bt;s2.connect(g).connect(ac.destination);s2.start(at0,0,c.secs);PL2=s2}
  const step=()=>{if(!PL)return;const ms=(_ac.currentTime-at0)*1000;const i=c.times.findIndex(t=>ms>=t.start&&ms<=t.end+300);if(i!==SG.play){SG.play=i;mark();if(i>=0)document.querySelector(`.sl-line[data-i="${i}"]`)?.scrollIntoView({block:'center',behavior:'smooth'})}
-  if(ms>c.secs*1000){stop();render();return}PT=setTimeout(step,120)};step();render()}catch(e){toast(e.message)}}
+  if(ms>c.secs*1000){stop();try{PL2&&PL2.stop()}catch(e){}PL2=null;SG.mode=null;render();return}PT=setTimeout(step,120)};step();render()}catch(e){toast(e.message)}}
 
 /* hát theo beat một câu, thu âm, AI chấm */
 const norm=s=>s.toLowerCase().replace(/[’']/g,"'").replace(/[^a-z' ]+/g,' ').split(/\s+/).filter(Boolean);
@@ -98,7 +103,7 @@ async function finishAll(){const R=SG.all;if(!R)return;SG.all=null;try{PL&&PL.st
 function playMine(i){const r=i=='all'?SG.allRes:SG.res[i];if(!r||!r.url)return;stop();const a=new Audio(r.url);a.play().catch(()=>{})}
 
 function open(id){stop();SG.id=id;SG.res={};SG.allRes=undefined;SG.cur=-1;go('song');scrollTo(0,0)}
-function back(){stop();if(SG.rec)finish();if(SG.all)finishAll();SG.id=null;render();scrollTo(0,0)}
+function back(){stop();try{PL2&&PL2.stop()}catch(e){}PL2=null;SG.mode=null;if(SG.rec)finish();if(SG.all)finishAll();SG.id=null;render();scrollTo(0,0)}
 
 const css=`.sl-hero{border-radius:20px;padding:18px;color:#fff;background:linear-gradient(140deg,#14b8a6,#0e6aa8);display:flex;flex-direction:column;gap:6px}
 .sl-hero h1{margin:0;color:#fff;font-size:1.4rem}.sl-hero p{margin:0;opacity:.92;font-size:.88rem}
@@ -128,7 +133,8 @@ function vSong(){
  const V=VI[c.id]||{lines:[],words:[]},best=(P[c.id]||{}).best||{};
  return `<button class="link" onclick="SONGL.back()">‹ Danh sách bài hát</button>
  <div class="sl-hero" style="margin-top:8px"><span class="chip" style="align-self:flex-start;background:rgba(255,255,255,.2);color:#fff;border:0">${c.level} · ${c.lines.length} câu · ${pc(c)}% thuộc</span><h1>${esc2(c.title)}</h1>
-  <div class="row" style="flex-wrap:nowrap;gap:8px;margin-top:6px"><button class="btn" style="flex:1;background:#fff;color:#0e6aa8" onclick="SONGL.hearAll()" ${SG.all||SG.busy?'disabled':''}>${PL&&!SG.rec&&!SG.all?'■ Dừng':'▶ Nghe cả bài'}</button><button class="btn ${SG.all?'sl-rec':''}" style="flex:1;background:#0b3b5e;color:#fff" onclick="SONGL.singAll()" ${SG.rec||(SG.busy&&!SG.all)?'disabled':''}>${SG.all?'■ Dừng & chấm':SG.busy&&SG.allRes===null?'AI đang chấm…':'🎤 Hát cả bài'}</button></div>
+  <div class="row" style="flex-wrap:nowrap;gap:8px;margin-top:6px"><button class="btn" style="flex:1;background:#fff;color:#0e6aa8" onclick="SONGL.hearAll('mix')" ${SG.all||SG.busy?'disabled':''}>${PL&&SG.mode=='mix'?'■ Dừng':'▶ Nghe giọng + nhạc'}</button><button class="btn ${SG.all?'sl-rec':''}" style="flex:1;background:#0b3b5e;color:#fff" onclick="SONGL.singAll()" ${SG.rec||(SG.busy&&!SG.all)?'disabled':''}>${SG.all?'■ Dừng & chấm':SG.busy&&SG.allRes===null?'AI đang chấm…':'🎤 Hát cả bài'}</button></div>
+  <button class="chip" style="align-self:flex-start;background:rgba(255,255,255,.2);color:#fff;border:0" onclick="SONGL.hearAll('voc')" ${SG.all||SG.busy?'disabled':''}>${PL&&SG.mode=='voc'?'■ Dừng':'🎙 Chỉ nghe giọng hát (tắt nhạc)'}</button>
   ${SG.all?`<div id="sl-all-st" role="status" style="font-weight:700">Nhạc dạo…</div>`:''}
   ${SG.allRes&&!SG.all?`<div class="row" style="gap:8px;align-items:center;flex-wrap:nowrap"><span class="sl-sc ${SG.allRes.total>=70?'ok':'no'}" style="background:#fff">Cả bài: ${SG.allRes.total}/100</span><button class="chip" style="background:rgba(255,255,255,.2);color:#fff;border:0" onclick="SONGL.playMine('all')">▶ Nghe lại</button></div>`:((prog()[c.id]||{}).full?`<small style="opacity:.9">Cả bài tốt nhất: ${(prog()[c.id]).full}/100</small>`:'')}</div>
  ${V.words.length?`<div class="sec-h"><h2>Từ mới trong bài</h2></div><div class="sl-words">${V.words.map(([e,v])=>`<span><b>${esc2(e)}</b> · ${esc2(v)}</span>`).join('')}</div>`:''}
