@@ -63,10 +63,42 @@ async function finish(){const R=SG.rec;if(!R)return;SG.rec=null;clearTimeout(R.a
   saveProg(P);
  }catch(e){toast(e.message||'Chưa chấm được')}
  SG.busy=false;render()}
-function playMine(i){const r=SG.res[i];if(!r||!r.url)return;stop();const a=new Audio(r.url);a.play().catch(()=>{})}
+/* hát cả bài: phát beat từ đầu, chữ đang hát sáng lên, thu một lần rồi AI chấm cả bài và chia điểm từng câu */
+async function singAll(){const c=song();if(!c||SG.busy)return;
+ if(SG.all){return finishAll()}
+ if(SG.rec)return;if(typeof USER=='undefined'||!USER){toast('Đăng nhập để AI chấm điểm');return go('me')}
+ AC();let beat;try{beat=await buf(c.id,'beat')}catch(e){return toast(e.message)}
+ stop();try{_ac.state==='running'&&await _ac.suspend()}catch(e){}
+ let stream;try{stream=typeof micGet=='function'?await micGet():await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){try{await _ac.resume()}catch(_){}if(window.MIC&&MIC.open)MIC.open();return toast('Chưa dùng được micro')}
+ const mt=['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(x=>window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(x))||'';
+ const mr=new MediaRecorder(stream,mt?{mimeType:mt}:{}),ch=[];mr.ondataavailable=e=>{if(e.data.size)ch.push(e.data)};mr.start();
+ try{await _ac.resume()}catch(e){}
+ const at0=seg(beat,0,c.secs*1000,.15);SG.all={mr,stream,ch,mt};SG.allRes=null;render();
+ const step=()=>{if(!SG.all)return;const ms=(_ac.currentTime-at0)*1000;const i=c.times.findIndex(t=>ms>=t.start-250&&ms<=t.end+150);
+  if(i!==SG.play){SG.play=i;mark();if(i>=0)document.querySelector(`.sl-line[data-i="${i}"]`)?.scrollIntoView({block:'center',behavior:'smooth'})}
+  const el=document.getElementById('sl-all-st');if(el){const nx=c.times.find(t=>t.start>ms);el.textContent=ms<c.times[0].start?`Nhạc dạo… vào sau ${Math.ceil((c.times[0].start-ms)/1000)} giây`:`● Đang hát câu ${Math.max(1,i+1)}/${c.lines.length} · chạm để dừng`}
+  if(ms>c.secs*1000+300){finishAll();return}setTimeout(step,120)};step()}
+async function finishAll(){const R=SG.all;if(!R)return;SG.all=null;try{PL&&PL.stop()}catch(e){}PL=null;SG.play=-1;SG.busy=true;render();
+ const blob=await new Promise(res=>{R.mr.onstop=()=>{R.stream.getTracks().forEach(t=>t.stop());res(new Blob(R.ch,{type:R.mr.mimeType||R.mt||'audio/mp4'}))};try{R.mr.stop()}catch(e){R.stream.getTracks().forEach(t=>t.stop());res(new Blob(R.ch))}});
+ const c=song();
+ try{if(blob.size<4000)throw new Error('Bản thu quá ngắn, thử hát lại cả bài nhé');
+  const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]);fr.onerror=no;fr.readAsDataURL(blob)});
+  const r=await ai('pron',{audio:b64,mime:(blob.type||'audio/mp4').split(';')[0],target:c.lines.join('. ')});if(r&&r.error)throw new Error(r.error);
+  /* chia điểm: dò lần lượt từng câu trên lời AI nghe được, từ đã dùng thì bỏ ra */
+  const pool=norm(String(r?.heard||''));let tot=0,okw=0;const P=prog();P[c.id]=P[c.id]||{best:{}};let gain=0;
+  c.lines.forEach((l,i)=>{const T=norm(l),wrong=[];for(const w of T){const k=pool.indexOf(w);if(k>=0&&k<40)pool.splice(k,1);else wrong.push(w)}
+   const sc=T.length?Math.round((T.length-wrong.length)/T.length*100):0;tot+=T.length;okw+=T.length-wrong.length;
+   SG.res[i]={score:sc,wrong:[...new Set(wrong)]};const old=P[c.id].best[i]||0;if(sc>old)P[c.id].best[i]=sc;if(sc>=70&&old<70)gain+=10});
+  const total=tot?Math.round(okw/tot*100):0;SG.allRes={total,url:URL.createObjectURL(blob)};
+  if(total>((P[c.id].full)||0))P[c.id].full=total;saveProg(P);
+  if(gain){S.xp+=gain;try{tick()}catch(e){}save()}
+  toast(`Cả bài: ${total} điểm${gain?` · +${gain} XP`:''}`);
+ }catch(e){toast(e.message||'Chưa chấm được')}
+ SG.busy=false;render()}
+function playMine(i){const r=i=='all'?SG.allRes:SG.res[i];if(!r||!r.url)return;stop();const a=new Audio(r.url);a.play().catch(()=>{})}
 
-function open(id){stop();SG.id=id;SG.res={};SG.cur=-1;go('song');scrollTo(0,0)}
-function back(){stop();if(SG.rec)finish();SG.id=null;render();scrollTo(0,0)}
+function open(id){stop();SG.id=id;SG.res={};SG.allRes=undefined;SG.cur=-1;go('song');scrollTo(0,0)}
+function back(){stop();if(SG.rec)finish();if(SG.all)finishAll();SG.id=null;render();scrollTo(0,0)}
 
 const css=`.sl-hero{border-radius:20px;padding:18px;color:#fff;background:linear-gradient(140deg,#14b8a6,#0e6aa8);display:flex;flex-direction:column;gap:6px}
 .sl-hero h1{margin:0;color:#fff;font-size:1.4rem}.sl-hero p{margin:0;opacity:.92;font-size:.88rem}
@@ -96,14 +128,16 @@ function vSong(){
  const V=VI[c.id]||{lines:[],words:[]},best=(P[c.id]||{}).best||{};
  return `<button class="link" onclick="SONGL.back()">‹ Danh sách bài hát</button>
  <div class="sl-hero" style="margin-top:8px"><span class="chip" style="align-self:flex-start;background:rgba(255,255,255,.2);color:#fff;border:0">${c.level} · ${c.lines.length} câu · ${pc(c)}% thuộc</span><h1>${esc2(c.title)}</h1>
-  <button class="btn" style="background:#fff;color:#0e6aa8;margin-top:6px" onclick="SONGL.hearAll()">${PL&&!SG.rec?'■ Dừng':'▶ Nghe cả bài'}</button></div>
+  <div class="row" style="flex-wrap:nowrap;gap:8px;margin-top:6px"><button class="btn" style="flex:1;background:#fff;color:#0e6aa8" onclick="SONGL.hearAll()" ${SG.all||SG.busy?'disabled':''}>${PL&&!SG.rec&&!SG.all?'■ Dừng':'▶ Nghe cả bài'}</button><button class="btn ${SG.all?'sl-rec':''}" style="flex:1;background:#0b3b5e;color:#fff" onclick="SONGL.singAll()" ${SG.rec||(SG.busy&&!SG.all)?'disabled':''}>${SG.all?'■ Dừng & chấm':SG.busy&&SG.allRes===null?'AI đang chấm…':'🎤 Hát cả bài'}</button></div>
+  ${SG.all?`<div id="sl-all-st" role="status" style="font-weight:700">Nhạc dạo…</div>`:''}
+  ${SG.allRes&&!SG.all?`<div class="row" style="gap:8px;align-items:center;flex-wrap:nowrap"><span class="sl-sc ${SG.allRes.total>=70?'ok':'no'}" style="background:#fff">Cả bài: ${SG.allRes.total} điểm</span><button class="chip" style="background:rgba(255,255,255,.2);color:#fff;border:0" onclick="SONGL.playMine('all')">▶ Nghe lại</button></div>`:((prog()[c.id]||{}).full?`<small style="opacity:.9">Cả bài tốt nhất: ${(prog()[c.id]).full} điểm</small>`:'')}</div>
  ${V.words.length?`<div class="sec-h"><h2>Từ mới trong bài</h2></div><div class="sl-words">${V.words.map(([e,v])=>`<span><b>${esc2(e)}</b> · ${esc2(v)}</span>`).join('')}</div>`:''}
  <div class="sec-h"><h2>Từng câu</h2><span class="mut">Nghe → Hát theo</span></div>
  <div class="stack">${c.lines.map((l,i)=>{const r=SG.res[i],b=best[i]||0,recNow=SG.rec&&SG.rec.i===i,busy=SG.busy&&SG.cur===i;
   return `<div class="sl-line" data-i="${i}"><div class="row" style="justify-content:space-between;flex-wrap:nowrap;align-items:flex-start"><div style="min-width:0"><div class="sl-en">${esc2(l)}</div><div class="sl-vi">${esc2(V.lines[i]||'')}</div></div>${b?`<span class="sl-sc ${b>=70?'ok':'no'}" title="Điểm cao nhất">${b>=70?'✓ ':''}${b}</span>`:''}</div>
-  <div class="sl-act"><button class="chip" onclick="SONGL.hear(${i})" aria-label="Nghe câu ${i+1}">🔊 Nghe</button><button class="chip ${recNow?'sl-rec':''}" onclick="SONGL.sing(${i})" ${SG.busy||(SG.rec&&!recNow)?'disabled':''} aria-label="Hát theo câu ${i+1}">${recNow?'■ Dừng':busy?'AI đang chấm…':'🎤 Hát theo'}</button>${r&&r.url?`<button class="chip" onclick="SONGL.playMine(${i})">▶ Giọng tôi</button>`:''}</div>
+  <div class="sl-act"><button class="chip" onclick="SONGL.hear(${i})" aria-label="Nghe câu ${i+1}">🔊 Nghe</button><button class="chip ${recNow?'sl-rec':''}" onclick="SONGL.sing(${i})" ${SG.busy||SG.all||(SG.rec&&!recNow)?'disabled':''} aria-label="Hát theo câu ${i+1}">${recNow?'■ Dừng':busy?'AI đang chấm…':'🎤 Hát theo'}</button>${r&&r.url?`<button class="chip" onclick="SONGL.playMine(${i})">▶ Giọng tôi</button>`:''}</div>
   ${recNow?`<div id="sl-st" class="mut" style="font-size:.86rem" role="status">Nhạc dạo…</div>`:''}
   ${r?`<div style="font-size:.86rem"><span class="sl-sc ${r.score>=70?'ok':'no'}">${r.score} điểm</span> ${r.wrong.length?`<span class="mut">Luyện lại: <b style="color:var(--bad)">${r.wrong.map(esc2).join(', ')}</b></span>`:'<span style="color:var(--good)">Chuẩn từng từ!</span>'}</div>`:''}</div>`}).join('')}</div>
  <p class="mut" style="font-size:.8rem;margin-top:12px">Mẹo: đeo tai nghe để micro không thu tiếng nhạc. Câu đạt từ 70 điểm được tính là đã thuộc.</p>`}
-window.vSong=vSong;window.SONGL={open,back,hear,hearAll,sing,playMine,count:()=>SG.cat?SG.cat.length:10};
+window.vSong=vSong;window.SONGL={singAll,open,back,hear,hearAll,sing,playMine,count:()=>SG.cat?SG.cat.length:10};
 })();
