@@ -68,7 +68,7 @@ function showResult(c,meFrom,names){const v=verdict(c,meFrom);const me={name:'B�
  const title=v=='win'?'Bạn thắng! 🏆':v=='lose'?(op.id?esc(op.name)+' thắng':'Kaka thắng 😼'):'Hòa!';
  sheet(`<div class="lbl" style="text-align:center">Kết quả thách đấu</div><h2 style="text-align:center;margin:4px 0">${title}</h2>
  <div class="ch-vs">${col({av:avatar(me.id,'B',(typeof PROF!='undefined'&&PROF?.avatar)||null),name:me.name,ok:mine.ok,ms:mine.ms,win:v=='win'})}<span class="ch-x">VS</span>${col({av:avatar(op.id,op.name),name:op.name,ok:their.ok,ms:their.ms,win:v=='lose'})}</div>
- <div class="card" style="padding:10px 12px"><b>${esc(c.q.en)}</b><div class="mut" style="font-size:.88rem">Đáp án: ${esc(c.q.opts[c.q.ans]||c.q.vi)}</div></div>
+ <div class="card" style="padding:10px 12px"><b>${esc(c.q.en)}</b><div class="mut" style="font-size:.88rem">Đáp án đúng: <b style="color:var(--good)">${esc(c.q.opts[c.q.ans]||c.q.vi)}</b></div>${names&&names.pick!=null&&names.pick!==c.q.ans?`<div style="font-size:.88rem;color:var(--bad)">Bạn đã chọn: <b>${esc(c.q.opts[names.pick]||'')}</b></div>`:''}</div>
  ${!op.id&&v!='win'?'<p class="mut" style="font-size:.84rem;text-align:center;margin:8px 0 0">Kaka trả lời đúng khoảng 7/10 câu. Thử câu khác để phục thù!</p>':''}
  <div class="stack" style="margin-top:12px"><button class="btn" onclick="CHX.close()">Tiếp tục học</button><button class="btn ghost" onclick="CHX.close();go('duel')">Lịch sử thách đấu</button></div>`);
  if(v=='win'){try{navigator.vibrate&&navigator.vibrate([40,30,80])}catch(e){}if(!op.id){try{dispatchEvent(new Event('ss-kaka-win'))}catch(e){}}}}
@@ -80,13 +80,13 @@ function play(id){const c=(CH.list||[]).find(x=>x.id==id);if(!c)return;CH.cur={c
  const say1=`say(${esc(JSON.stringify(q.en))})`;
  sheet(`<div class="row" style="justify-content:space-between;flex-wrap:nowrap">${avatar(c.from_id,c.from_name)}<div style="flex:1;min-width:0"><div class="lbl">${esc(c.from_name)} thách đấu bạn</div><small class="mut">${c.from_id?'':'Kaka đúng khoảng 7/10 câu. '}Chọn nghĩa đúng, càng nhanh càng tốt</small></div></div>
  ${q.mode=='listen'?`<div class="card flash" style="margin-top:12px"><div class="mut">Nghe và chọn nghĩa đúng</div><button class="mic" style="background:var(--steel)" onclick="${say1}" aria-label="Nghe">${typeof svg=='function'?svg('spk'):'🔊'}</button></div>`:`<div class="card flash" style="margin-top:12px"><div class="big">${esc(q.en)}</div><button class="ic" onclick="${say1}" aria-label="Nghe">${typeof svg=='function'?svg('spk'):'🔊'}</button></div>`}
- <div class="stack" style="margin-top:10px" id="chopts">${q.opts.map((o,k)=>`<button class="opt" onclick="CHX.answer(${k})">${esc(o)}</button>`).join('')}</div>`);
+ <div class="stack" style="margin-top:10px;animation:chIn .5s both" id="chopts"><style>@keyframes chIn{from{opacity:0;pointer-events:none}to{opacity:1}}</style>${q.opts.map((o,k)=>`<button class="opt" onclick="CHX.answer(${k})">${esc(o)}</button>`).join('')}</div>`);
  if(q.mode=='listen')setTimeout(()=>{try{say(q.en)}catch(e){}},300)}
-async function answer(k){const cur=CH.cur;if(!cur||cur.done)return;cur.done=true;const ms=Date.now()-cur.t0,ok=k===cur.c.q.ans;
+async function answer(k){const cur=CH.cur;if(!cur||cur.done)return;if(Date.now()-cur.t0<600)return;cur.done=true;const ms=Date.now()-cur.t0,ok=k===cur.c.q.ans;
  document.querySelectorAll('#chopts .opt').forEach((b,i)=>{b.disabled=true;if(i===cur.c.q.ans)b.classList.add('ok');else if(i===k)b.classList.add('no')});
  try{if(ok)say(cur.c.q.en)}catch(e){}
  const {data,error}=await SB.rpc('challenge_answer',{cid:cur.c.id,ok,ms});if(error){toast(error.message);return close()}
- setTimeout(()=>{showResult(data,false,{from:cur.c.from_name});CH.list=null;loadList()},650)}
+ setTimeout(()=>{showResult(data,false,{from:cur.c.from_name,pick:k});CH.list=null;loadList()},650)}
 
 /* ---------- Kaka chủ động thách đấu ---------- */
 async function kakaDaily(){try{if(!on()||CH.off)return;const k='ss-kaka-ch-'+USER.id,last=+localStorage.getItem(k)||0;if(Date.now()-last<2*3600e3)return;
