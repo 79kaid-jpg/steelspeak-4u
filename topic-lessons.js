@@ -279,9 +279,24 @@ function tlPart(p){shReset();SH.on=false;TLS.part=p;TLS.a={};S.res=null;render()
 const tlNorm=s=>String(s||'').toLowerCase().replace(/[^a-z' ]/g,' ').replace(/\s+/g,' ').trim();
 
 /* Thẻ hiển thị trên trang Học */
+window.TL_SHOWALL=window.TL_SHOWALL||false;
 function vTopicHome(){if(typeof tkSlug=='function'&&tkSlug()=='steel')return '';
- return `<div class="sec-h"><h2>Bài học theo chủ đề</h2><span class="mut">${tlAll().filter(x=>String(x.id)[0]!='p').length} bài</span></div><div class="stack">${tlAll().filter(x=>String(x.id)[0]!='p').map(L=>{const n=TL_PARTS.filter(([p])=>tlDone(L.id,p)).length;
- return `<button class="card lesson2" onclick="tlOpen('${L.id}')"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${esc(L.title)}</b><span class="chip">${L.level}</span></div><div class="mut" style="font-size:.84rem">${L.mine?'Bài của bạn'+(L.shared=='private'?' · ☁ đã lưu vào tài khoản':L.shared=='live'?' · ✓ đã chia sẻ':L.shared=='pending'?' · ⏳ chờ duyệt':L.shared=='rejected'?' · ✕ chưa được duyệt':'')+' · ':L.author?'Chia sẻ bởi '+esc(L.author)+' · ':''}${esc(L.vi)} · ${n}/${TL_PARTS.length} phần xong</div><div class="row" style="gap:6px;margin-top:6px">${TL_PARTS.map(([p,nm])=>`<span class="chip ${tlDone(L.id,p)?'on':''}" style="font-size:.74rem">${tlDone(L.id,p)?'✓ ':''}${nm}</span>`).join('')}</div></button>`}).join('')}<button class="btn ghost" onclick="TLN.msg='';TLS={id:'__new',part:'vocab',a:{}};go('tl')">＋ Tạo bài từ truyện ngắn</button></div>`}
+ const A=tlAll().filter(x=>String(x.id)[0]!='p'),N=TL_PARTS.length,prog=L=>TL_PARTS.filter(([p])=>tlDone(L.id,p)).length;
+ /* đưa bài đang học dở lên đầu, rồi bài chưa học, bài xong xuống cuối */
+ const rank=L=>{const n=prog(L);return n>0&&n<N?0:n==0?1:2};const S2=[...A].sort((a,b)=>rank(a)-rank(b));
+ const tag=L=>L.mine?(L.shared=='pending'?'⏳ Chờ duyệt':L.shared=='live'?'✓ Đã chia sẻ':'Bài của bạn'):L.author?'Bởi '+esc(L.author):'';
+ const card=L=>{const n=prog(L),pc=Math.round(n/N*100);return `<button class="tlc" onclick="tlOpen('${L.id}')" aria-label="${esc(L.title)}, ${n}/${N} phần xong"><span class="tlc-top"><span class="chip">${L.level}</span>${n==N?'<span class="tlc-ok">✓</span>':''}</span><b>${esc(L.title)}</b><small>${esc(L.vi||'')}</small><span class="tlc-bar"><i style="width:${pc}%"></i></span><small class="tlc-m">${n?`${n}/${N} phần`:'Chưa học'}${tag(L)?' · '+tag(L):''}</small></button>`};
+ if(!document.getElementById('tlc-css')){const st=document.createElement('style');st.id='tlc-css';st.textContent=`.tlc-row{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:16px;margin:0 -16px;padding:2px 16px 8px;scrollbar-width:none}.tlc-row::-webkit-scrollbar{display:none}
+.tlc{flex:none;width:168px;scroll-snap-align:start;display:flex;flex-direction:column;gap:4px;text-align:left;padding:12px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
+.tlc b{font:700 .95rem/1.25 var(--fd);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.5em}
+.tlc small{color:var(--mut);font-size:.78rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tlc-top{display:flex;justify-content:space-between;align-items:center}.tlc-top .chip{font-size:.72rem;padding:2px 8px;min-height:0}
+.tlc-ok{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--good);color:#fff;font-size:.75rem;font-weight:800}
+.tlc-bar{height:6px;border-radius:99px;background:var(--soft);overflow:hidden;margin-top:4px}.tlc-bar i{display:block;height:100%;border-radius:inherit;background:var(--steel)}
+.tlc-new{justify-content:center;align-items:center;text-align:center;border-style:dashed;color:var(--steel)}.tlc-new b{min-height:0;font-size:.9rem}
+.tl-all .tlc{width:auto}.tl-all{display:grid;grid-template-columns:1fr 1fr;gap:10px}`;document.head.appendChild(st)}
+ const all=window.TL_SHOWALL;
+ return `<div class="sec-h"><h2>Bài học theo chủ đề</h2><button class="link" onclick="TL_SHOWALL=!TL_SHOWALL;render()">${all?'Thu gọn':`Tất cả ${A.length} ›`}</button></div>
+ <div class="${all?'tl-all':'tlc-row'}">${(all?S2:S2.slice(0,8)).map(card).join('')}<button class="tlc tlc-new" onclick="TLN.msg='';TLS={id:'__new',part:'vocab',a:{}};go('tl')"><span style="font-size:1.6rem">＋</span><b>Tạo bài từ truyện ngắn</b></button></div>`}
 
 function vTopic(){if(TLS.id=='__new')return vStoryForm();const L=tlLesson();if(typeof CATS!='undefined'&&!CATS.tl)CATS.tl={n:'Bài học chủ đề'};
  const tabs=`<div class="chips" style="margin:10px 0;flex-wrap:nowrap;overflow-x:auto">${TL_PARTS.map(([p,n])=>`<button class="chip ${TLS.part==p?'on':''}" onclick="tlPart('${p}')">${tlDone(L.id,p)?'✓ ':''}${n}</button>`).join('')}</div>`;
