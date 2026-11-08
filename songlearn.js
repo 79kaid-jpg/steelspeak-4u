@@ -89,10 +89,10 @@ async function finishAll(){const R=SG.all;if(!R)return;SG.all=null;try{PL&&PL.st
   c.lines.forEach((l,i)=>{const T=norm(l),wrong=[];for(const w of T){const k=pool.indexOf(w);if(k>=0&&k<40)pool.splice(k,1);else wrong.push(w)}
    const sc=T.length?Math.round((T.length-wrong.length)/T.length*100):0;tot+=T.length;okw+=T.length-wrong.length;
    SG.res[i]={score:sc,wrong:[...new Set(wrong)]};const old=P[c.id].best[i]||0;if(sc>old)P[c.id].best[i]=sc;if(sc>=70&&old<70)gain+=10});
-  const total=tot?Math.round(okw/tot*100):0;SG.allRes={total,url:URL.createObjectURL(blob)};
+  const total=Math.round(c.lines.reduce((a,_,i)=>a+(SG.res[i]?.score||0),0)/(c.lines.length*100)*100);SG.allRes={total,url:URL.createObjectURL(blob)};
   if(total>((P[c.id].full)||0))P[c.id].full=total;saveProg(P);
   if(gain){S.xp+=gain;try{tick()}catch(e){}save()}
-  toast(`Cả bài: ${total} điểm${gain?` · +${gain} XP`:''}`);
+  toast(`Cả bài: ${total}/100${gain?` · +${gain} XP`:''}`);
  }catch(e){toast(e.message||'Chưa chấm được')}
  SG.busy=false;render()}
 function playMine(i){const r=i=='all'?SG.allRes:SG.res[i];if(!r||!r.url)return;stop();const a=new Audio(r.url);a.play().catch(()=>{})}
@@ -130,7 +130,7 @@ function vSong(){
  <div class="sl-hero" style="margin-top:8px"><span class="chip" style="align-self:flex-start;background:rgba(255,255,255,.2);color:#fff;border:0">${c.level} · ${c.lines.length} câu · ${pc(c)}% thuộc</span><h1>${esc2(c.title)}</h1>
   <div class="row" style="flex-wrap:nowrap;gap:8px;margin-top:6px"><button class="btn" style="flex:1;background:#fff;color:#0e6aa8" onclick="SONGL.hearAll()" ${SG.all||SG.busy?'disabled':''}>${PL&&!SG.rec&&!SG.all?'■ Dừng':'▶ Nghe cả bài'}</button><button class="btn ${SG.all?'sl-rec':''}" style="flex:1;background:#0b3b5e;color:#fff" onclick="SONGL.singAll()" ${SG.rec||(SG.busy&&!SG.all)?'disabled':''}>${SG.all?'■ Dừng & chấm':SG.busy&&SG.allRes===null?'AI đang chấm…':'🎤 Hát cả bài'}</button></div>
   ${SG.all?`<div id="sl-all-st" role="status" style="font-weight:700">Nhạc dạo…</div>`:''}
-  ${SG.allRes&&!SG.all?`<div class="row" style="gap:8px;align-items:center;flex-wrap:nowrap"><span class="sl-sc ${SG.allRes.total>=70?'ok':'no'}" style="background:#fff">Cả bài: ${SG.allRes.total} điểm</span><button class="chip" style="background:rgba(255,255,255,.2);color:#fff;border:0" onclick="SONGL.playMine('all')">▶ Nghe lại</button></div>`:((prog()[c.id]||{}).full?`<small style="opacity:.9">Cả bài tốt nhất: ${(prog()[c.id]).full} điểm</small>`:'')}</div>
+  ${SG.allRes&&!SG.all?`<div class="row" style="gap:8px;align-items:center;flex-wrap:nowrap"><span class="sl-sc ${SG.allRes.total>=70?'ok':'no'}" style="background:#fff">Cả bài: ${SG.allRes.total}/100</span><button class="chip" style="background:rgba(255,255,255,.2);color:#fff;border:0" onclick="SONGL.playMine('all')">▶ Nghe lại</button></div>`:((prog()[c.id]||{}).full?`<small style="opacity:.9">Cả bài tốt nhất: ${(prog()[c.id]).full}/100</small>`:'')}</div>
  ${V.words.length?`<div class="sec-h"><h2>Từ mới trong bài</h2></div><div class="sl-words">${V.words.map(([e,v])=>`<span><b>${esc2(e)}</b> · ${esc2(v)}</span>`).join('')}</div>`:''}
  <div class="sec-h"><h2>Từng câu</h2><span class="mut">Nghe → Hát theo</span></div>
  <div class="stack">${c.lines.map((l,i)=>{const r=SG.res[i],b=best[i]||0,recNow=SG.rec&&SG.rec.i===i,busy=SG.busy&&SG.cur===i;
