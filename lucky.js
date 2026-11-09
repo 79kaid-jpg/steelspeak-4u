@@ -100,7 +100,8 @@ async function spin(vel){if(LK.spinning||LK.tickets<=0)return;LK.spinning=true;L
  LK.tickets=data.tickets??Math.max(0,LK.tickets-1);
  document.querySelector(`.lk-ico[data-i="${dec?dec.i:0}"]`)?.classList.add('win');
  try{navigator.vibrate&&navigator.vibrate(data.code?[60,40,140]:30)}catch(e){}
- setTimeout(()=>{LK.spinning=false;LK.res=data;LK.mine=null;if(data.gift=='xp200'){try{S.xp=(S.xp||0)+200;save()}catch(e){}}rr();resultSheet(data)},900)}
+ LK.quietUntil=Date.now()+1200+2500;
+ setTimeout(()=>{LK.spinning=false;LK.res=data;LK.mine=null;if(data.gift=='xp200'){try{S.xp=(S.xp||0)+200;save()}catch(e){}}rr();resultSheet(data)},1200)}
 /* Vuốt vòng quay: bánh xe đi theo ngón tay, thả ra đủ mạnh thì quay thật */
 (function(){let drag=null;
  const ang=(e,c)=>Math.atan2(e.clientY-c.y,e.clientX-c.x)*180/Math.PI;

@@ -46,7 +46,9 @@ body.ch-open #msgfab,body.in-game #msgfab{display:none}`;document.head.appendChi
  el.setAttribute('aria-label',(bz?'BUZZ! ':'')+L.length+' tin nhắn mới từ '+who.join(', '));
  el.innerHTML=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${bz?'<rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4 8v8M20 8v8"/>':'<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>'}</svg><span class="n">${L.length>9?'9+':L.length}</span><span>${bz?'BUZZ!':esc(who.length==1?who[0]:'Tin nhắn mới')}</span>`}
 setInterval(()=>{try{fab()}catch(e){}},1500);
-function onNote(n){if(NT.list.some(x=>x.id==n.id))return;NT.list.unshift(n);count();if(n.kind=='msg'&&isBuzz(n.body)&&!seenBuzz(n.id))buzzFx();
+function onNote(n){if(NT.list.some(x=>x.id==n.id))return;
+ /* đang quay vòng may mắn: giữ thông báo trúng quà lại, chỉ hiện sau khi bảng kết quả đã ra */
+ if(n.kind=='lucky'&&window.LK&&(LK.spinning||Date.now()<(LK.quietUntil||0))){setTimeout(()=>onNote(n),500);return}NT.list.unshift(n);count();if(n.kind=='msg'&&isBuzz(n.body)&&!seenBuzz(n.id))buzzFx();
  const open=S.tab=='msg'&&n.kind=='msg'&&NT.thread==n.ref;
  if(open){loadThread(n.ref,1);return}
  try{toast((n.kind=='study'?'📚 ':'✉ ')+n.title+(n.body?': '+disp(n.body):''))}catch(e){}
