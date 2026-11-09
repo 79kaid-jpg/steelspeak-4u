@@ -53,29 +53,54 @@ async function grant(why){if(!on()||LK.off||!LK.camp)return;const {data,error}=a
  if(data>0){LK.tickets+=data;try{toast('🎡 +'+data+' lượt quay '+LK.camp.name)}catch(e){}rr()}}
 
 /* ---------- vòng quay ---------- */
-function wheel(){const L=LK.prizes,n=L.length||1,seg=360/n,S2=SEASON[LK.camp.season]||SEASON.xmas;
+function wheel(){hcCss();const L=LK.prizes,n=L.length||1,seg=360/n,S2=SEASON[LK.camp.season]||SEASON.xmas;
  const stops=L.map((p,i)=>`${S2.c[i%4]} ${i*seg}deg ${(i+1)*seg}deg`).join(',');
- const icons=L.map((p,i)=>`<span style="position:absolute;left:calc(50% - 22px);top:calc(50% - 22px);width:44px;height:44px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.18);transform:rotate(${i*seg+seg/2}deg) translateY(-104px)">${gsvg(p.gift,32)}</span>`).join('');
- return `<div style="position:relative;width:300px;height:318px;margin:4px auto 0">
- <svg width="34" height="30" viewBox="0 0 34 30" aria-hidden="true" style="position:absolute;left:133px;top:0;z-index:2"><path d="M3 3h28L17 27z" fill="#f2c14e" stroke="#7d5a05" stroke-width="2" stroke-linejoin="round"/></svg>
- <div style="position:absolute;left:0;top:18px;width:300px;height:300px;border-radius:50%;box-shadow:0 10px 28px rgba(0,0,0,.3),0 0 0 8px ${S2.b},0 0 0 11px #f2c14e"></div>
- <div id="lkw" style="position:absolute;left:0;top:18px;width:300px;height:300px;border-radius:50%;background:conic-gradient(${stops});transform:rotate(${LK.rot}deg);transition:transform 7s cubic-bezier(.1,.62,.08,1);touch-action:none;cursor:grab" role="slider" aria-label="Vuốt vòng quay để quay" tabindex="0">${icons}</div>
- <div style="position:absolute;left:118px;top:136px;width:64px;height:64px;border-radius:50%;background:${S2.b};border:4px solid #f2c14e;box-sizing:border-box;display:grid;place-items:center">${gsvg('custom',34)}</div></div>`}
-async function spin(vel){if(LK.spinning||LK.tickets<=0)return;LK.spinning=true;LK.res=null;const w0=document.getElementById('lkw');
- // Quay nhẹ trong lúc chờ máy chủ trả kết quả, để vòng quay không đứng yên sau cú vuốt
- const dir=vel<0?-1:1;if(w0){w0.style.transition='transform .9s cubic-bezier(.3,0,.7,1)';LK.rot+=dir*200;w0.style.transform=`rotate(${LK.rot}deg)`}
- const t0=Date.now();const {data,error}=await SB.rpc('lucky_spin');if(error){LK.spinning=false;toast(error.message);return load()}
- await new Promise(r=>setTimeout(r,Math.max(0,500-(Date.now()-t0))));
- const i=Math.max(0,LK.prizes.findIndex(p=>p.id==data.prize_id)),seg=360/LK.prizes.length;
- const target=(360-(i*seg+seg/2)+(Math.random()-.5)*seg*.6+3600)%360,cur=((LK.rot%360)+360)%360;
- const turns=Math.min(9,Math.max(5,Math.round(Math.abs(vel||1.2)*2.2)+4));
- LK.rot+=dir>0?turns*360+((target-cur+360)%360):-(turns*360+((cur-target+360)%360));
- LK.tickets=data.tickets??Math.max(0,LK.tickets-1);
- const rm=matchMedia('(prefers-reduced-motion:reduce)').matches,w=document.getElementById('lkw');
- if(w){w.style.transition=rm?'none':'transform 7s cubic-bezier(.1,.62,.08,1)';void w.offsetWidth;w.style.transform=`rotate(${LK.rot}deg)`}else rr();
+ const icons=L.map((p,i)=>`<span class="lk-ico" data-i="${i}" style="transform:rotate(${i*seg+seg/2}deg) translateY(-100px)">${gsvg(p.gift,30)}</span>`).join('');
+ /* vạch chia + chốt (peg) ở mỗi ranh giới ô, kim gõ vào chốt khi quay */
+ const lines=L.map((p,i)=>`<line x1="150" y1="150" x2="150" y2="4" stroke="rgba(255,255,255,.55)" stroke-width="2" transform="rotate(${i*seg} 150 150)"/><circle cx="150" cy="9" r="4.5" fill="#fff6d5" stroke="#9a6b00" stroke-width="1.5" transform="rotate(${i*seg} 150 150)"/>`).join('');
+ const bulbs=Array.from({length:20},(_,k)=>`<i style="transform:rotate(${k*18}deg) translateY(-161px)"></i>`).join('');
+ return `<div class="lk-wrap" style="position:relative;width:300px;height:330px;margin:4px auto 0">
+ <div class="lk-rim" style="background:${S2.b}">${bulbs}</div>
+ <div id="lkw" style="position:absolute;left:0;top:24px;width:300px;height:300px;border-radius:50%;background:conic-gradient(${stops});transform:rotate(${LK.rot}deg);touch-action:none;cursor:grab;will-change:transform" role="slider" aria-label="Vuốt vòng quay để quay" tabindex="0">
+  <svg width="300" height="300" viewBox="0 0 300 300" aria-hidden="true" style="position:absolute;inset:0">${lines}<circle cx="150" cy="150" r="146" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="3"/></svg>
+  <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 50%,transparent 55%,rgba(0,0,0,.12) 100%)"></div>${icons}</div>
+ <div style="position:absolute;left:0;top:24px;width:300px;height:300px;border-radius:50%;pointer-events:none;background:linear-gradient(160deg,rgba(255,255,255,.28),transparent 45%)"></div>
+ <svg id="lkptr" width="36" height="46" viewBox="0 0 36 46" aria-hidden="true" style="position:absolute;left:132px;top:2px;z-index:3;transform-origin:18px 10px;transition:transform .14s cubic-bezier(.3,1.6,.5,1);filter:drop-shadow(0 3px 3px rgba(0,0,0,.35))"><circle cx="18" cy="10" r="9" fill="#f2c14e" stroke="#7d5a05" stroke-width="2"/><path d="M10 12h16L18 44z" fill="#f2c14e" stroke="#7d5a05" stroke-width="2" stroke-linejoin="round"/><circle cx="18" cy="10" r="3.5" fill="#7d5a05"/></svg>
+ <div style="position:absolute;left:116px;top:140px;width:68px;height:68px;border-radius:50%;background:${S2.b};border:4px solid #f2c14e;box-sizing:border-box;display:grid;place-items:center;box-shadow:0 4px 10px rgba(0,0,0,.35),inset 0 2px 4px rgba(255,255,255,.3)">${gsvg('custom',34)}</div></div>`}
+/* ---- vật lý vòng quay: tăng tốc → quay đều chờ máy chủ → giảm tốc mượt tới đúng ô, kim gõ chốt có tiếng ---- */
+let _lac=null;function click(v){try{_lac=_lac||new (window.AudioContext||window.webkitAudioContext)();const ac=_lac;if(ac.state=='suspended')ac.resume();
+ const len=Math.floor(ac.sampleRate*.018),b=ac.createBuffer(1,len,ac.sampleRate),d=b.getChannelData(0);for(let k=0;k<len;k++)d[k]=(Math.random()*2-1)*Math.pow(1-k/len,3);
+ const s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain();s.buffer=b;f.type='bandpass';f.frequency.value=2400;f.Q.value=1.2;g.gain.value=Math.min(.55,.18+v*.35);s.connect(f).connect(g).connect(ac.destination);s.start()}catch(e){}}
+let ptrT=0;function kick(v){const p=document.getElementById('lkptr');if(!p)return;p.style.transition='none';p.style.transform=`rotate(${-Math.min(28,8+v*22)}deg)`;void p.getBoundingClientRect();
+ clearTimeout(ptrT);ptrT=setTimeout(()=>{p.style.transition='transform .14s cubic-bezier(.3,1.6,.5,1)';p.style.transform='rotate(0)'},Math.max(25,60-v*30));click(v);
+ if(v<.25)try{navigator.vibrate&&navigator.vibrate(4)}catch(e){}}
+let lastPeg=null;function pegs(){const seg=360/(LK.prizes.length||1);const k=Math.floor((LK.rot)/seg);return k}
+function draw(v){const w=document.getElementById('lkw');if(w)w.style.transform=`rotate(${LK.rot}deg)`;const k=pegs();if(lastPeg===null)lastPeg=k;if(k!==lastPeg){lastPeg=k;kick(Math.abs(v||0))}}
+async function spin(vel){if(LK.spinning||LK.tickets<=0)return;LK.spinning=true;LK.res=null;
+ const rm=matchMedia('(prefers-reduced-motion:reduce)').matches,dir=vel<0?-1:1,VMAX=1.15;// độ/ms
  const btn=document.querySelector('[onclick="LKX.spin()"]');if(btn){btn.disabled=true;btn.textContent='ĐANG QUAY…'}
- setTimeout(()=>{LK.spinning=false;LK.res=data;LK.mine=null;if(data.gift=='xp200'){try{S.xp=(S.xp||0)+200;save()}catch(e){}}
-  try{navigator.vibrate&&navigator.vibrate(data.code?[60,40,140]:30)}catch(e){}rr();resultSheet(data)},rm?300:7100)}
+ document.querySelector('.lk-wrap')?.classList.add('lk-run');document.querySelectorAll('.lk-ico.win').forEach(x=>x.classList.remove('win'));
+ let v=Math.min(VMAX,Math.max(.25,Math.abs(vel||.3))),data=null,err=null,phase='up',t0=performance.now(),last=t0,dec=null;lastPeg=pegs();
+ SB.rpc('lucky_spin').then(r=>{if(r.error)err=r.error;else data=r.data}).catch(e=>err=e);
+ await new Promise(done=>{const frame=now=>{const dt=Math.min(48,now-last);last=now;
+  if(err){done();return}
+  if(phase=='up'){v=Math.min(VMAX,v+dt*.0035);LK.rot+=dir*v*dt;if(v>=VMAX&&now-t0>700)phase='cruise'}
+  else if(phase=='cruise'){LK.rot+=dir*v*dt;if(data&&now-t0>1100){
+    /* giảm tốc kiểu ease-out bậc 3: vận tốc đầu = 3D/T → nối liền mạch với vận tốc hiện tại */
+    const n=LK.prizes.length,seg=360/n,i=Math.max(0,LK.prizes.findIndex(p=>p.id==data.prize_id));
+    const target=(360-(i*seg+seg/2)+(Math.random()-.5)*seg*.7+3600)%360,cur=((LK.rot%360)+360)%360;
+    const want=v*(rm?900:6200)/3;const off=dir>0?(target-cur+360)%360:(cur-target+360)%360;const D=Math.max(1,Math.round((want-off)/360))*360+off;
+    dec={from:LK.rot,D,T:3*D/v,s:now,i};phase='down'}}
+  else if(phase=='down'){const t=Math.min(1,(now-dec.s)/dec.T),e=1-Math.pow(1-t,3);LK.rot=dec.from+dir*dec.D*e;v=3*dec.D/dec.T*Math.pow(1-t,2);
+   if(t>=1){phase='settle';dec.s2=now}}
+  else if(phase=='settle'){/* nảy nhẹ ngược lại khi kim tì vào chốt rồi đứng hẳn */const t=(now-dec.s2)/420;LK.rot=dec.from+dir*(dec.D-Math.sin(Math.min(1,t)*Math.PI)*1.6);if(t>=1){LK.rot=dec.from+dir*dec.D;draw(0);done();return}}
+  draw(v);requestAnimationFrame(frame)};requestAnimationFrame(frame)});
+ document.querySelector('.lk-wrap')?.classList.remove('lk-run');
+ if(err){LK.spinning=false;toast(err.message||String(err));return load()}
+ LK.tickets=data.tickets??Math.max(0,LK.tickets-1);
+ document.querySelector(`.lk-ico[data-i="${dec?dec.i:0}"]`)?.classList.add('win');
+ try{navigator.vibrate&&navigator.vibrate(data.code?[60,40,140]:30)}catch(e){}
+ setTimeout(()=>{LK.spinning=false;LK.res=data;LK.mine=null;if(data.gift=='xp200'){try{S.xp=(S.xp||0)+200;save()}catch(e){}}rr();resultSheet(data)},900)}
 /* Vuốt vòng quay: bánh xe đi theo ngón tay, thả ra đủ mạnh thì quay thật */
 (function(){let drag=null;
  const ang=(e,c)=>Math.atan2(e.clientY-c.y,e.clientX-c.x)*180/Math.PI;
@@ -84,7 +109,7 @@ async function spin(vel){if(LK.spinning||LK.tickets<=0)return;LK.spinning=true;L
   const r=w.getBoundingClientRect(),c={x:r.left+r.width/2,y:r.top+r.height/2};drag={w,c,a:ang(e,c),base:LK.rot,hist:[{t:performance.now(),r:LK.rot}]};
   w.style.transition='none';w.style.cursor='grabbing';try{w.setPointerCapture(e.pointerId)}catch(x){}e.preventDefault()});
  document.addEventListener('pointermove',e=>{if(!drag)return;let d=ang(e,drag.c)-drag.a;if(d>180)d-=360;if(d<-180)d+=360;drag.a+=d;LK.rot+=d;
-  drag.w.style.transform=`rotate(${LK.rot}deg)`;const now=performance.now();drag.hist.push({t:now,r:LK.rot});while(drag.hist.length>2&&now-drag.hist[0].t>120)drag.hist.shift()});
+  draw(Math.abs(d)/16);const now=performance.now();drag.hist.push({t:now,r:LK.rot});while(drag.hist.length>2&&now-drag.hist[0].t>120)drag.hist.shift()});
  const up=()=>{if(!drag)return;const h=drag.hist,a=h[0],b=h[h.length-1],dt=Math.max(16,b.t-a.t),v=(b.r-a.r)/dt;// độ/ms
   const w=drag.w,drag0=drag.base;w.style.cursor='grab';drag=null;
   if(Math.abs(v)>=.35&&Math.abs(b.r-a.r)>12)spin(v);
@@ -142,6 +167,14 @@ function hcCss(){if(document.getElementById('lkhc'))return;const s=document.crea
 @keyframes lkshine{0%,55%{left:-60%}100%{left:130%}}
 @keyframes lkbulb{0%{opacity:1}50%{opacity:.25}}
 @keyframes lkspin{to{transform:rotate(360deg)}}
+.lk-ico{position:absolute;left:calc(50% - 21px);top:calc(50% - 21px);width:42px;height:42px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.22);transition:box-shadow .3s}
+.lk-ico.win{box-shadow:0 0 0 4px #ffe066,0 0 22px 6px rgba(255,224,102,.9);animation:lkwin .6s ease-in-out 4}
+@keyframes lkwin{50%{box-shadow:0 0 0 6px #fff,0 0 30px 10px rgba(255,224,102,1)}}
+.lk-rim{position:absolute;left:-12px;top:12px;width:324px;height:324px;border-radius:50%;box-shadow:0 12px 30px rgba(0,0,0,.35),inset 0 0 0 3px #f2c14e,0 0 0 3px #f2c14e}
+.lk-rim i{position:absolute;left:calc(50% - 4px);top:calc(50% - 4px);width:8px;height:8px;border-radius:50%;background:#fff3b0;box-shadow:0 0 6px 2px rgba(255,236,150,.8);animation:lkbl 1.2s steps(1) infinite}
+.lk-rim i:nth-child(odd){animation-delay:.6s}.lk-run .lk-rim i{animation-duration:.25s}.lk-run .lk-rim i:nth-child(odd){animation-delay:.125s}
+@keyframes lkbl{50%{background:#a8853a;box-shadow:none}}
+@media (prefers-reduced-motion:reduce){.lk-rim i,.lk-ico.win{animation:none}}
 @keyframes lkpop{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 @keyframes lkblink{0%{opacity:1}50%{opacity:.35}}
 @keyframes lktw{0%,100%{transform:scale(.2) rotate(0);opacity:0}50%{transform:scale(1) rotate(90deg);opacity:1}}
