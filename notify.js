@@ -49,7 +49,7 @@ setInterval(()=>{try{fab()}catch(e){}},1500);
 function onNote(n){if(NT.list.some(x=>x.id==n.id))return;
  /* đang quay vòng may mắn: giữ thông báo trúng quà lại, chỉ hiện sau khi bảng kết quả đã ra */
  if(n.kind=='lucky'&&window.LK&&(LK.spinning||Date.now()<(LK.quietUntil||0))){setTimeout(()=>onNote(n),500);return}NT.list.unshift(n);count();if(n.kind=='msg'&&isBuzz(n.body)&&!seenBuzz(n.id))buzzFx();
- const open=S.tab=='msg'&&n.kind=='msg'&&NT.thread==n.ref;
+ if(n.kind=='lucky'&&window.LKX)LKX.pendLoad(true);const open=S.tab=='msg'&&n.kind=='msg'&&NT.thread==n.ref;
  if(open){loadThread(n.ref,1);return}
  try{toast((n.kind=='study'?'📚 ':'✉ ')+n.title+(n.body?': '+disp(n.body):''))}catch(e){}
  if(document.visibilityState!=='visible'&&'Notification' in window&&Notification.permission=='granted'){try{const x=new Notification(n.title,{body:disp(n.body),vibrate:[200,80,200],icon:'icon.svg',tag:'ss'+n.id});x.onclick=()=>{window.focus();NT.thread=n.kind=='msg'?n.ref:null;go('msg')}}catch(e){}}
@@ -221,6 +221,7 @@ function vInbox(){if(!NT.threads){loadThreads();return '<h1>Tin nhắn</h1><p cl
  const perm='Notification' in window?Notification.permission:'na';
  return `<button class="link" onclick="go('me')">‹ Tài khoản</button><h1 style="margin-top:6px">Thông báo & tin nhắn</h1>
  ${perm=='default'?`<button class="card login-nudge" onclick="NTX.askPerm()"><span class="tile2-ic">🔔</span><span style="flex:1;text-align:left"><b>Bật thông báo trên trình duyệt</b><small>Hiện thông báo cả khi bạn đang ở tab khác</small></span><span class="chev">›</span></button>`:''}
+ ${window.LKX&&LKX.pendList?LKX.pendList():''}
  <div class="sec-h"><h2>Hoạt động học</h2>${study.some(n=>!n.read_at)?`<button class="link" onclick="NTX.readNotes('study').then(()=>render())">Đánh dấu đã xem</button>`:''}</div>
  ${study.length?`<div class="card" style="padding:4px 14px">${study.map(n=>`<div class="row" style="justify-content:space-between;flex-wrap:nowrap;padding:8px 0;border-bottom:1px solid var(--line)"><div style="min-width:0">${n.read_at?'':'<b style="color:var(--amber)">● </b>'}<b>${esc(n.title)}</b><div class="mut" style="font-size:.84rem">${esc(disp(n.body))} · ${ago(n.created_at)}</div></div><button class="chip" onclick="NTX.openChat('${n.ref}')">✉ Nhắn</button></div>`).join('')}</div>`:`<p class="mut" style="font-size:.88rem">Chưa có. Bật 🔔 cạnh tên học viên trong <b>Quản trị người dùng</b> để nhận thông báo khi họ bắt đầu học.</p>`}
  <div class="sec-h"><h2>Cuộc trò chuyện</h2><span class="mut">${NT.threads.length}</span></div>
@@ -230,8 +231,8 @@ function vMsg(){if(!on())return '<h1>Tin nhắn</h1><p class="mut">Đăng nhập
 async function livePoll(){if(NT.liveAt&&Date.now()-NT.liveAt<60000)return;NT.liveAt=Date.now();
  const {data,error}=await SB.from('presence').select('user_id,last_seen').gte('last_seen',new Date(Date.now()-3*60*1000).toISOString());
  const L=error?null:(data||[]).filter(r=>r.user_id!==USER.id);const ch=JSON.stringify(L)!==JSON.stringify(NT.live);NT.live=L;if(ch)rr()}
-function meCard(){if(!on()||NT.off)return '';const adm=isAdm();const n=NT.msgUnread;if(adm)livePoll();const L=NT.live;
- return `<button class="card login-nudge" style="margin-top:12px" onclick="NTX.openInbox()"><span class="tile2-ic">✉</span><span style="flex:1;text-align:left"><b>${adm?'Thông báo & tin nhắn':'Nhắn tin với Admin'}${n?` · <span style="color:var(--bad)">${n} mới</span>`:''}</b><small>${adm?(L==null?'Học viên đang học, tin nhắn từ học viên':L.length?`🟢 ${L.length} học viên đang học`:'Không có học viên nào đang học'):'Hỏi bài, góp ý. Admin có thể được báo khi bạn bắt đầu học.'}</small></span><span class="chev">›</span></button>`}
+function meCard(){if(!on()||NT.off)return '';const adm=isAdm();const n=NT.msgUnread;if(adm){livePoll();try{window.LKX&&LKX.pendLoad()}catch(e){}}const L=NT.live;
+ return `<button class="card login-nudge" style="margin-top:12px" onclick="NTX.openInbox()"><span class="tile2-ic">✉</span><span style="flex:1;text-align:left"><b>${adm?'Thông báo & tin nhắn':'Nhắn tin với Admin'}${n?` · <span style="color:var(--bad)">${n} mới</span>`:''}</b><small>${adm?(L==null?'Học viên đang học, tin nhắn từ học viên':L.length?`🟢 ${L.length} học viên đang học`:'Không có học viên nào đang học')+((window.LA&&LA.pend&&LA.pend.length)?` · <b style="color:var(--bad)">🎁 ${LA.pend.length} quà chờ trao</b>`:''):'Hỏi bài, góp ý. Admin có thể được báo khi bạn bắt đầu học.'}</small></span><span class="chev">›</span></button>`}
 function userBtns(u){if(!on()||!isAdm()||u.id==USER.id)return '';const w=NT.watch.has(u.id),nm=esc(JSON.stringify(u.full_name||u.email));
  return `<button class="chip ${w?'on':''}" title="Báo khi người này bắt đầu học" onclick="NTX.toggleWatch('${u.id}',${nm})">${w?'🔔 Đang theo dõi':'🔕 Báo khi học'}</button><button class="chip" onclick="NTX.openChat('${u.id}')">✉ Nhắn</button>`}
 
