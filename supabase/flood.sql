@@ -63,3 +63,38 @@ $$;
 
 revoke all on function public.flood_invite(uuid, jsonb, text), public.flood_respond(bigint, boolean), public.flood_finish(bigint, int, int, uuid), public.flood_people(bigint) from public, anon;
 grant execute on function public.flood_invite(uuid, jsonb, text), public.flood_respond(bigint, boolean), public.flood_finish(bigint, int, int, uuid), public.flood_people(bigint) to authenticated;
+
+-- ===== Chủ đề theo khóa học: chỉ chọn được khóa mà ĐỐI THỦ đã đăng ký (để không hỏi bài người kia chưa học) =====
+-- Người được phép xem: chính mình, bạn bè, hoặc admin (giống quy tắc thách đấu).
+create or replace function public.flood_can_see(target uuid) returns boolean
+language sql security definer set search_path = public stable as $$
+  select target = auth.uid() or public.is_admin()
+      or exists(select 1 from profiles p where p.id = target and p.is_admin)
+      or exists(select 1 from friendships f where f.status='accepted' and ((f.requester=auth.uid() and f.addressee=target) or (f.addressee=auth.uid() and f.requester=target)))
+$$;
+
+-- Các khóa đối thủ đã được duyệt học (target = null → khóa của chính mình, dùng khi đấu với Kaka)
+create or replace function public.flood_courses(target uuid)
+returns table(id uuid, slug text, name text, kind text, cats jsonb, mine boolean)
+language sql security definer set search_path = public stable as $$
+  select t.id, t.slug, t.name, t.kind, t.cats,
+         exists(select 1 from enrollments e2 where e2.user_id = auth.uid() and e2.track_id = t.id and e2.status = 'approved')
+  from enrollments e join tracks t on t.id = e.track_id
+  where e.user_id = coalesce(target, auth.uid()) and e.status = 'approved' and public.flood_can_see(coalesce(target, auth.uid()))
+  order by t.sort nulls last, t.name
+$$;
+
+-- Từ vựng của 1 khóa để tạo câu hỏi: được lấy khi đối thủ (hoặc chính mình) học khóa đó
+create or replace function public.flood_words(track uuid, target uuid, lim int default 300)
+returns table(term text, meaning_vi text, example text, example_vi text, cat text)
+language sql security definer set search_path = public stable as $$
+  select w.term, w.meaning_vi, coalesce(w.example,''), coalesce(w.example_vi,''), coalesce(nullif(w.cat,''), w.cefr, 'misc')
+  from words w
+  where w.track_id = track and w.status = 'approved'
+    and public.flood_can_see(coalesce(target, auth.uid()))
+    and exists(select 1 from enrollments e where e.track_id = track and e.status = 'approved' and e.user_id in (coalesce(target, auth.uid()), auth.uid()))
+  order by random() limit least(greatest(lim, 10), 500)
+$$;
+
+revoke all on function public.flood_can_see(uuid), public.flood_courses(uuid), public.flood_words(uuid, uuid, int) from public, anon;
+grant execute on function public.flood_courses(uuid), public.flood_words(uuid, uuid, int) to authenticated;

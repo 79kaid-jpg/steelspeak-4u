@@ -16,11 +16,20 @@ const shuf=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1
 
 /* ---------- câu hỏi: AI chọn từ bài đang học, đổi kiểu ngẫu nhiên ---------- */
 /* chủ đề = nhóm từ (cat) trong bài đang học */
-function topics(){const T=((typeof TERMS!='undefined'&&TERMS)||[]).filter(t=>t&&t.en&&t.vi);const m={};T.forEach(t=>{(m[t.cat]=m[t.cat]||[]).push(t)});
- const nm=c=>(typeof CATS!='undefined'&&CATS[c]&&CATS[c].n)||c;return [{id:'*',n:'Trộn tất cả',c:T.length},...Object.keys(m).filter(c=>m[c].length>=4).map(c=>({id:c,n:nm(c),c:m[c].length}))]}
-function topicName(id){const t=topics().find(x=>x.id==id);return t?t.n:'Trộn tất cả'}
+/* ===== khóa học & chủ đề: chỉ các khóa ĐỐI THỦ đã đăng ký (STEEL, CEFR, IELTS…) ===== */
+const CRS={};/* target → [{id,slug,name,kind,cats,mine}] */
+async function courses(target){const k=target||'me';if(CRS[k])return CRS[k];
+ const {data,error}=await SB.rpc('flood_courses',{target:target||null});
+ if(error){if(needSql(error)){CRS[k]=null;F.needCourses=true}else CRS[k]=[];return CRS[k]||[]}
+ return CRS[k]=data||[]}
+const WRD={};async function wordsOf(c,target){const k=c.id+'|'+(target||'me');if(WRD[k])return WRD[k];
+ let W=[];try{const {data}=await SB.rpc('flood_words',{track:c.id,target:target||null,lim:300});W=(data||[]).map(w=>({cat:w.cat||'misc',en:w.term,vi:w.meaning_vi,ex:w.example||'',exvi:w.example_vi||''}))}catch(e){}
+ if(!W.length&&c.slug=='steel'&&typeof STEEL_TERMS!='undefined')W=STEEL_TERMS;
+ return WRD[k]=W.filter(t=>t&&t.en&&t.vi)}
+function topics(W,c){W=W||[];const m={};W.forEach(t=>{(m[t.cat]=m[t.cat]||[]).push(t)});const cats=(c&&c.cats)||{};
+ const nm=x=>cats[x]||(typeof CATS!='undefined'&&CATS[x]&&CATS[x].n)||x;return [{id:'*',n:'Cả khóa',c:W.length},...Object.keys(m).filter(x=>m[x].length>=4).map(x=>({id:x,n:nm(x),c:m[x].length}))]}
 /* 10 câu từ 1 chủ đề, đủ các kiểu: nghĩa, điền từ, nghe, từ tiếng Anh, phát âm (AI chấm) */
-function makeQ(cat,n){n=n||NQ;const ALL=((typeof TERMS!='undefined'&&TERMS)||[]).filter(t=>t&&t.en&&t.vi);let T=cat&&cat!='*'?ALL.filter(t=>t.cat==cat):ALL;if(T.length<4)T=ALL;if(ALL.length<4)return [];
+function makeQ(cat,n,W){n=n||NQ;const ALL=(W||((typeof TERMS!='undefined'&&TERMS)||[])).filter(t=>t&&t.en&&t.vi);let T=cat&&cat!='*'?ALL.filter(t=>t.cat==cat):ALL;if(T.length<4)T=ALL;if(ALL.length<4)return [];
  const fillOf=t=>{const ex=String(t.ex||'');if(!ex||ex.length>160)return null;const i=ex.toLowerCase().indexOf(String(t.en).toLowerCase());if(i<0)return null;return ex.slice(0,i)+'_____'+ex.slice(i+t.en.length)};
  const pool=shuf(T),withFill=pool.filter(fillOf),order=['mean','fill','listen','pron','rev','fill','mean','pron','listen','fill'];
  const used=new Set(),out=[];
@@ -80,7 +89,7 @@ const send=p=>{try{F.ch&&F.ch.send({type:'broadcast',event:'m',payload:p})}catch
 const side=()=>F.host?'a':'b',other=()=>F.host?'b':'a';
 
 function onMsg(p){if(!p||!F.m)return;
- if(p.t=='hello'&&F.host&&F.v=='wait'){clearTimeout(F.timer);F.q=mix(F.myQ,Array.isArray(p.q)&&p.q.length?p.q:makeQ('*'));F.opTopic=p.topic||'';
+ if(p.t=='hello'&&F.host&&F.v=='wait'){clearTimeout(F.timer);F.q=mix(F.myQ,Array.isArray(p.q)&&p.q.length?p.q:makeQ('*',NQ,F.words));F.opTopic=p.topic||'';
   send({t:'qs',q:F.q,ta:F.myTopic});F.v='play';rr();try{window.ttsPrefetch&&ttsPrefetch(F.q.filter(x=>x.say).map(x=>x.say))}catch(e){}setTimeout(()=>next(),1200)}
  else if(p.t=='qs'&&!F.host){clearInterval(F.hello);F.q=p.q;F.opTopic=p.ta||'';try{window.ttsPrefetch&&ttsPrefetch(F.q.filter(x=>x.say).map(x=>x.say))}catch(e){}rr()}
  else if(p.t=='seen'&&F.host){F.seen=true;try{sfx.tap()}catch(e){}}
@@ -140,18 +149,19 @@ async function finish(w){clearTimeout(F.timer);clearInterval(F.clk);F.v='end';F.
 async function loadTargets(){if(F.targets)return;const {data,error}=await SB.rpc('challenge_targets');F.targets=error?[]:(data||[]);
  try{const ids=F.targets.map(t=>t.user_id);const {data:P}=await SB.from('presence').select('user_id,last_seen').in('user_id',ids);const now=Date.now();(P||[]).forEach(p=>{const t=F.targets.find(x=>x.user_id==p.user_id);if(t)t.seen=new Date(p.last_seen).getTime()});F.targets.sort((x,y)=>(y.seen||0)-(x.seen||0))}catch(e){}rr()}
 async function invite(target){try{ac();window.actx&&actx().resume()}catch(e){}if(!uid()){toast('Đăng nhập để chơi');return go('me')}
- const q=makeQ(F.topic||'*');if(q.length<5)return toast('Bài đang học chưa đủ từ, chọn khóa khác nhé');
- const topic=topicName(F.topic||'*');F.myQ=q;F.myTopic=topic;
+ if(!F.course||!F.words){toast('Chọn khóa học trước nhé');return}
+ const q=makeQ(F.topic||'*',NQ,F.words);if(q.length<5)return toast('Khóa này chưa đủ từ, chọn khóa khác nhé');
+ const tp=topics(F.words,F.course).find(x=>x.id==(F.topic||'*'));const topic=F.course.name+((F.topic||'*')=='*'?'':' · '+(tp?tp.n:''));F.myQ=q;F.myTopic=topic;
  const {data,error}=await SB.rpc('flood_invite',{target:target||null,q,topic});
  if(error){if(needSql(error)){F.off=true;rr();return}return toast(error.message)}
  if(target)try{lobby&&lobby.send({type:'broadcast',event:'inv',payload:{to:target,m:data,op:{user_id:uid(),name:(PROF&&PROF.full_name)||'Bạn bè'}}})}catch(e){}
  start(data,true,target?F.targets.find(t=>t.user_id==target):{name:'Kaka',bot:true})}
 function start(m,host,op){try{window.ttsPrefetch&&ttsPrefetch((m.q||[]).filter(x=>x.say).map(x=>x.say))}catch(e){}F.m=m;F.host=host;F.bot=!m.b;F.q=host?m.q:[];if(host)F.myQ=m.q;F.i=-1;F.air={a:AIR,b:AIR};F.ans={};F.res=null;F.pick=null;F.win=undefined;
  F.me={name:(PROF&&PROF.full_name)||'Bạn',avatar:PROF&&PROF.avatar,id:uid()};F.op=op||{name:'Đối thủ'};
- if(F.bot){F.q=mix(F.myQ||m.q,makeQ('*'));F.opTopic='Kaka chọn ngẫu nhiên';F.v='play';go('flood');setTimeout(next,900);return}
+ if(F.bot){F.q=mix(F.myQ||m.q,makeQ('*',NQ,F.words));F.opTopic=(F.course?F.course.name+' · ':'')+'Kaka chọn ngẫu nhiên';F.v='play';go('flood');setTimeout(next,900);return}
  join(m.id);
  if(host){F.v='wait';F.waitUntil=Date.now()+60000;go('flood');F.timer=setTimeout(()=>{if(F.v=='wait'){toast('Đối thủ chưa nhận lời');F.v='pick';leave();rr()}},60000);waitClock()}
- else{F.myTopic=topicName(F.rTopic||'*');F.myQ=makeQ(F.rTopic||'*');F.v='play';go('flood');const h=()=>send({t:'hello',q:F.myQ,topic:F.myTopic});F.hello=setInterval(h,1000);h()}}
+ else{F.myTopic=F.rName||'Cả khóa';F.myQ=F.rQ&&F.rQ.length?F.rQ:makeQ('*');F.v='play';go('flood');const h=()=>send({t:'hello',q:F.myQ,topic:F.myTopic});F.hello=setInterval(h,1000);h()}}
 function waitClock(){F.seen=false;const t=setInterval(()=>{if(F.v!='wait'){clearInterval(t);return}const left=Math.max(0,(F.waitUntil-Date.now()));const el=document.getElementById('fl-wait');if(el)el.textContent=Math.ceil(left/1000)+' giây';const arc=document.getElementById('fw-arc');if(arc)arc.setAttribute('stroke-dashoffset',String(RING*(1-left/60000)));const sn=document.getElementById('fw-seen');if(sn)sn.textContent=F.seen?'👀 '+F.op.name+' đã thấy lời mời…':'Đang gõ cửa nhà '+F.op.name+'…'},250)}
 function cancel(){music(false);if(F.v=='play'&&!F.bot)send({t:'bye'});leave();F.v='pick';F.m=null;rr()}
 
@@ -166,6 +176,8 @@ async function incoming(n){if(n.kind!=='flood')return;const id=+n.body;if(!id)re
  F.inv={m:data,op,until:Date.now()+60000};showInv()}
 /* ===== hộp lời mời "fun": ở yên trên màn hình suốt 60 giây cho tới khi nhận / từ chối ===== */
 const RING=2*Math.PI*30;
+async function invCourses(I){F.rCourses=null;const L=await courses(I.m.a);F.rCourses=(L||[]).slice().sort((x,y)=>(y.mine?1:0)-(x.mine?1:0));F.rCourse=F.rCourses[0]&&F.rCourses[0].id;
+ const sel=document.getElementById('fi-crs');if(sel&&F.inv===I)sel.innerHTML=F.rCourses.length?F.rCourses.map(c=>`<option value="${esc2(c.id)}">${esc2(c.name)}${c.mine?'':' (bạn chưa học)'}</option>`).join(''):'<option value="">Khóa của bạn</option>'}
 function showInv(){document.getElementById('fl-inv')?.remove();const I=F.inv;if(!I)return;
  const d=document.createElement('div');d.id='fl-inv';d.setAttribute('role','alertdialog');d.setAttribute('aria-modal','true');d.setAttribute('aria-labelledby','fl-inv-t');
  const nm=esc2(I.op.name||'Bạn bè'),n=(I.m.q||[]).length||10;
@@ -175,11 +187,11 @@ function showInv(){document.getElementById('fl-inv')?.remove();const I=F.inv;if(
   <div class="fi-body"><span class="fi-tag">THÁCH ĐẤU NƯỚC DÂNG</span>
    <h2 id="fl-inv-t">${nm} rủ bạn<br>xuống nước! 🌊</h2>
    <p>Chủ đề của ${nm}: <b>${esc2(I.m.topic||'Trộn tất cả')}</b> · trận ${n*2} câu</p>
-   <label class="fi-sel"><span>Chủ đề của bạn (10 câu)</span><select onchange="FLX.rt(this.value)">${topics().map(t=>`<option value="${esc2(t.id)}">${esc2(t.n)} · ${t.c} từ</option>`).join('')}</select></label>
+   <label class="fi-sel"><span>Chủ đề của bạn (10 câu) · chỉ các khóa ${nm} đang học</span><select id="fi-crs" onchange="FLX.rc(this.value)">${F.rCourses?F.rCourses.length?F.rCourses.map(c=>`<option value="${esc2(c.id)}" ${c.id==F.rCourse?'selected':''}>${esc2(c.name)}${c.mine?'':' (bạn chưa học)'}</option>`).join(''):'<option value="">Khóa của bạn</option>':'<option>Đang tải khóa học…</option>'}</select></label>
    <div class="fi-time" role="timer" aria-live="off"><b id="fi-sec">60</b> giây để nhận lời</div>
    <button class="fi-yes" onclick="FLX.respond(true)">🏊 Nhận lời, chiến luôn!</button>
    <button class="fi-no" onclick="FLX.respond(false)">Để lần sau</button></div></div>`;
- document.body.appendChild(d);setTimeout(()=>d.querySelector('.fi-yes')?.focus(),300);
+ document.body.appendChild(d);setTimeout(()=>d.querySelector('.fi-yes')?.focus(),300);if(F.rCourses===undefined||F.invFor!==I.m.id){F.invFor=I.m.id;invCourses(I)}
  /* rung + chuông mỗi 4 giây để người nhận để ý */
  const ring=()=>{try{navigator.vibrate&&navigator.vibrate([120,80,120])}catch(e){}try{const t=ac()?.currentTime;if(t!=null){[880,1175,1568].forEach((f,k)=>tone(f,t+k*.11,.22,{type:'triangle',g:.14}));sfx.splash()}}catch(e){}};
  ring();clearInterval(F.invRing);F.invRing=setInterval(()=>{if(F.inv!==I){clearInterval(F.invRing);return}ring()},4000);
@@ -192,6 +204,8 @@ function showInv(){document.getElementById('fl-inv')?.remove();const I=F.inv;if(
 async function respond(ok){if(ok)try{ac();window.actx&&actx().resume()}catch(e){}const I=F.inv;F.inv=null;clearInterval(F.invRing);clearInterval(F.invClk);
  const d=document.getElementById('fl-inv');if(d){d.classList.add(ok?'fi-go':'fi-out');setTimeout(()=>d.remove(),ok?450:300)}if(!I)return;
  if(!ok){send({t:'decline'});setTimeout(leave,500);SB.rpc('flood_respond',{mid:I.m.id,accept:false}).catch(()=>{});return}
+ let rc=(F.rCourses||[]).find(c=>c.id==F.rCourse)||(F.rCourses||[])[0];F.rQ=null;F.rName='';
+ if(rc){const W=await wordsOf(rc,I.m.a);F.rQ=makeQ('*',NQ,W);F.rName=rc.name}
  const {data,error}=await SB.rpc('flood_respond',{mid:I.m.id,accept:true});
  if(error){leave();return toast(error.message)}leave();start(data||I.m,false,I.op)}
 /* người mời: thẻ chờ nổi trên mọi màn hình suốt thời gian chờ nhận lời */
@@ -285,11 +299,18 @@ function vFlood(){
  if(F.v=='pick'){loadTargets();const now=Date.now();
   return `<button class="link" onclick="go('duel')">‹ Thách đấu</button>
   <div class="card" style="margin-top:8px;color:#fff;border:0;background:repeating-linear-gradient(100deg,#1b3f61 0 14px,#214b72 14px 28px)"><div class="lbl" style="color:#dbe6f0">GAME · 1 ĐẤU 1</div><h1 style="margin:2px 0;color:#fff">Nước Dâng</h1><p style="margin:0;color:#dbe6f0;font-size:.92rem">Trả lời nhanh và đúng hơn bạn đấu. Ai chậm hay sai bị nước dâng lên, hết ${AIR} nấc hơi là thua. Trận ${NQ*2} câu: ${NQ} câu chủ đề của bạn + ${NQ} câu chủ đề đối thủ chọn.</p></div>
-  <div class="sec-h"><h2>Chủ đề của bạn</h2><span class="mut">10 câu</span></div><div class="row" style="gap:8px;flex-wrap:wrap">${topics().map(t=>`<button class="chip ${(F.topic||'*')==t.id?'on':''}" aria-pressed="${(F.topic||'*')==t.id}" onclick="FLX.tp('${esc2(t.id)}')">${esc2(t.n)} · ${t.c}</button>`).join('')}</div>
-  <p class="mut" style="font-size:.85rem;margin:6px 0 0">Đối thủ cũng chọn 1 chủ đề khi nhận lời. Hệ thống trộn 10 câu của bạn + 10 câu của họ = 20 câu.</p>
+  <p class="mut" style="font-size:.85rem;margin:10px 0 0">Bước 1: chọn đối thủ. Bước 2: chọn chủ đề trong các khóa đối thủ đang học (STEEL, CEFR, IELTS…).</p>
   <div class="sec-h"><h2>Chọn đối thủ</h2></div><div class="stack">
-  <button class="card row" style="flex-wrap:nowrap;gap:12px;text-align:left;width:100%" onclick="FLX.invite(null)"><span class="tile2-ic">🤖</span><span style="flex:1"><b>Kaka (máy)</b><small class="mut" style="display:block">Luôn sẵn sàng · đúng khoảng 70%</small></span><span class="chip">Đấu ngay</span></button>
-  ${F.targets==null?'<p class="mut">Đang tải bạn bè…</p>':F.targets.length?F.targets.map(t=>{const on=F.online.has(t.user_id)||t.online===true||(t.seen&&now-t.seen<120000);return `<button class="card row" style="flex-wrap:nowrap;gap:12px;text-align:left;width:100%" onclick="FLX.invite('${t.user_id}')">${window.avatarHTML?avatarHTML(t.avatar,t.user_id,44):''}<span style="flex:1;min-width:0"><b>${esc2(t.name)}</b><small style="display:block;color:${on?'var(--good)':'var(--mut)'}">${on?'● Đang online':'Không online · có thể không kịp nhận lời'}</small></span><span class="chip">Mời</span></button>`}).join(''):'<p class="mut">Chưa có bạn bè. Kết bạn trong mục Thách đấu để mời nhé.</p>'}</div>`}
+  <button class="card row" style="flex-wrap:nowrap;gap:12px;text-align:left;width:100%" onclick="FLX.choose(null)"><span class="tile2-ic">🤖</span><span style="flex:1"><b>Kaka (máy)</b><small class="mut" style="display:block">Luôn sẵn sàng · đúng khoảng 70%</small></span><span class="chip">Đấu ngay</span></button>
+  ${F.targets==null?'<p class="mut">Đang tải bạn bè…</p>':F.targets.length?F.targets.map(t=>{const on=F.online.has(t.user_id)||t.online===true||(t.seen&&now-t.seen<120000);return `<button class="card row" style="flex-wrap:nowrap;gap:12px;text-align:left;width:100%" onclick="FLX.choose('${t.user_id}')">${window.avatarHTML?avatarHTML(t.avatar,t.user_id,44):''}<span style="flex:1;min-width:0"><b>${esc2(t.name)}</b><small style="display:block;color:${on?'var(--good)':'var(--mut)'}">${on?'● Đang online':'Không online · có thể không kịp nhận lời'}</small></span><span class="chip">Mời</span></button>`}).join(''):'<p class="mut">Chưa có bạn bè. Kết bạn trong mục Thách đấu để mời nhé.</p>'}</div>`}
+ if(F.v=='topic'){const tg=F.target,opName=tg?((F.targets||[]).find(t=>t.user_id==tg)||{}).name||'đối thủ':'Kaka',L=CRS[tg||'me'];
+  if(F.needCourses)return `<button class="link" onclick="FLX.back()">‹ Chọn đối thủ</button><div class="note">Admin cần chạy lại <b>supabase/flood.sql</b> (bản mới có phần chọn khóa học).</div>`;
+  return `<button class="link" onclick="FLX.back()">‹ Chọn đối thủ</button><h1 style="margin-top:6px">Đấu với ${esc2(opName)}</h1>
+  <div class="sec-h"><h2>Khóa học</h2><span class="mut">${tg?'khóa '+esc2(opName)+' đang học':'khóa của bạn'}</span></div>
+  ${L==null?'<p class="mut">Đang tải khóa học…</p>':L.length?`<div class="row" style="gap:8px;flex-wrap:wrap">${L.map(c=>`<button class="chip ${F.course&&F.course.id==c.id?'on':''}" aria-pressed="${!!(F.course&&F.course.id==c.id)}" onclick="FLX.pickCourse('${c.id}')">${esc2(c.name)}${c.mine?'':' · bạn chưa học'}</button>`).join('')}</div>`:`<div class="note">${esc2(opName)} chưa đăng ký khóa học nào nên chưa đấu được. Rủ họ vào Tài khoản để chọn khóa nhé.</div>`}
+  ${F.course?`<div class="sec-h"><h2>Chủ đề của bạn</h2><span class="mut">10 câu</span></div>${F.words==null?'<p class="mut">Đang tải từ vựng…</p>':`<div class="row" style="gap:8px;flex-wrap:wrap">${topics(F.words,F.course).map(t=>`<button class="chip ${(F.topic||'*')==t.id?'on':''}" aria-pressed="${(F.topic||'*')==t.id}" onclick="FLX.tp('${esc2(t.id)}')">${esc2(t.n)} · ${t.c}</button>`).join('')}</div>`}
+  <p class="mut" style="font-size:.85rem;margin:8px 0">${tg?esc2(opName)+' sẽ chọn 10 câu từ khóa bạn đang học khi nhận lời. ':''}Trận ${NQ*2} câu trộn xen kẽ.</p>
+  <button class="btn" style="width:100%" ${F.words&&F.words.length>=4?'':'disabled'} onclick="FLX.invite(${tg?`'${tg}'`:'null'})">${tg?'Gửi lời thách đấu':'Đấu ngay với Kaka'}</button>`:''}`}
  if(F.v=='wait')return `<div class="fw-page"><div class="fw-big"><svg viewBox="0 0 68 68" aria-hidden="true"><circle cx="34" cy="34" r="30" fill="none" stroke="var(--line)" stroke-width="4"/><circle id="fw-arc" cx="34" cy="34" r="30" fill="none" stroke="#e39b1a" stroke-width="4" stroke-linecap="round" stroke-dasharray="${RING}" stroke-dashoffset="0" transform="rotate(-90 34 34)"/></svg><span>${window.avatarHTML?avatarHTML(F.op.avatar,F.op.user_id||F.op.name,104):''}</span></div>
   <span class="fi-tag" style="color:var(--steel)">ĐÃ GỬI LỜI THÁCH ĐẤU</span><h1 style="margin:4px 0">Chờ ${esc2(F.op.name)} xuống nước…</h1>
   <p id="fw-seen" class="mut" role="status" style="margin:0">Đang gõ cửa nhà ${esc2(F.op.name)}…</p><p class="fw-dots" aria-hidden="true"><i></i><i></i><i></i></p>
@@ -313,8 +334,11 @@ function vFlood(){
  ${q.k=='pron'?`<div style="text-align:center"><h2 style="margin:0;font:800 2rem/1.15 var(--fd)">${esc2(q.target)}</h2><div class="mut">${esc2(q.vi||'')}</div></div>`:`<h2 style="margin:0;font-size:1.45rem;line-height:1.25;text-wrap:balance">${esc2(q.q)}</h2>${q.hint?`<small class="mut">${esc2(q.hint)}</small>`:''}`}${q.say?`<button class="chip" style="align-self:flex-start;min-height:44px;${F.lock?'background:var(--steel);color:#fff':''}" onclick="say(${esc2(JSON.stringify(q.say))},0.8)" aria-label="Nghe lại chậm">${F.lock?'🔊 Đang đọc… nghe kỹ nhé':'🔊 Nghe lại (chậm)'}</button>`:''}
  ${q.k=='pron'?`<div style="display:flex;flex-direction:column;align-items:center;gap:8px"><button class="fl-mic ${F.rec?'rec':''}" onclick="FLX.pron()" ${F.pick!=null||R||F.grading?'disabled':''} aria-label="${F.rec?'Dừng và chấm':'Bấm để đọc'}"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4"/></svg></button><small class="mut">${F.rec?'● Đang nghe… đọc to rồi chạm để dừng':F.grading?'AI đang chấm…':F.pscore!=null?`AI nghe: “${esc2(F.heard||'…')}” · <b style="color:${F.pscore>=70?'var(--good)':'var(--bad)'}">${F.pscore} điểm</b>`:'Bấm micro, đọc to từ trên · đạt 70 điểm là đúng'}</small><button class="chip" onclick="say(${esc2(JSON.stringify(q.target))},0.85)">🔊 Nghe mẫu</button></div>`:`<div class="fl-opts">${q.o.map((o,k)=>{const cls=R?(k===q.a?'ok':k===F.pick?'no':''):(k===F.pick?'ok':'');return `<button class="${cls}" ${F.pick!=null||R||F.lock?'disabled':''} style="${F.lock?'opacity:.45':''}" onclick="FLX.answer(${k})">${esc2(o)}</button>`}).join('')}</div>`}
  <div role="status" style="min-height:44px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:600;color:${R&&R.win===me?'var(--good)':R?'var(--bad)':'var(--mut)'}">${fb}</div></div>`}
-function again(){const op=F.op,b=F.m&&F.m.b;F.v='pick';invite(F.bot?null:(F.host?b:F.m.a)).then(()=>{})}
-window.vFlood=vFlood;window.FLX={pron,tp:v=>{F.topic=v;rr()},rt:v=>{F.rTopic=v},_fast:fastInv,snd:sndToggle,invite,answer,cancel,respond,again};
+function again(){const b=F.m&&F.m.b;const t=F.bot?null:(F.host?b:F.m.a);if(F.course&&(F.target||null)===(t||null))invite(t);else choose(t)}
+window.vFlood=vFlood; async function choose(t){F.target=t;F.course=null;F.words=null;F.topic='*';F.v='topic';rr();const L=await courses(t);
+ const pref=(L||[]).find(c=>c.mine)||(L||[])[0];if(pref)await pickCourse(pref.id);else rr()}
+async function pickCourse(id){const L=CRS[F.target||'me']||[];F.course=L.find(c=>c.id==id)||null;F.words=null;F.topic='*';rr();if(F.course){F.words=await wordsOf(F.course,F.target);rr()}}
+window.FLX={choose,pickCourse,back:()=>{F.v='pick';rr()},rc:v=>{F.rCourse=v},pron,tp:v=>{F.topic=v;rr()},rt:v=>{F.rTopic=v},_fast:fastInv,snd:sndToggle,invite,answer,cancel,respond,again};
 /* thẻ vào game ở trang Thách đấu */
 window.floodCard=()=>`<button class="card login-nudge" onclick="FLD.v='pick';go('flood')" style="background:linear-gradient(140deg,#1e88e5,#0b3b6e);color:#fff;border:0"><span class="tile2-ic" style="background:rgba(255,255,255,.2)">🌊</span><span style="flex:1;text-align:left"><b style="color:#fff">Nước Dâng · đấu 1-1</b><small style="color:#dbe6f0">Ai chậm bị nước dâng · realtime</small></span><span class="chev" style="color:#fff">›</span></button>`;
 })();
