@@ -144,13 +144,13 @@ async function respond(ok){if(ok)try{ac()}catch(e){}const I=F.inv;F.inv=null;doc
  if(error)return toast(error.message);start(data||I.m,false,I.op)}
 /* phòng chờ chung: biết ai đang mở app (Realtime Presence, tức thì) + nhận lời mời nhanh */
 let lobby=null;F.online=new Set();
-function joinLobby(){if(lobby||!uid()||!window.SB)return;
+function joinLobby(){if(lobby||!uid()||typeof SB=='undefined')return;
  lobby=SB.channel('ss-lobby',{config:{presence:{key:uid()},broadcast:{self:false}}});
  lobby.on('presence',{event:'sync'},()=>{try{F.online=new Set(Object.keys(lobby.presenceState()))}catch(e){}if(F.v=='pick')rr()})
   .on('broadcast',{event:'inv'},({payload})=>fastInv(payload))
   .subscribe(st=>{if(st==='SUBSCRIBED')lobby.track({at:Date.now()}).catch(()=>{})});
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&lobby)lobby.track({at:Date.now()}).catch(()=>{})})}
-let sub=null;function listen(){joinLobby();if(sub||!uid()||!window.SB)return;
+let sub=null;function listen(){joinLobby();if(sub||!uid()||typeof SB=='undefined')return;
  sub=SB.channel('fl-inv-'+uid()).on('postgres_changes',{event:'INSERT',schema:'public',table:'notifications',filter:'to_id=eq.'+uid()},p=>incoming(p.new)).subscribe();
  /* lời mời gửi tới lúc chưa mở app (trong 1 phút gần nhất) */
  SB.from('flood_matches').select('*').eq('b',uid()).eq('status','invite').gte('created_at',new Date(Date.now()-60000).toISOString()).order('id',{ascending:false}).limit(1).then(({data})=>{if(data&&data[0])incoming({kind:'flood',body:String(data[0].id)})}).catch(()=>{})}
@@ -194,7 +194,7 @@ function vFlood(){
   <div class="card" style="margin-top:8px;color:#fff;border:0;background:repeating-linear-gradient(100deg,#1b3f61 0 14px,#214b72 14px 28px)"><div class="lbl" style="color:#dbe6f0">GAME · 1 ĐẤU 1</div><h1 style="margin:2px 0;color:#fff">Nước Dâng</h1><p style="margin:0;color:#dbe6f0;font-size:.92rem">Trả lời nhanh và đúng hơn bạn đấu. Ai chậm hay sai bị nước dâng lên, hết ${AIR} nấc hơi là thua. ${NQ} câu lấy từ bài bạn đang học.</p></div>
   <div class="sec-h"><h2>Chọn đối thủ</h2></div><div class="stack">
   <button class="card row" style="flex-wrap:nowrap;gap:12px;text-align:left;width:100%" onclick="FLX.invite(null)"><span class="tile2-ic">🤖</span><span style="flex:1"><b>Kaka (máy)</b><small class="mut" style="display:block">Luôn sẵn sàng · đúng khoảng 70%</small></span><span class="chip">Đấu ngay</span></button>
-  ${F.targets==null?'<p class="mut">Đang tải bạn bè…</p>':F.targets.length?F.targets.map(t=>{const on=F.online.has(t.user_id)||(t.seen&&now-t.seen<120000);return `<button class="card row" style="flex-wrap:nowrap;gap:12px;text-align:left;width:100%" onclick="FLX.invite('${t.user_id}')">${window.avatarHTML?avatarHTML(t.avatar,t.user_id,44):''}<span style="flex:1;min-width:0"><b>${esc2(t.name)}</b><small style="display:block;color:${on?'var(--good)':'var(--mut)'}">${on?'● Đang online':'Không online · có thể không kịp nhận lời'}</small></span><span class="chip">Mời</span></button>`}).join(''):'<p class="mut">Chưa có bạn bè. Kết bạn trong mục Thách đấu để mời nhé.</p>'}</div>`}
+  ${F.targets==null?'<p class="mut">Đang tải bạn bè…</p>':F.targets.length?F.targets.map(t=>{const on=F.online.has(t.user_id)||t.online===true||(t.seen&&now-t.seen<120000);return `<button class="card row" style="flex-wrap:nowrap;gap:12px;text-align:left;width:100%" onclick="FLX.invite('${t.user_id}')">${window.avatarHTML?avatarHTML(t.avatar,t.user_id,44):''}<span style="flex:1;min-width:0"><b>${esc2(t.name)}</b><small style="display:block;color:${on?'var(--good)':'var(--mut)'}">${on?'● Đang online':'Không online · có thể không kịp nhận lời'}</small></span><span class="chip">Mời</span></button>`}).join(''):'<p class="mut">Chưa có bạn bè. Kết bạn trong mục Thách đấu để mời nhé.</p>'}</div>`}
  if(F.v=='wait')return `<div style="text-align:center;padding-top:40px"><div style="display:inline-block">${window.avatarHTML?avatarHTML(F.op.avatar,F.op.user_id||F.op.name,96):''}</div><h1>Đang chờ ${esc2(F.op.name)}…</h1><p class="mut">Lời mời còn hiệu lực <b id="fl-wait">60 giây</b>. Khi đối thủ nhận lời, trận đấu bắt đầu ngay.</p><button class="btn ghost" onclick="FLX.cancel()">Hủy lời mời</button></div>`;
  if(F.v=='end'){const me=side(),won=F.win===me,draw=F.win==null;const myOk=Object.values(F.ans).filter(a=>a&&a[me]&&a[me].ok).length,n=Object.keys(F.ans).length;
   const msA=Object.values(F.ans).map(a=>a&&a[me]).filter(x=>x&&x.ok).map(x=>x.ms);const avg=msA.length?(msA.reduce((a,b)=>a+b,0)/msA.length/1000).toFixed(1).replace('.',','):'–';
