@@ -105,7 +105,7 @@ function vDuel(){css();if(!on())return '<h1>Thách đấu</h1><p class="mut">Đ�
  const row=(c,act)=>{const fromMe=c.from_id==me,opId=fromMe?c.to_id:c.from_id,opName=fromMe?c.to_name:c.from_name;let tag='';
   if(c.status=='done'){const v=verdict(c,fromMe);tag=`<span class="chip ${v=='win'?'on':''}" style="${v=='lose'?'color:var(--bad)':''}">${v=='win'?'Thắng':v=='lose'?'Thua':'Hòa'}</span>`}else tag=act?'<span class="chip on">Trả lời</span>':'<span class="chip">Đang chờ</span>';
   return `<button class="ch-row card" style="padding:8px 12px" ${act?`onclick="CHX.play(${c.id})"`:c.status=='done'?`onclick="CHX.view(${c.id})"`:''}>${avatar(opId,opName)}<span style="flex:1;min-width:0"><b>${fromMe?'Bạn → ':''}${esc(opName)}</b><small class="mut" style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.q.en)} · ${new Date(c.created_at).toLocaleDateString('vi-VN')}</small></span>${tag}</button>`};
- return `<button class="link" onclick="go('home')">‹ Trang Học</button><h1 style="margin-top:6px">Thách đấu</h1>
+ return `<button class="link" onclick="go('home')">‹ Trang Học</button><h1 style="margin-top:6px">Thách đấu</h1>${window.floodCard?floodCard():''}
  <p class="mut" style="font-size:.9rem">Trong bài trắc nghiệm, trả lời xong một câu rồi bấm <b>Thách đấu câu này</b>. Đúng thì thắng; cùng đúng thì ai nhanh hơn thắng.</p>
  <div class="row" style="gap:8px;margin-top:6px"><span class="chip on">${W} thắng</span><span class="chip">${done.length-W} còn lại</span>${CH.off?'<span class="chip" style="color:var(--bad)">Cần chạy challenges.sql</span>':''}</div>
  ${open.length?`<div class="sec-h"><h2>Đang chờ bạn</h2><span class="mut">${open.length}</span></div><div class="stack">${open.map(c=>row(c,true)).join('')}</div>`:''}
