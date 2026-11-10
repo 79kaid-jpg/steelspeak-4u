@@ -230,17 +230,48 @@ function vChat(){chatCss();const adm=isAdm()&&NT.thread!==USER.id;const th=adm&&
  <label class="cx-ib cx-imgb" aria-label="Gửi hình hoặc sticker" title="Gửi hình"><input type="file" accept="image/*" hidden onchange="NTX.upImg(this.files[0]);this.value=''"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></label>
  <div id="msgin" class="cx-ed" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Nội dung tin nhắn" data-ph="Nhắn tin…" data-empty="${(NT.draft||'').trim()?'':'1'}" oninput="NTX.edIn(this)" onpaste="NTX.pasteImg(event)" enterkeyhint="send" onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();NTX.send()}" onfocus="setTimeout(()=>NTX.toEnd(1),300)">${esc(NT.draft||'')}</div>
  <button class="cx-ib cx-send" aria-label="Gửi" ${NT.sending?'disabled':''} onclick="NTX.send()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button></div></div>`}
-function vInbox(){if(!NT.threads){loadThreads();return '<h1>Tin nhắn</h1><p class="mut">Đang tải…</p>'}
- const study=NT.list.filter(n=>n.kind=='study').slice(0,15);
- const perm='Notification' in window?Notification.permission:'na';
- return `<button class="link" onclick="go('me')">‹ Tài khoản</button><h1 style="margin-top:6px">Thông báo & tin nhắn</h1>
- ${perm=='default'?`<button class="card login-nudge" onclick="NTX.askPerm()"><span class="tile2-ic">🔔</span><span style="flex:1;text-align:left"><b>Bật thông báo trên trình duyệt</b><small>Hiện thông báo cả khi bạn đang ở tab khác</small></span><span class="chev">›</span></button>`:''}
- ${window.LKX&&LKX.pendList?LKX.pendList():''}
- <div class="sec-h"><h2>Hoạt động học</h2>${study.some(n=>!n.read_at)?`<button class="link" onclick="NTX.readNotes('study').then(()=>render())">Đánh dấu đã xem</button>`:''}</div>
- ${study.length?`<div class="card" style="padding:4px 14px">${study.map(n=>`<div class="row" style="justify-content:space-between;flex-wrap:nowrap;padding:8px 0;border-bottom:1px solid var(--line)"><div style="min-width:0">${n.read_at?'':'<b style="color:var(--amber)">● </b>'}<b>${esc(n.title)}</b><div class="mut" style="font-size:.84rem">${esc(disp(n.body))} · ${ago(n.created_at)}</div></div><button class="chip" onclick="NTX.openChat('${n.ref}')">✉ Nhắn</button></div>`).join('')}</div>`:`<p class="mut" style="font-size:.88rem">Chưa có. Bật 🔔 cạnh tên học viên trong <b>Quản trị người dùng</b> để nhận thông báo khi họ bắt đầu học.</p>`}
- <div class="sec-h"><h2>Cuộc trò chuyện</h2><span class="mut">${NT.threads.length}</span></div>
- ${NT.terr?`<p class="note">Cần chạy supabase/messaging.sql</p>`:''}
- <div class="stack">${NT.threads.map(t=>`<button class="card lesson2" onclick="NTX.openChat('${t.user_id}')"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>${onlineNow(t.last_seen)?'🟢 ':''}${esc(t.name||t.email||'')}</b>${t.unread?`<span class="chip on">${t.unread} mới</span>`:`<span class="mut" style="font-size:.78rem">${ago(t.last_at)}</span>`}</div><div class="mut" style="font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.last_from_admin?'Bạn: ':''}${esc(disp(t.last_body))}</div></button>`).join('')||'<p class="mut">Chưa có cuộc trò chuyện nào. Bấm ✉ cạnh tên học viên để bắt đầu.</p>'}</div>`}
+/* ===== Hộp thư admin, gọn: 3 tab (Tin nhắn · Hoạt động · Quà), mỗi dòng 1 hàng kiểu Messenger ===== */
+const IBX={tab:'msg',q:''};
+function ibxDay(d){const x=new Date(d),t=new Date();const k=v=>v.toDateString();if(k(x)==k(t))return 'Hôm nay';const y=new Date(t);y.setDate(t.getDate()-1);if(k(x)==k(y))return 'Hôm qua';return x.toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit'})}
+function vInbox(){if(!NT.threads){loadThreads();return '<button class="link" onclick="go(\'me\')">‹ Tài khoản</button><h1 style="margin-top:6px">Tin nhắn</h1><p class="mut">Đang tải…</p>'}
+ if(!document.getElementById('ibxcss')){const st=document.createElement('style');st.id='ibxcss';st.textContent=`
+.ibx-tabs{display:flex;gap:4px;padding:4px;border-radius:14px;background:var(--soft);margin:10px 0 12px}
+.ibx-tabs button{flex:1;min-height:40px;border:0;border-radius:10px;background:transparent;color:var(--mut);font:700 .9rem var(--fd);display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+.ibx-tabs button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.ibx-tabs .b{min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--bad);color:#fff;font-size:.7rem;line-height:18px}
+.ibx-list{border:1px solid var(--line);border-radius:16px;background:var(--card);overflow:hidden}
+.ibx-row{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:10px 12px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.ibx-row:last-child{border-bottom:0}.ibx-row:active{background:var(--soft)}
+.ibx-av{position:relative;flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--soft);font-size:1.4rem}
+.ibx-av.on::after{content:"";position:absolute;right:0;bottom:0;width:12px;height:12px;border-radius:50%;background:var(--good);box-shadow:0 0 0 2px var(--card)}
+.ibx-mid{flex:1;min-width:0}.ibx-mid b{display:block;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ibx-mid small{display:block;color:var(--mut);font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ibx-row.unread .ibx-mid b,.ibx-row.unread .ibx-mid small{color:var(--ink);font-weight:700}
+.ibx-end{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:.75rem;color:var(--mut)}
+.ibx-end .n{min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--steel);color:var(--onsteel,#fff);font-weight:800;line-height:20px;text-align:center}
+.ibx-day{padding:8px 12px 4px;font:700 .72rem var(--fd);letter-spacing:.08em;text-transform:uppercase;color:var(--mut);background:var(--soft)}
+.ibx-search{width:100%;min-height:44px;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;padding:0 12px;background:var(--card);color:var(--ink);font:inherit;margin-bottom:10px}
+.ibx-perm{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:var(--soft);font-size:.85rem;margin-top:8px}`;document.head.appendChild(st)}
+ const study=NT.list.filter(n=>n.kind=='study').slice(0,40),sU=study.filter(n=>!n.read_at).length;
+ const pend=(window.LA&&LA.pend)||[];try{window.LKX&&LKX.pendLoad()}catch(e){}
+ const mU=NT.threads.reduce((a,t)=>a+(t.unread||0),0),perm='Notification' in window?Notification.permission:'na';
+ const tab=(id,lbl,n)=>`<button role="tab" aria-selected="${IBX.tab==id}" onclick="NTX.ibx('${id}')">${lbl}${n?`<span class="b">${n>99?'99+':n}</span>`:''}</button>`;
+ let body='';
+ if(IBX.tab=='msg'){const q=IBX.q.trim().toLowerCase();const T=[...NT.threads].sort((x,y)=>(y.unread>0)-(x.unread>0)||new Date(y.last_at)-new Date(x.last_at)).filter(t=>!q||String(t.name||t.email||'').toLowerCase().includes(q));
+  body=`${NT.threads.length>6?`<input class="ibx-search" type="search" placeholder="Tìm học viên…" aria-label="Tìm học viên" value="${esc(IBX.q)}" oninput="NTX.ibxq(this.value)">`:''}
+  ${NT.terr?`<p class="note">Cần chạy supabase/messaging.sql</p>`:''}
+  ${T.length?`<div class="ibx-list" role="list">${T.map(t=>`<button class="ibx-row ${t.unread?'unread':''}" role="listitem" onclick="NTX.openChat('${t.user_id}')"><span class="ibx-av ${onlineNow(t.last_seen)?'on':''}" aria-hidden="true">${funAv(t.user_id)}</span><span class="ibx-mid"><b>${esc(t.name||t.email||'')}</b><small>${t.last_from_admin?'Bạn: ':''}${esc(disp(t.last_body))}</small></span><span class="ibx-end"><span>${ago(t.last_at)}</span>${t.unread?`<span class="n" aria-label="${t.unread} tin chưa đọc">${t.unread}</span>`:''}</span></button>`).join('')}</div>`
+   :`<p class="mut">${q?'Không tìm thấy học viên.':'Chưa có cuộc trò chuyện. Bấm ✉ Nhắn cạnh tên học viên trong Quản trị người dùng để bắt đầu.'}</p>`}`}
+ else if(IBX.tab=='study'){let last='';
+  body=`${sU?`<div class="row" style="justify-content:flex-end;margin-bottom:8px"><button class="link" onclick="NTX.readNotes('study').then(()=>render())">Đánh dấu đã xem tất cả</button></div>`:''}
+  ${study.length?`<div class="ibx-list">${study.map(n=>{const d=ibxDay(n.created_at),h=d!==last?(last=d,`<div class="ibx-day">${d}</div>`):'';
+   return h+`<button class="ibx-row ${n.read_at?'':'unread'}" onclick="NTX.openChat('${n.ref}')" aria-label="${esc(n.title)}, nhắn tin"><span class="ibx-av" aria-hidden="true">${funAv(n.ref)}</span><span class="ibx-mid"><b>${esc(n.title)}</b><small>${esc(disp(n.body))}</small></span><span class="ibx-end"><span>${new Date(n.created_at).toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</span><span style="color:var(--steel);font-weight:700">Nhắn ›</span></span></button>`}).join('')}</div>`
+   :`<p class="mut" style="font-size:.9rem">Chưa có. Bật 🔔 cạnh tên học viên trong <b>Quản trị người dùng</b> để biết khi họ bắt đầu học.</p>`}`}
+ else body=(window.LKX&&LKX.pendList?LKX.pendList():'')||'<p class="mut">Không có quà nào chờ trao.</p>';
+ return `<button class="link" onclick="go('me')">‹ Tài khoản</button><h1 style="margin:6px 0 0">Tin nhắn</h1>
+ ${perm=='default'?`<div class="ibx-perm"><span style="flex:1">🔔 Bật thông báo để không lỡ tin nhắn</span><button class="chip" onclick="NTX.askPerm()">Bật</button></div>`:''}
+ <div class="ibx-tabs" role="tablist">${tab('msg','Tin nhắn',mU)}${tab('study','Hoạt động',sU)}${pend.length||IBX.tab=='gift'?tab('gift','Quà',pend.length):''}</div>
+ ${body}`}
 function vMsg(){if(!on())return '<h1>Tin nhắn</h1><p class="mut">Đăng nhập để nhắn tin.</p>';return NT.thread?vChat():isAdm()?vInbox():(NT.thread=USER.id,loadThread(USER.id),vChat())}
 async function livePoll(){if(NT.liveAt&&Date.now()-NT.liveAt<60000)return;NT.liveAt=Date.now();
  const {data,error}=await SB.from('presence').select('user_id,last_seen').gte('last_seen',new Date(Date.now()-3*60*1000).toISOString());
@@ -250,7 +281,7 @@ function meCard(){if(!on()||NT.off)return '';const adm=isAdm();const n=NT.msgUnr
 function userBtns(u){if(!on()||!isAdm()||u.id==USER.id)return '';const w=NT.watch.has(u.id),nm=esc(JSON.stringify(u.full_name||u.email));
  return `<button class="chip ${w?'on':''}" title="Báo khi người này bắt đầu học" onclick="NTX.toggleWatch('${u.id}',${nm})">${w?'🔔 Đang theo dõi':'🔕 Báo khi học'}</button><button class="chip" onclick="NTX.openChat('${u.id}')">✉ Nhắn</button>`}
 
-window.NTX={toEnd,upImg,pasteImg,edIn,buzz,sendEmo,addEmo,send,toggleWatch,askPerm,openChat,openInbox,readNotes,threads:loadThreads,vMsg,meCard,userBtns};
+window.NTX={ibx:t=>{IBX.tab=t;rr()},ibxq:v=>{IBX.q=v;clearTimeout(IBX.t);IBX.t=setTimeout(()=>{rr();const i=document.querySelector('.ibx-search');if(i){i.focus();i.setSelectionRange(v.length,v.length)}},250)},toEnd,upImg,pasteImg,edIn,buzz,sendEmo,addEmo,send,toggleWatch,askPerm,openChat,openInbox,readNotes,threads:loadThreads,vMsg,meCard,userBtns};
 window.vMsg=vMsg;
 
 /* --- khởi động / theo dõi đăng nhập --- */
