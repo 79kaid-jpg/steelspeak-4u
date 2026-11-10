@@ -1,0 +1,46 @@
+# Tự chạy file SQL lên Supabase mỗi khi một file supabase/*.sql được thêm hoặc sửa trên nhánh main.
+# Dùng chung secret SUPABASE_ACCESS_TOKEN với deploy-functions.yml (Supabase Management API).
+# Chạy tay: Actions → Run SQL → Run workflow, nhập tên file (vd flood.sql) hoặc "all" để chạy lại tất cả theo thứ tự.
+name: Run SQL
+on:
+  push:
+    branches: [main]
+    paths: ["supabase/*.sql"]
+  workflow_dispatch:
+    inputs:
+      files:
+        description: 'Tên file trong supabase/ (cách nhau bởi dấu cách), hoặc "all"'
+        required: true
+        default: system.sql
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: bstlbodjjnndmgxhqerf
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 2 }
+      - name: Chọn file cần chạy
+        id: pick
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ inputs.files }}" = "all" ]; then
+              # thứ tự phụ thuộc: nền tảng trước, còn lại theo tên
+              L="platform.sql $(ls supabase/*.sql | xargs -n1 basename | grep -v '^platform.sql$' | tr '\n' ' ')"
+            else L="${{ inputs.files }}"; fi
+          else
+            L=$(git diff --name-only --diff-filter=AM HEAD~1 HEAD -- 'supabase/*.sql' | xargs -r -n1 basename | tr '\n' ' ')
+          fi
+          echo "files=$L" >> "$GITHUB_OUTPUT"; echo "Sẽ chạy: $L"
+      - name: Chạy SQL qua Management API
+        run: |
+          fail=0
+          for f in ${{ steps.pick.outputs.files }}; do
+            p="supabase/$f"; [ -f "$p" ] || { echo "::warning::Không thấy $p"; continue; }
+            body=$(jq -Rs '{query: .}' < "$p")
+            code=$(curl -sS -o out.json -w '%{http_code}' -X POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" --data "$body")
+            if [ "$code" -ge 200 ] && [ "$code" -lt 300 ]; then echo "✓ $f"; else echo "::error::✗ $f ($code): $(head -c 600 out.json)"; fail=1; fi
+          done
+          exit $fail

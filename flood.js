@@ -88,7 +88,7 @@ function leave(){try{F.ch&&SB.removeChannel(F.ch)}catch(e){}F.ch=null;clearTimeo
 const send=p=>{try{F.ch&&F.ch.send({type:'broadcast',event:'m',payload:p})}catch(e){}};
 const side=()=>F.host?'a':'b',other=()=>F.host?'b':'a';
 
-function onMsg(p){if(!p||!F.m)return;
+function onMsg(p){if(!p||!F.m)return;F.lastOp=Date.now();if(p.t=='hb')return;
  if(p.t=='hello'&&F.host&&F.v=='wait'){clearTimeout(F.timer);F.q=mix(F.myQ,Array.isArray(p.q)&&p.q.length?p.q:makeQ('*',NQ,F.words));F.opTopic=p.topic||'';
   send({t:'qs',q:F.q,ta:F.myTopic});F.v='play';rr();try{window.ttsPrefetch&&ttsPrefetch(F.q.filter(x=>x.say).map(x=>x.say))}catch(e){}setTimeout(()=>next(),1200)}
  else if(p.t=='qs'&&!F.host){clearInterval(F.hello);F.q=p.q;F.opTopic=p.ta||'';try{window.ttsPrefetch&&ttsPrefetch(F.q.filter(x=>x.say).map(x=>x.say))}catch(e){}rr()}
@@ -100,6 +100,9 @@ function onMsg(p){if(!p||!F.m)return;
  else if(p.t=='end'&&!F.host){F.air=p.air;finish(p.win)}
  else if(p.t=='bye'){if(F.v=='play'){F.air[other()]=0;finish(side())}}}
 
+/* đối thủ rớt mạng / tắt app: nhịp tim 3 giây; im lặng quá 20 giây thì xử thắng cho người còn lại */
+setInterval(()=>{if(F.v!=='play'||F.bot||!F.ch)return;send({t:'hb'});if(!F.lastOp)F.lastOp=Date.now();
+ if(Date.now()-F.lastOp>20000&&F.q.length){F.air[other()]=0;toast((F.op&&F.op.name||'Đối thủ')+' đã mất kết nối, bạn thắng!');if(F.host)send({t:'end',air:F.air,win:side()});finish(side())}},3000);
 /* ---------- vòng câu hỏi ---------- */
 function next(){if(!F.host)return;const i=F.i+1;
  if(i>=F.q.length||F.air.a<=0||F.air.b<=0){const w=F.air.a==F.air.b?null:(F.air.a>F.air.b?'a':'b');send({t:'end',air:F.air,win:w});return finish(w)}
@@ -156,7 +159,7 @@ async function invite(target){try{ac();window.actx&&actx().resume()}catch(e){}if
  if(error){if(needSql(error)){F.off=true;rr();return}return toast(error.message)}
  if(target)try{lobby&&lobby.send({type:'broadcast',event:'inv',payload:{to:target,m:data,op:{user_id:uid(),name:(PROF&&PROF.full_name)||'Bạn bè'}}})}catch(e){}
  start(data,true,target?F.targets.find(t=>t.user_id==target):{name:'Kaka',bot:true})}
-function start(m,host,op){try{window.ttsPrefetch&&ttsPrefetch((m.q||[]).filter(x=>x.say).map(x=>x.say))}catch(e){}F.m=m;F.host=host;F.bot=!m.b;F.q=host?m.q:[];if(host)F.myQ=m.q;F.i=-1;F.air={a:AIR,b:AIR};F.ans={};F.res=null;F.pick=null;F.win=undefined;
+function start(m,host,op){F.lastOp=0;try{window.ttsPrefetch&&ttsPrefetch((m.q||[]).filter(x=>x.say).map(x=>x.say))}catch(e){}F.m=m;F.host=host;F.bot=!m.b;F.q=host?m.q:[];if(host)F.myQ=m.q;F.i=-1;F.air={a:AIR,b:AIR};F.ans={};F.res=null;F.pick=null;F.win=undefined;
  F.me={name:(PROF&&PROF.full_name)||'Bạn',avatar:PROF&&PROF.avatar,id:uid()};F.op=op||{name:'Đối thủ'};
  if(F.bot){F.q=mix(F.myQ||m.q,makeQ('*',NQ,F.words));F.opTopic=(F.course?F.course.name+' · ':'')+'Kaka chọn ngẫu nhiên';F.v='play';go('flood');setTimeout(next,900);return}
  join(m.id);
