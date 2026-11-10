@@ -29,7 +29,8 @@ async function loadNotes(){const {data,error}=await SB.from('notifications').sel
 function count(){NT.unread=NT.list.filter(n=>!n.read_at).length;NT.msgUnread=NT.list.filter(n=>!n.read_at&&n.kind=='msg').length;window.MSGU=NT.unread;try{fab()}catch(e){}}
 /* --- Nút tin nhắn nổi: chỉ hiện khi có tin chưa đọc; rung + chữ BUZZ khi có BUZZ --- */
 function fab(){let el=document.getElementById('msgfab');const L=NT.list.filter(n=>!n.read_at&&n.kind=='msg');
- const hide=!L.length||(typeof S!='undefined'&&S.tab=='msg');
+ /* luôn hiện (khi đã đăng nhập) để nhắn tin nhanh; có tin mới thì nở to kèm tên người gửi */
+ const hide=typeof USER=='undefined'||!USER||(typeof S!='undefined'&&(S.tab=='msg'||S.game));
  if(hide){if(el)el.remove();return}
  if(!document.getElementById('fabcss')){const st=document.createElement('style');st.id='fabcss';st.textContent=`
 #msgfab{position:fixed;left:max(16px,calc(50vw - 224px));bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:60;display:flex;align-items:center;gap:8px;min-height:52px;padding:0 16px 0 12px;border-radius:999px;border:0;background:var(--steel);color:var(--onsteel);font:inherit;font-weight:700;box-shadow:0 8px 22px color-mix(in srgb,var(--steel) 45%,transparent);animation:mfin .35s cubic-bezier(.2,1.3,.4,1)}
@@ -39,12 +40,25 @@ function fab(){let el=document.getElementById('msgfab');const L=NT.list.filter(n
 @keyframes mfin{from{transform:scale(.4);opacity:0}}
 @keyframes mfbz{0%,60%,100%{transform:none}64%{transform:translateX(-4px) rotate(-6deg)}68%{transform:translateX(4px) rotate(6deg)}72%{transform:translateX(-4px) rotate(-5deg)}76%{transform:translateX(3px) rotate(4deg)}80%{transform:none}}
 @media (prefers-reduced-motion:reduce){#msgfab,#msgfab.buzz{animation:none}}
-body.ch-open #msgfab,body.in-game #msgfab{display:none}`;document.head.appendChild(st)}
+body.ch-open #msgfab,body.in-game #msgfab{display:none}
+#msgfab.mini{width:56px;height:56px;min-height:56px;padding:0;justify-content:center;border-radius:50%;opacity:.92}
+#msgfab.mini span:not(.n){display:none}#msgfab.drag{transition:none;opacity:.8;cursor:grabbing}
+#msgfab{touch-action:none;transition:left .25s cubic-bezier(.2,1.2,.4,1),top .25s cubic-bezier(.2,1.2,.4,1)}
+#msgfab.pos{bottom:auto}`;document.head.appendChild(st)}
  const bz=L.some(n=>isBuzz(n.body)),who=[...new Set(L.map(n=>n.title))];
- if(!el){el=document.createElement('button');el.id='msgfab';el.onclick=()=>{const refs=[...new Set(NT.list.filter(n=>!n.read_at&&n.kind=='msg').map(n=>n.ref))];if(isAdm()&&refs.length!==1)openInbox();else openChat(isAdm()?refs[0]:USER.id)};document.body.appendChild(el)}
- el.className=bz?'buzz':'';
- el.setAttribute('aria-label',(bz?'BUZZ! ':'')+L.length+' tin nhắn mới từ '+who.join(', '));
- el.innerHTML=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${bz?'<rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4 8v8M20 8v8"/>':'<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>'}</svg><span class="n">${L.length>9?'9+':L.length}</span><span>${bz?'BUZZ!':esc(who.length==1?who[0]:'Tin nhắn mới')}</span>`}
+ if(!el){el=document.createElement('button');el.id='msgfab';el.onclick=()=>{if(el._moved&&Date.now()-el._moved<400)return;const refs=[...new Set(NT.list.filter(n=>!n.read_at&&n.kind=='msg').map(n=>n.ref))];if(isAdm()&&refs.length!==1)openInbox();else openChat(isAdm()?refs[0]:USER.id)};document.body.appendChild(el);fabDrag(el)}
+ el.className=(bz?'buzz':'')+(L.length?'':' mini')+(el._pos?' pos':'');
+ el.setAttribute('aria-label',L.length?(bz?'BUZZ! ':'')+L.length+' tin nhắn mới từ '+who.join(', '):(isAdm()?'Mở tin nhắn học viên':'Nhắn tin cho Admin'));
+ el.innerHTML=`<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${bz?'<rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4 8v8M20 8v8"/>':'<path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/>'}</svg>${L.length?`<span class="n">${L.length>9?'9+':L.length}</span><span>${bz?'BUZZ!':esc(who.length==1?who[0]:'Tin nhắn mới')}</span>`:''}`;if(el._pos)fabPlace(el)}
+/* kéo nút chat đi đâu cũng được, thả ra tự dính vào mép trái/phải gần nhất; nhớ vị trí */
+function fabPlace(el){const p=el._pos,w=el.offsetWidth||56,h=el.offsetHeight||56,W=innerWidth,H=innerHeight;const x=p.side=='r'?W-w-12:12,y=Math.min(H-h-90,Math.max(70,p.y*H));el.style.left=x+'px';el.style.top=y+'px';el.style.right='auto';el.style.bottom='auto'}
+function fabDrag(el){try{el._pos=JSON.parse(localStorage.getItem('ss-fab')||'null')}catch(e){}
+ let sx,sy,ox,oy,on=false,mv=false;
+ el.addEventListener('pointerdown',e=>{on=true;mv=false;sx=e.clientX;sy=e.clientY;const r=el.getBoundingClientRect();ox=r.left;oy=r.top});
+ addEventListener('pointermove',e=>{if(!on)return;const dx=e.clientX-sx,dy=e.clientY-sy;if(!mv&&Math.hypot(dx,dy)<8)return;mv=true;el.classList.add('drag','pos');el.style.left=(ox+dx)+'px';el.style.top=(oy+dy)+'px';el.style.bottom='auto';el.style.right='auto'});
+ addEventListener('pointerup',e=>{if(!on)return;on=false;if(!mv)return;el.classList.remove('drag');el._moved=Date.now();const r=el.getBoundingClientRect();
+  el._pos={side:r.left+r.width/2>innerWidth/2?'r':'l',y:r.top/innerHeight};try{localStorage.setItem('ss-fab',JSON.stringify(el._pos))}catch(_){}fabPlace(el)});
+ addEventListener('resize',()=>{if(el._pos)fabPlace(el)})}
 setInterval(()=>{try{fab()}catch(e){}},1500);
 function onNote(n){if(NT.list.some(x=>x.id==n.id))return;
  /* đang quay vòng may mắn: giữ thông báo trúng quà lại, chỉ hiện sau khi bảng kết quả đã ra */
