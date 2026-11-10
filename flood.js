@@ -70,6 +70,7 @@ const side=()=>F.host?'a':'b',other=()=>F.host?'b':'a';
 
 function onMsg(p){if(!p||!F.m)return;
  if(p.t=='hello'&&F.host&&F.v=='wait'){F.v='play';rr();setTimeout(()=>next(),900)}
+ else if(p.t=='seen'&&F.host){F.seen=true;try{sfx.tap()}catch(e){}}
  else if(p.t=='decline'&&F.host){toast('Đối thủ từ chối lời mời');F.v='pick';leave();rr()}
  else if(p.t=='q'&&!F.host){clearInterval(F.hello);showQ(p.i)}
  else if(p.t=='ans'){F.ans[p.i]=F.ans[p.i]||{};F.ans[p.i][p.s]={ok:p.ok,ms:p.ms};if(p.i===F.i)F.opAns=true;if(F.host)judge(p.i);else rr()}
@@ -120,7 +121,7 @@ function start(m,host,op){F.m=m;F.host=host;F.bot=!m.b;F.q=m.q;F.i=-1;F.air={a:A
  join(m.id);
  if(host){F.v='wait';F.waitUntil=Date.now()+60000;go('flood');F.timer=setTimeout(()=>{if(F.v=='wait'){toast('Đối thủ chưa nhận lời');F.v='pick';leave();rr()}},60000);waitClock()}
  else{F.v='play';go('flood');F.hello=setInterval(()=>send({t:'hello'}),900);send({t:'hello'})}}
-function waitClock(){const t=setInterval(()=>{const el=document.getElementById('fl-wait');if(!el||F.v!='wait'){clearInterval(t);return}el.textContent=Math.max(0,Math.ceil((F.waitUntil-Date.now())/1000))+' giây'},500)}
+function waitClock(){F.seen=false;const t=setInterval(()=>{if(F.v!='wait'){clearInterval(t);return}const left=Math.max(0,(F.waitUntil-Date.now()));const el=document.getElementById('fl-wait');if(el)el.textContent=Math.ceil(left/1000)+' giây';const arc=document.getElementById('fw-arc');if(arc)arc.setAttribute('stroke-dashoffset',String(RING*(1-left/60000)));const sn=document.getElementById('fw-seen');if(sn)sn.textContent=F.seen?'👀 '+F.op.name+' đã thấy lời mời…':'Đang gõ cửa nhà '+F.op.name+'…'},250)}
 function cancel(){music(false);if(F.v=='play'&&!F.bot)send({t:'bye'});leave();F.v='pick';F.m=null;rr()}
 
 /* lời mời đến: hộp thoại nổi trên mọi màn hình */
@@ -132,16 +133,42 @@ async function incoming(n){if(n.kind!=='flood')return;const id=+n.body;if(!id)re
  const {data}=await SB.from('flood_matches').select('*').eq('id',id).maybeSingle();if(!data||data.status!=='invite')return;
  const {data:pp}=await SB.rpc('flood_people',{mid:id});const op=(pp||[]).find(p=>p.user_id==data.a)||{name:'Bạn bè'};
  F.inv={m:data,op,until:Date.now()+60000};showInv()}
+/* ===== hộp lời mời "fun": ở yên trên màn hình suốt 60 giây cho tới khi nhận / từ chối ===== */
+const RING=2*Math.PI*30;
 function showInv(){document.getElementById('fl-inv')?.remove();const I=F.inv;if(!I)return;
- const d=document.createElement('div');d.id='fl-inv';d.setAttribute('role','dialog');d.setAttribute('aria-label','Lời mời đấu Nước Dâng');
- d.innerHTML=`<div class="fl-inv-card"><div class="fl-inv-av">${window.avatarHTML?avatarHTML(I.op.avatar,I.op.user_id||I.op.name,64):''}</div><div style="flex:1;min-width:0"><b>${esc2(I.op.name)} mời bạn đấu Nước Dâng</b><small>${esc2(I.m.topic||'')} · ${(I.m.q||[]).length} câu · ai chậm bị nước dâng</small></div></div>
- <div class="fl-inv-act"><button class="btn ghost" onclick="FLX.respond(false)">Để sau</button><button class="btn" onclick="FLX.respond(true)">Nhận lời</button></div>`;
- document.body.appendChild(d);try{navigator.vibrate&&navigator.vibrate([80,60,80])}catch(e){}
- setTimeout(()=>{if(F.inv===I){F.inv=null;d.remove()}},Math.max(0,I.until-Date.now()))}
-async function respond(ok){if(ok)try{ac()}catch(e){}const I=F.inv;F.inv=null;document.getElementById('fl-inv')?.remove();if(!I)return;
- const {data,error}=await SB.rpc('flood_respond',{mid:I.m.id,accept:ok});
- if(!ok){if(F.ch==null){join(I.m.id);setTimeout(()=>{send({t:'decline'});leave()},700)}return}
- if(error)return toast(error.message);start(data||I.m,false,I.op)}
+ const d=document.createElement('div');d.id='fl-inv';d.setAttribute('role','alertdialog');d.setAttribute('aria-modal','true');d.setAttribute('aria-labelledby','fl-inv-t');
+ const nm=esc2(I.op.name||'Bạn bè'),n=(I.m.q||[]).length||10;
+ d.innerHTML=`<div class="fi-card">
+  <div class="fi-sea" aria-hidden="true"><svg viewBox="0 0 400 40" preserveAspectRatio="none"><path d="M0 20 Q25 6 50 20 T100 20 T150 20 T200 20 T250 20 T300 20 T350 20 T400 20 V40 H0Z" fill="rgba(255,255,255,.25)"/></svg><svg viewBox="0 0 400 40" preserveAspectRatio="none" style="animation-duration:4.5s;opacity:.6"><path d="M0 22 Q25 34 50 22 T100 22 T150 22 T200 22 T250 22 T300 22 T350 22 T400 22 V40 H0Z" fill="rgba(255,255,255,.35)"/></svg>${'<i></i>'.repeat(6)}</div>
+  <div class="fi-av"><svg class="fi-ring" viewBox="0 0 68 68" aria-hidden="true"><circle cx="34" cy="34" r="30" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="5"/><circle id="fi-arc" cx="34" cy="34" r="30" fill="none" stroke="#ffd257" stroke-width="5" stroke-linecap="round" stroke-dasharray="${RING}" stroke-dashoffset="0" transform="rotate(-90 34 34)"/></svg><span class="fi-face">${window.avatarHTML?avatarHTML(I.op.avatar,I.op.user_id||I.op.name,84):''}</span><span class="fi-sw" aria-hidden="true">⚔️</span></div>
+  <div class="fi-body"><span class="fi-tag">THÁCH ĐẤU NƯỚC DÂNG</span>
+   <h2 id="fl-inv-t">${nm} rủ bạn<br>xuống nước! 🌊</h2>
+   <p>${esc2(I.m.topic||'Bài đang học')} · ${n} câu · ai chậm bị nước dâng</p>
+   <div class="fi-time" role="timer" aria-live="off"><b id="fi-sec">60</b> giây để nhận lời</div>
+   <button class="fi-yes" onclick="FLX.respond(true)">🏊 Nhận lời, chiến luôn!</button>
+   <button class="fi-no" onclick="FLX.respond(false)">Để lần sau</button></div></div>`;
+ document.body.appendChild(d);setTimeout(()=>d.querySelector('.fi-yes')?.focus(),300);
+ /* rung + chuông mỗi 4 giây để người nhận để ý */
+ const ring=()=>{try{navigator.vibrate&&navigator.vibrate([120,80,120])}catch(e){}try{const t=ac()?.currentTime;if(t!=null){[880,1175,1568].forEach((f,k)=>tone(f,t+k*.11,.22,{type:'triangle',g:.14}));sfx.splash()}}catch(e){}};
+ ring();clearInterval(F.invRing);F.invRing=setInterval(()=>{if(F.inv!==I){clearInterval(F.invRing);return}ring()},4000);
+ clearInterval(F.invClk);F.invClk=setInterval(()=>{if(F.inv!==I){clearInterval(F.invClk);return}const left=Math.max(0,I.until-Date.now());
+  const el=document.getElementById('fi-sec');if(el)el.textContent=Math.ceil(left/1000);const arc=document.getElementById('fi-arc');if(arc)arc.setAttribute('stroke-dashoffset',String(RING*(1-left/60000)));
+  if(left<=10000)d.classList.add('fi-hurry');
+  if(left<=0){clearInterval(F.invClk);F.inv=null;d.classList.add('fi-out');setTimeout(()=>d.remove(),300);toast('Lời mời của '+(I.op.name||'bạn bè')+' đã hết hạn')}},250);
+ /* báo người mời là mình đã thấy lời mời */
+ if(F.v!='play'&&!F.ch){join(I.m.id);setTimeout(()=>send({t:'seen'}),700)}}
+async function respond(ok){if(ok)try{ac()}catch(e){}const I=F.inv;F.inv=null;clearInterval(F.invRing);clearInterval(F.invClk);
+ const d=document.getElementById('fl-inv');if(d){d.classList.add(ok?'fi-go':'fi-out');setTimeout(()=>d.remove(),ok?450:300)}if(!I)return;
+ if(!ok){send({t:'decline'});setTimeout(leave,500);SB.rpc('flood_respond',{mid:I.m.id,accept:false}).catch(()=>{});return}
+ const {data,error}=await SB.rpc('flood_respond',{mid:I.m.id,accept:true});
+ if(error){leave();return toast(error.message)}leave();start(data||I.m,false,I.op)}
+/* người mời: thẻ chờ nổi trên mọi màn hình suốt thời gian chờ nhận lời */
+function waitFab(){let el=document.getElementById('fl-wfab');if(F.v!=='wait'||S.tab==='flood'){el&&el.remove();return}
+ if(!el){el=document.createElement('button');el.id='fl-wfab';el.onclick=()=>go('flood');document.body.appendChild(el)}
+ const left=Math.max(0,Math.ceil((F.waitUntil-Date.now())/1000));
+ el.innerHTML=`<span class="fw-av">${window.avatarHTML?avatarHTML(F.op.avatar,F.op.user_id||F.op.name,36):''}</span><span class="fw-t"><b>Đang chờ ${esc2(F.op.name)}</b><small>${F.seen?'👀 Đã thấy lời mời · ':'Đang gõ cửa · '}${left}s</small></span><span class="fw-w" aria-hidden="true">🌊</span>`;
+ el.setAttribute('aria-label',`Đang chờ ${F.op.name} nhận lời, còn ${left} giây. Chạm để mở`)}
+setInterval(waitFab,500);
 /* phòng chờ chung: biết ai đang mở app (Realtime Presence, tức thì) + nhận lời mời nhanh */
 let lobby=null;F.online=new Set();
 function joinLobby(){if(lobby||!uid()||typeof SB=='undefined')return;
@@ -176,7 +203,39 @@ const css=`#fl-inv{position:fixed;left:12px;right:12px;top:calc(12px + env(safe-
 .fl-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}.fl-opts button{min-height:64px;border-radius:12px;border:2px solid var(--line);background:var(--soft);color:var(--ink);font:600 1rem var(--fb,inherit);padding:8px;cursor:pointer}
 .fl-opts .ok{border-color:var(--good);background:color-mix(in srgb,var(--good) 16%,var(--card))}.fl-opts .no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--card))}
 @media (prefers-reduced-motion:reduce){.fl-water svg,.fl-water i,#fl-inv{animation:none}.fl-water{transition:none}}`;
-const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
+const css2=`#fl-inv{position:fixed;inset:0;z-index:2147483100;display:grid;place-items:center;padding:16px;background:rgba(6,20,36,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:fiBg .3s both}
+@keyframes fiBg{from{opacity:0}}
+.fi-card{position:relative;width:min(380px,100%);border-radius:28px;overflow:hidden;background:linear-gradient(170deg,#1e88e5 0%,#0b5cab 45%,#073b72 100%);color:#fff;text-align:center;box-shadow:0 30px 60px rgba(0,0,0,.45);animation:fiPop .55s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes fiPop{from{transform:translateY(60px) scale(.8);opacity:0}}
+.fi-sea{position:absolute;left:0;right:0;bottom:0;height:46%;background:linear-gradient(180deg,rgba(64,170,230,.0),rgba(64,170,230,.35));pointer-events:none}
+.fi-sea svg{position:absolute;left:0;top:-14px;width:200%;height:30px;animation:flw 3.2s linear infinite}
+.fi-sea i{position:absolute;bottom:8px;width:10px;height:10px;border-radius:50%;border:2px solid rgba(255,255,255,.7);animation:flb 3s ease-in infinite}
+.fi-sea i:nth-child(3){left:12%}.fi-sea i:nth-child(4){left:30%;animation-delay:.6s}.fi-sea i:nth-child(5){left:55%;animation-delay:1.2s}.fi-sea i:nth-child(6){left:72%;animation-delay:.3s}.fi-sea i:nth-child(7){left:86%;animation-delay:1.7s}.fi-sea i:nth-child(8){left:44%;animation-delay:2.1s}
+.fi-av{position:relative;width:112px;height:112px;margin:26px auto 4px}.fi-ring{position:absolute;inset:0;width:100%;height:100%}
+.fi-face{position:absolute;inset:14px;display:grid;place-items:center;animation:fiBob 1.6s ease-in-out infinite}.fi-face .av-img,.fi-face .av-wrap{border-radius:50%;border:3px solid #fff}
+@keyframes fiBob{50%{transform:translateY(-6px) rotate(-4deg)}}
+.fi-sw{position:absolute;right:-6px;bottom:2px;font-size:30px;animation:fiSw .9s ease-in-out infinite}@keyframes fiSw{50%{transform:rotate(-18deg) scale(1.15)}}
+.fi-body{position:relative;padding:4px 20px 20px;display:flex;flex-direction:column;gap:8px}
+.fi-tag{font:800 .72rem var(--fd);letter-spacing:.12em;color:#ffd257}
+.fi-body h2{margin:0;font:800 1.65rem/1.15 var(--fd);color:#fff}.fi-body p{margin:0;color:#d6e8fb;font-size:.9rem}
+.fi-time{align-self:center;padding:4px 12px;border-radius:99px;background:rgba(0,0,0,.25);font-size:.85rem}.fi-time b{font:800 1.05rem var(--fd);color:#ffd257}
+.fi-yes{min-height:56px;border:0;border-radius:16px;background:#ffd257;color:#14212e;font:800 1.12rem var(--fd);box-shadow:0 6px 0 #c99a1c,0 10px 20px rgba(0,0,0,.25);cursor:pointer;animation:fiJig 2.4s ease-in-out infinite}
+.fi-yes:active{transform:translateY(4px);box-shadow:0 2px 0 #c99a1c}
+@keyframes fiJig{0%,80%,100%{transform:none}84%{transform:rotate(-2deg) scale(1.03)}88%{transform:rotate(2deg) scale(1.03)}92%{transform:rotate(-1deg)}}
+.fi-no{min-height:44px;border:0;background:none;color:#d6e8fb;font:600 .95rem inherit;text-decoration:underline;cursor:pointer}
+.fi-hurry .fi-time{background:#c8433a;animation:fiBlink .5s steps(1) infinite}@keyframes fiBlink{50%{opacity:.6}}
+.fi-out .fi-card{animation:fiOut .3s both}@keyframes fiOut{to{transform:translateY(40px) scale(.9);opacity:0}}
+.fi-go .fi-card{animation:fiGo .45s both}@keyframes fiGo{to{transform:scale(1.15);opacity:0}}
+#fl-wfab{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));z-index:2147483000;display:flex;align-items:center;gap:10px;max-width:calc(100% - 24px);min-height:52px;padding:6px 14px 6px 6px;border:0;border-radius:99px;background:linear-gradient(120deg,#1e88e5,#0b3b6e);color:#fff;box-shadow:0 10px 26px rgba(0,0,0,.35);cursor:pointer;animation:fiPop .45s both}
+#fl-wfab .fw-av .av-img,#fl-wfab .fw-av .av-wrap{border-radius:50%;border:2px solid #ffd257}
+#fl-wfab .fw-t{display:flex;flex-direction:column;text-align:left;min-width:0}#fl-wfab b{font:800 .9rem var(--fd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#fl-wfab small{font-size:.76rem;color:#d6e8fb}
+#fl-wfab .fw-w{font-size:1.3rem;animation:fiBob 1.4s ease-in-out infinite}
+.fw-page{text-align:center;padding-top:24px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.fw-big{position:relative;width:150px;height:150px}.fw-big svg{position:absolute;inset:0;width:100%;height:100%}.fw-big>span{position:absolute;inset:23px;display:grid;place-items:center;animation:fiBob 1.6s ease-in-out infinite}
+.fw-dots{display:flex;gap:6px;justify-content:center;margin:0}.fw-dots i{width:8px;height:8px;border-radius:50%;background:var(--steel);animation:fwD 1.2s infinite}.fw-dots i:nth-child(2){animation-delay:.2s}.fw-dots i:nth-child(3){animation-delay:.4s}
+@keyframes fwD{0%,80%,100%{opacity:.25;transform:none}40%{opacity:1;transform:translateY(-5px)}}
+@media (prefers-reduced-motion:reduce){#fl-inv *,#fl-wfab,#fl-wfab *,.fw-page *{animation:none!important}}`;
+const st=document.createElement('style');st.textContent=css+css2;document.head.appendChild(st);
 
 function sideHTML(p,s,dir){const air=F.air[s],h=Math.round(16+(AIR-air)*(84/AIR));const img=p&&p.avatar&&/^data:image\//.test(p.avatar);
  const dots='●'.repeat(air)+'○'.repeat(AIR-air);const hit=F.res&&F.res.lose.includes(s);
@@ -195,7 +254,11 @@ function vFlood(){
   <div class="sec-h"><h2>Chọn đối thủ</h2></div><div class="stack">
   <button class="card row" style="flex-wrap:nowrap;gap:12px;text-align:left;width:100%" onclick="FLX.invite(null)"><span class="tile2-ic">🤖</span><span style="flex:1"><b>Kaka (máy)</b><small class="mut" style="display:block">Luôn sẵn sàng · đúng khoảng 70%</small></span><span class="chip">Đấu ngay</span></button>
   ${F.targets==null?'<p class="mut">Đang tải bạn bè…</p>':F.targets.length?F.targets.map(t=>{const on=F.online.has(t.user_id)||t.online===true||(t.seen&&now-t.seen<120000);return `<button class="card row" style="flex-wrap:nowrap;gap:12px;text-align:left;width:100%" onclick="FLX.invite('${t.user_id}')">${window.avatarHTML?avatarHTML(t.avatar,t.user_id,44):''}<span style="flex:1;min-width:0"><b>${esc2(t.name)}</b><small style="display:block;color:${on?'var(--good)':'var(--mut)'}">${on?'● Đang online':'Không online · có thể không kịp nhận lời'}</small></span><span class="chip">Mời</span></button>`}).join(''):'<p class="mut">Chưa có bạn bè. Kết bạn trong mục Thách đấu để mời nhé.</p>'}</div>`}
- if(F.v=='wait')return `<div style="text-align:center;padding-top:40px"><div style="display:inline-block">${window.avatarHTML?avatarHTML(F.op.avatar,F.op.user_id||F.op.name,96):''}</div><h1>Đang chờ ${esc2(F.op.name)}…</h1><p class="mut">Lời mời còn hiệu lực <b id="fl-wait">60 giây</b>. Khi đối thủ nhận lời, trận đấu bắt đầu ngay.</p><button class="btn ghost" onclick="FLX.cancel()">Hủy lời mời</button></div>`;
+ if(F.v=='wait')return `<div class="fw-page"><div class="fw-big"><svg viewBox="0 0 68 68" aria-hidden="true"><circle cx="34" cy="34" r="30" fill="none" stroke="var(--line)" stroke-width="4"/><circle id="fw-arc" cx="34" cy="34" r="30" fill="none" stroke="#e39b1a" stroke-width="4" stroke-linecap="round" stroke-dasharray="${RING}" stroke-dashoffset="0" transform="rotate(-90 34 34)"/></svg><span>${window.avatarHTML?avatarHTML(F.op.avatar,F.op.user_id||F.op.name,104):''}</span></div>
+  <span class="fi-tag" style="color:var(--steel)">ĐÃ GỬI LỜI THÁCH ĐẤU</span><h1 style="margin:4px 0">Chờ ${esc2(F.op.name)} xuống nước…</h1>
+  <p id="fw-seen" class="mut" role="status" style="margin:0">Đang gõ cửa nhà ${esc2(F.op.name)}…</p><p class="fw-dots" aria-hidden="true"><i></i><i></i><i></i></p>
+  <p class="mut" style="margin:0">Còn <b id="fl-wait">60 giây</b>. Bạn cứ đi học trang khác, thẻ chờ sẽ đi theo bạn.</p>
+  <div class="row" style="gap:8px;justify-content:center;margin-top:8px"><button class="btn ghost" onclick="go('home')">Đi học trong lúc chờ</button><button class="btn ghost" style="color:var(--bad)" onclick="FLX.cancel()">Hủy lời mời</button></div></div>`;
  if(F.v=='end'){const me=side(),won=F.win===me,draw=F.win==null;const myOk=Object.values(F.ans).filter(a=>a&&a[me]&&a[me].ok).length,n=Object.keys(F.ans).length;
   const msA=Object.values(F.ans).map(a=>a&&a[me]).filter(x=>x&&x.ok).map(x=>x.ms);const avg=msA.length?(msA.reduce((a,b)=>a+b,0)/msA.length/1000).toFixed(1).replace('.',','):'–';
   const wrong=F.q.filter((q,i)=>F.ans[i]&&F.ans[i][me]&&!F.ans[i][me].ok).slice(0,4);
@@ -214,7 +277,7 @@ function vFlood(){
  <div class="fl-opts">${q.o.map((o,k)=>{const cls=R?(k===q.a?'ok':k===F.pick?'no':''):(k===F.pick?'ok':'');return `<button class="${cls}" ${F.pick!=null||R?'disabled':''} onclick="FLX.answer(${k})">${esc2(o)}</button>`}).join('')}</div>
  <div role="status" style="min-height:44px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:600;color:${R&&R.win===me?'var(--good)':R?'var(--bad)':'var(--mut)'}">${fb}</div></div>`}
 function again(){const op=F.op,b=F.m&&F.m.b;F.v='pick';invite(F.bot?null:(F.host?b:F.m.a)).then(()=>{})}
-window.vFlood=vFlood;window.FLX={snd:sndToggle,invite,answer,cancel,respond,again};
+window.vFlood=vFlood;window.FLX={_fast:fastInv,snd:sndToggle,invite,answer,cancel,respond,again};
 /* thẻ vào game ở trang Thách đấu */
 window.floodCard=()=>`<button class="card login-nudge" onclick="FLD.v='pick';go('flood')" style="background:linear-gradient(140deg,#1e88e5,#0b3b6e);color:#fff;border:0"><span class="tile2-ic" style="background:rgba(255,255,255,.2)">🌊</span><span style="flex:1;text-align:left"><b style="color:#fff">Nước Dâng · đấu 1-1</b><small style="color:#dbe6f0">Ai chậm bị nước dâng · realtime</small></span><span class="chev" style="color:#fff">›</span></button>`;
 })();
