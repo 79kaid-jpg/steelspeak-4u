@@ -5,7 +5,7 @@
  Đấu với Kaka (máy) chạy ngay trong máy, không cần người kia online. Cần supabase/flood.sql. */
 (function(){
 if(window._floodJs)return;window._floodJs=1;
-const AIR=5,NQ=10,TLIM=15000;
+const AIR=5,NQ=10,TLIM=15000,TPRON=20000;/* mỗi bên 10 câu → trận 20 câu */
 const F={v:'pick',m:null,me:null,op:null,q:[],i:-1,air:{a:AIR,b:AIR},ans:{},shown:0,pick:null,res:null,ch:null,timer:0,host:false,bot:false,targets:null,inv:null,off:false,err:''};
 window.FLD=F;
 const esc2=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -15,18 +15,29 @@ const needSql=e=>/flood_|does not exist|schema cache/i.test(e?.message||'');
 const shuf=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
 
 /* ---------- câu hỏi: AI chọn từ bài đang học, đổi kiểu ngẫu nhiên ---------- */
-function makeQ(){const T=((typeof TERMS!='undefined'&&TERMS)||[]).filter(t=>t&&t.en&&t.vi);if(T.length<4)return [];
- const pool=shuf(T).slice(0,NQ),out=[];
- for(const t of pool){const others=shuf(T.filter(x=>x.en!==t.en&&x.vi!==t.vi)).slice(0,3);if(others.length<3)continue;
-  const kinds=['mean','rev','listen'];const ex=String(t.ex||'');const re=new RegExp('\\b'+t.en.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','i');if(ex&&re.test(ex)&&ex.length<140)kinds.push('fill');
-  const k=kinds[Math.random()*kinds.length|0];let q,o;
+/* chủ đề = nhóm từ (cat) trong bài đang học */
+function topics(){const T=((typeof TERMS!='undefined'&&TERMS)||[]).filter(t=>t&&t.en&&t.vi);const m={};T.forEach(t=>{(m[t.cat]=m[t.cat]||[]).push(t)});
+ const nm=c=>(typeof CATS!='undefined'&&CATS[c]&&CATS[c].n)||c;return [{id:'*',n:'Trộn tất cả',c:T.length},...Object.keys(m).filter(c=>m[c].length>=4).map(c=>({id:c,n:nm(c),c:m[c].length}))]}
+function topicName(id){const t=topics().find(x=>x.id==id);return t?t.n:'Trộn tất cả'}
+/* 10 câu từ 1 chủ đề, đủ các kiểu: nghĩa, điền từ, nghe, từ tiếng Anh, phát âm (AI chấm) */
+function makeQ(cat,n){n=n||NQ;const ALL=((typeof TERMS!='undefined'&&TERMS)||[]).filter(t=>t&&t.en&&t.vi);let T=cat&&cat!='*'?ALL.filter(t=>t.cat==cat):ALL;if(T.length<4)T=ALL;if(ALL.length<4)return [];
+ const fillOf=t=>{const ex=String(t.ex||'');if(!ex||ex.length>160)return null;const i=ex.toLowerCase().indexOf(String(t.en).toLowerCase());if(i<0)return null;return ex.slice(0,i)+'_____'+ex.slice(i+t.en.length)};
+ const pool=shuf(T),withFill=pool.filter(fillOf),order=['mean','fill','listen','pron','rev','fill','mean','pron','listen','fill'];
+ const used=new Set(),out=[];
+ for(let j=0;j<n;j++){let k=order[j%order.length];let t;
+  if(k=='fill'){t=withFill.find(x=>!used.has(x.en));if(!t)k='mean'}
+  if(!t)t=pool.find(x=>!used.has(x.en))||pool[j%pool.length];used.add(t.en);
+  const others=shuf(ALL.filter(x=>x.en!==t.en&&x.vi!==t.vi)).slice(0,3);let q,o;
+  if(k=='pron'){const tg=String(t.en).replace(/\s*\([^)]*\)/g,'').trim()||t.en;out.push({k,q:tg,vi:t.vi,say:'',target:tg,o:[],a:-1});continue}
   if(k=='mean'){q=`“${t.en}” nghĩa là gì?`;o=[t.vi,...others.map(x=>x.vi)]}
   else if(k=='rev'){q=`Từ tiếng Anh của “${t.vi}”?`;o=[t.en,...others.map(x=>x.en)]}
   else if(k=='listen'){q='Nghe và chọn từ đúng';o=[t.en,...others.map(x=>x.en)]}
-  else {q=ex.replace(re,'_____');o=[t.en,...others.map(x=>x.en)]}
-  const opts=shuf(o.map((x,j)=>({x,ok:j==0})));out.push({k,q,say:k=='listen'?t.en:'',o:opts.map(z=>z.x),a:opts.findIndex(z=>z.ok)})}
- return out}
-const KL={mean:'NGHĨA TỪ',rev:'TỪ TIẾNG ANH',listen:'NGHE CHỌN TỪ',fill:'ĐIỀN TỪ'};
+  else {q=fillOf(t);o=[t.en,...others.map(x=>x.en)]}
+  const opts=shuf(o.map((x,z)=>({x,ok:z==0})));out.push({k,q,say:k=='listen'?t.en:'',hint:k=='fill'?(t.exvi||''):'',o:opts.map(z=>z.x),a:opts.findIndex(z=>z.ok)})}
+ return shuf(out)}
+/* trộn xen kẽ câu của 2 người: 1 câu chủ đề người mời, 1 câu chủ đề người nhận */
+const mix=(A,B)=>{const r=[];for(let i=0;i<Math.max(A.length,B.length);i++){if(A[i])r.push({...A[i],by:'a'});if(B[i])r.push({...B[i],by:'b'})}return r.slice(0,NQ*2)};
+const KL={mean:'NGHĨA TỪ',rev:'TỪ TIẾNG ANH',listen:'NGHE CHỌN TỪ',fill:'ĐIỀN VÀO CHỖ TRỐNG',pron:'PHÁT ÂM · AI CHẤM'};
 
 /* ---------- âm thanh: nhạc nền dưới nước (tự tạo bằng WebAudio, không dùng file) + hiệu ứng ----------
  Nhạc nền: bass nhịp tim + arpeggio "dưới nước"; nước càng cao nhạc càng nhanh và căng. Tắt/bật bằng nút loa. */
@@ -69,7 +80,9 @@ const send=p=>{try{F.ch&&F.ch.send({type:'broadcast',event:'m',payload:p})}catch
 const side=()=>F.host?'a':'b',other=()=>F.host?'b':'a';
 
 function onMsg(p){if(!p||!F.m)return;
- if(p.t=='hello'&&F.host&&F.v=='wait'){F.v='play';rr();setTimeout(()=>next(),900)}
+ if(p.t=='hello'&&F.host&&F.v=='wait'){clearTimeout(F.timer);F.q=mix(F.myQ,Array.isArray(p.q)&&p.q.length?p.q:makeQ('*'));F.opTopic=p.topic||'';
+  send({t:'qs',q:F.q,ta:F.myTopic});F.v='play';rr();try{window.ttsPrefetch&&ttsPrefetch(F.q.filter(x=>x.say).map(x=>x.say))}catch(e){}setTimeout(()=>next(),1200)}
+ else if(p.t=='qs'&&!F.host){clearInterval(F.hello);F.q=p.q;F.opTopic=p.ta||'';try{window.ttsPrefetch&&ttsPrefetch(F.q.filter(x=>x.say).map(x=>x.say))}catch(e){}rr()}
  else if(p.t=='seen'&&F.host){F.seen=true;try{sfx.tap()}catch(e){}}
  else if(p.t=='decline'&&F.host){toast('Đối thủ từ chối lời mời');F.v='pick';leave();rr()}
  else if(p.t=='q'&&!F.host){clearInterval(F.hello);showQ(p.i)}
@@ -82,19 +95,33 @@ function onMsg(p){if(!p||!F.m)return;
 function next(){if(!F.host)return;const i=F.i+1;
  if(i>=F.q.length||F.air.a<=0||F.air.b<=0){const w=F.air.a==F.air.b?null:(F.air.a>F.air.b?'a':'b');send({t:'end',air:F.air,win:w});return finish(w)}
  send({t:'q',i});showQ(i);
- if(F.bot){const ok=Math.random()<.7,ms=2200+Math.random()*5500,extra=F.q[i]&&F.q[i].say?3500:0;setTimeout(()=>{if(F.i!==i||F.v!='play')return;F.ans[i]=F.ans[i]||{};F.ans[i].b={ok,ms:Math.round(ms)};F.opAns=true;judge(i)},ms+extra)}
- clearTimeout(F.timer);F.timer=setTimeout(()=>{F.ans[i]=F.ans[i]||{};for(const s of['a','b'])if(!F.ans[i][s])F.ans[i][s]={ok:false,ms:TLIM};judge(i)},TLIM+800+(F.q[i]&&F.q[i].say?4500:0))}
-function showQ(i){if(i===0)music(true);sfx.q();F.i=i;F.pick=null;F.res=null;F.opAns=false;F.shown=performance.now();F.v='play';const q=F.q[i];F.lock=!!(q&&q.say);rr();
+ if(F.bot){const ok=Math.random()<.7,ms=2200+Math.random()*5500,extra=F.q[i]&&F.q[i].say?3500:F.q[i]&&F.q[i].k=='pron'?2500:0;setTimeout(()=>{if(F.i!==i||F.v!='play')return;F.ans[i]=F.ans[i]||{};F.ans[i].b={ok,ms:Math.round(ms)};F.opAns=true;judge(i)},ms+extra)}
+ clearTimeout(F.timer);F.timer=setTimeout(()=>{F.ans[i]=F.ans[i]||{};for(const s of['a','b'])if(!F.ans[i][s])F.ans[i][s]={ok:false,ms:lim(i)};judge(i)},lim(i)+2500+(F.q[i]&&F.q[i].say?4500:0))}
+const lim=i=>F.q[i]&&F.q[i].k=='pron'?TPRON:TLIM;
+function showQ(i){if(i===0)music(true);sfx.q();F.i=i;F.pick=null;F.heard='';F.pscore=null;F.grading=false;F.res=null;F.opAns=false;F.shown=performance.now();F.v='play';const q=F.q[i];F.lock=!!(q&&q.say);rr();
  /* câu nghe: tự đọc trước, đọc xong mới mở đáp án và bắt đầu tính giờ; không nghe rõ thì bấm Nghe lại */
  if(F.lock){let done=false;const open=()=>{if(done||F.i!==i)return;done=true;F.lock=false;F.shown=performance.now();rr();tickClock()};
   setTimeout(()=>{try{Promise.resolve(say(q.say,0.9)).then(()=>setTimeout(open,250),open)}catch(e){open()}},300);setTimeout(open,4500)}
  else tickClock()}
-function tickClock(){clearInterval(F.clk);F.clk=setInterval(()=>{const el=document.getElementById('fl-clock');if(!el||F.res){clearInterval(F.clk);return}const left=Math.max(0,TLIM-(performance.now()-F.shown));const sec=Math.ceil(left/1000);if(sec<=5&&sec!==F.lastTick&&F.pick==null){F.lastTick=sec;sfx.tick()}el.textContent='0:'+String(sec).padStart(2,'0')},250)}
+function tickClock(){clearInterval(F.clk);F.clk=setInterval(()=>{const el=document.getElementById('fl-clock');if(!el||F.res){clearInterval(F.clk);return}const left=Math.max(0,lim(F.i)-(performance.now()-F.shown));const sec=Math.ceil(left/1000);if(sec<=5&&sec!==F.lastTick&&F.pick==null){F.lastTick=sec;sfx.tick()}el.textContent='0:'+String(sec).padStart(2,'0')},250)}
 function answer(k){if(F.pick!=null||F.res||F.v!='play'||F.lock)return;if(performance.now()-F.shown<350)return;
  const q=F.q[F.i],ok=k===q.a,ms=Math.round(performance.now()-F.shown);F.pick=k;sfx.tap();
  F.ans[F.i]=F.ans[F.i]||{};F.ans[F.i][side()]={ok,ms};send({t:'ans',i:F.i,s:side(),ok,ms});
  try{navigator.vibrate&&navigator.vibrate(ok?15:[30,40,30])}catch(e){}
  if(F.host)judge(F.i);else rr()}
+/* câu phát âm: bấm micro, đọc to, AI nghe và chấm (đúng khi đọc rõ cả từ) */
+async function pron(){if(F.pick!=null||F.res||F.v!='play')return;const q=F.q[F.i];if(!q||q.k!='pron')return;
+ if(F.rec){try{F.rec.stop()}catch(e){}return}
+ let stream;try{stream=typeof micGet=='function'?await micGet():await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){if(window.MIC&&MIC.open)MIC.open();return toast('Cần cho phép micro để đọc')}
+ const mt=['audio/mp4','audio/webm;codecs=opus','audio/webm'].find(x=>window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(x))||'';
+ const mr=new MediaRecorder(stream,mt?{mimeType:mt}:{}),ch=[],i=F.i;mr.ondataavailable=e=>{if(e.data.size)ch.push(e.data)};
+ mr.onstop=async()=>{stream.getTracks().forEach(t=>t.stop());F.rec=null;const ms=Math.round(performance.now()-F.shown);F.pick=0;F.grading=true;rr();
+  let ok=false,heard='';try{const blob=new Blob(ch,{type:mr.mimeType||mt||'audio/mp4'});const b64=await new Promise((r,j)=>{const fr=new FileReader();fr.onload=()=>r(String(fr.result).split(',')[1]);fr.onerror=j;fr.readAsDataURL(blob)});
+   const r=await ai('pron',{audio:b64,mime:(blob.type||'audio/mp4').split(';')[0],target:q.target});heard=String(r&&r.heard||'');
+   const N=x=>x.toLowerCase().replace(/[^a-z' ]+/g,' ').split(/\s+/).filter(Boolean),T=N(q.target),H=N(heard);const hit=T.filter(w=>H.includes(w)).length;F.pscore=T.length?Math.round(hit/T.length*100):0;ok=F.pscore>=70}catch(e){F.pscore=0}
+  F.heard=heard;F.grading=false;if(F.i!==i||F.res)return;
+  F.ans[i]=F.ans[i]||{};F.ans[i][side()]={ok,ms};send({t:'ans',i,s:side(),ok,ms});sfx[ok?'ok':'bad']();if(F.host)judge(i);else rr()};
+ mr.start();F.rec=mr;sfx.tap();rr();setTimeout(()=>{if(F.rec===mr)try{mr.stop()}catch(e){}},3500)}
 function judge(i){if(!F.host||i!==F.i||F.res)return;const A=F.ans[i]||{};if(!A.a||!A.b){rr();return}
  clearTimeout(F.timer);let lose=[],win=null;
  if(A.a.ok&&A.b.ok){win=A.a.ms<=A.b.ms?'a':'b';lose=[win=='a'?'b':'a']}
@@ -113,25 +140,25 @@ async function finish(w){clearTimeout(F.timer);clearInterval(F.clk);F.v='end';F.
 async function loadTargets(){if(F.targets)return;const {data,error}=await SB.rpc('challenge_targets');F.targets=error?[]:(data||[]);
  try{const ids=F.targets.map(t=>t.user_id);const {data:P}=await SB.from('presence').select('user_id,last_seen').in('user_id',ids);const now=Date.now();(P||[]).forEach(p=>{const t=F.targets.find(x=>x.user_id==p.user_id);if(t)t.seen=new Date(p.last_seen).getTime()});F.targets.sort((x,y)=>(y.seen||0)-(x.seen||0))}catch(e){}rr()}
 async function invite(target){try{ac();window.actx&&actx().resume()}catch(e){}if(!uid()){toast('Đăng nhập để chơi');return go('me')}
- const q=makeQ();if(q.length<5)return toast('Bài đang học chưa đủ từ, chọn khóa khác nhé');
- const topic=(window.curTrack&&curTrack()?.name)||'Bài đang học';
+ const q=makeQ(F.topic||'*');if(q.length<5)return toast('Bài đang học chưa đủ từ, chọn khóa khác nhé');
+ const topic=topicName(F.topic||'*');F.myQ=q;F.myTopic=topic;
  const {data,error}=await SB.rpc('flood_invite',{target:target||null,q,topic});
  if(error){if(needSql(error)){F.off=true;rr();return}return toast(error.message)}
  if(target)try{lobby&&lobby.send({type:'broadcast',event:'inv',payload:{to:target,m:data,op:{user_id:uid(),name:(PROF&&PROF.full_name)||'Bạn bè'}}})}catch(e){}
  start(data,true,target?F.targets.find(t=>t.user_id==target):{name:'Kaka',bot:true})}
-function start(m,host,op){try{window.ttsPrefetch&&ttsPrefetch((m.q||[]).filter(x=>x.say).map(x=>x.say))}catch(e){}F.m=m;F.host=host;F.bot=!m.b;F.q=m.q;F.i=-1;F.air={a:AIR,b:AIR};F.ans={};F.res=null;F.pick=null;F.win=undefined;
+function start(m,host,op){try{window.ttsPrefetch&&ttsPrefetch((m.q||[]).filter(x=>x.say).map(x=>x.say))}catch(e){}F.m=m;F.host=host;F.bot=!m.b;F.q=host?m.q:[];if(host)F.myQ=m.q;F.i=-1;F.air={a:AIR,b:AIR};F.ans={};F.res=null;F.pick=null;F.win=undefined;
  F.me={name:(PROF&&PROF.full_name)||'Bạn',avatar:PROF&&PROF.avatar,id:uid()};F.op=op||{name:'Đối thủ'};
- if(F.bot){F.v='play';go('flood');setTimeout(next,900);return}
+ if(F.bot){F.q=mix(F.myQ||m.q,makeQ('*'));F.opTopic='Kaka chọn ngẫu nhiên';F.v='play';go('flood');setTimeout(next,900);return}
  join(m.id);
  if(host){F.v='wait';F.waitUntil=Date.now()+60000;go('flood');F.timer=setTimeout(()=>{if(F.v=='wait'){toast('Đối thủ chưa nhận lời');F.v='pick';leave();rr()}},60000);waitClock()}
- else{F.v='play';go('flood');F.hello=setInterval(()=>send({t:'hello'}),900);send({t:'hello'})}}
+ else{F.myTopic=topicName(F.rTopic||'*');F.myQ=makeQ(F.rTopic||'*');F.v='play';go('flood');const h=()=>send({t:'hello',q:F.myQ,topic:F.myTopic});F.hello=setInterval(h,1000);h()}}
 function waitClock(){F.seen=false;const t=setInterval(()=>{if(F.v!='wait'){clearInterval(t);return}const left=Math.max(0,(F.waitUntil-Date.now()));const el=document.getElementById('fl-wait');if(el)el.textContent=Math.ceil(left/1000)+' giây';const arc=document.getElementById('fw-arc');if(arc)arc.setAttribute('stroke-dashoffset',String(RING*(1-left/60000)));const sn=document.getElementById('fw-seen');if(sn)sn.textContent=F.seen?'👀 '+F.op.name+' đã thấy lời mời…':'Đang gõ cửa nhà '+F.op.name+'…'},250)}
 function cancel(){music(false);if(F.v=='play'&&!F.bot)send({t:'bye'});leave();F.v='pick';F.m=null;rr()}
 
 /* lời mời đến: hộp thoại nổi trên mọi màn hình */
 /* đường nhanh: lời mời tới thẳng qua kênh realtime (không chờ ghi DB) */
 function fastInv(p){if(!p||p.to!==uid()||!p.m||p.m.status!=='invite')return;if(F.seenInv&&F.seenInv[p.m.id])return;(F.seenInv=F.seenInv||{})[p.m.id]=1;
- F.inv={m:p.m,op:p.op||{name:'Bạn bè'},until:Date.now()+60000};showInv();
+ F.rTopic='*';F.inv={m:p.m,op:p.op||{name:'Bạn bè'},until:Date.now()+60000};showInv();
  SB.rpc('flood_people',{mid:p.m.id}).then(({data})=>{const o=(data||[]).find(x=>x.user_id==p.m.a);if(o&&F.inv&&F.inv.m.id==p.m.id){F.inv.op=o;showInv()}}).catch(()=>{})}
 async function incoming(n){if(n.kind!=='flood')return;const id=+n.body;if(!id)return;if(F.seenInv&&F.seenInv[id])return;(F.seenInv=F.seenInv||{})[id]=1;
  const {data}=await SB.from('flood_matches').select('*').eq('id',id).maybeSingle();if(!data||data.status!=='invite')return;
@@ -147,7 +174,8 @@ function showInv(){document.getElementById('fl-inv')?.remove();const I=F.inv;if(
   <div class="fi-av"><svg class="fi-ring" viewBox="0 0 68 68" aria-hidden="true"><circle cx="34" cy="34" r="30" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="5"/><circle id="fi-arc" cx="34" cy="34" r="30" fill="none" stroke="#ffd257" stroke-width="5" stroke-linecap="round" stroke-dasharray="${RING}" stroke-dashoffset="0" transform="rotate(-90 34 34)"/></svg><span class="fi-face">${window.avatarHTML?avatarHTML(I.op.avatar,I.op.user_id||I.op.name,84):''}</span><span class="fi-sw" aria-hidden="true">⚔️</span></div>
   <div class="fi-body"><span class="fi-tag">THÁCH ĐẤU NƯỚC DÂNG</span>
    <h2 id="fl-inv-t">${nm} rủ bạn<br>xuống nước! 🌊</h2>
-   <p>${esc2(I.m.topic||'Bài đang học')} · ${n} câu · ai chậm bị nước dâng</p>
+   <p>Chủ đề của ${nm}: <b>${esc2(I.m.topic||'Trộn tất cả')}</b> · trận ${n*2} câu</p>
+   <label class="fi-sel"><span>Chủ đề của bạn (10 câu)</span><select onchange="FLX.rt(this.value)">${topics().map(t=>`<option value="${esc2(t.id)}">${esc2(t.n)} · ${t.c} từ</option>`).join('')}</select></label>
    <div class="fi-time" role="timer" aria-live="off"><b id="fi-sec">60</b> giây để nhận lời</div>
    <button class="fi-yes" onclick="FLX.respond(true)">🏊 Nhận lời, chiến luôn!</button>
    <button class="fi-no" onclick="FLX.respond(false)">Để lần sau</button></div></div>`;
@@ -226,6 +254,8 @@ const css2=`#fl-inv{position:fixed;inset:0;z-index:2147483100;display:grid;place
 .fi-yes{min-height:56px;border:0;border-radius:16px;background:#ffd257;color:#14212e;font:800 1.12rem var(--fd);box-shadow:0 6px 0 #c99a1c,0 10px 20px rgba(0,0,0,.25);cursor:pointer;animation:fiJig 2.4s ease-in-out infinite}
 .fi-yes:active{transform:translateY(4px);box-shadow:0 2px 0 #c99a1c}
 @keyframes fiJig{0%,80%,100%{transform:none}84%{transform:rotate(-2deg) scale(1.03)}88%{transform:rotate(2deg) scale(1.03)}92%{transform:rotate(-1deg)}}
+.fi-sel{display:flex;flex-direction:column;gap:4px;text-align:left;font-size:.82rem;color:#d6e8fb}.fi-sel select{min-height:44px;border-radius:12px;border:0;padding:0 10px;font:600 .95rem inherit;color:#14212e;background:#fff}
+.fl-mic{width:84px;height:84px;border-radius:50%;border:0;background:var(--bad);color:#fff;display:grid;place-items:center;box-shadow:0 8px 20px rgba(200,67,58,.35);cursor:pointer}.fl-mic.rec{animation:flmic 1.2s infinite}.fl-mic:disabled{opacity:.5}@keyframes flmic{0%{box-shadow:0 0 0 0 rgba(200,67,58,.6)}100%{box-shadow:0 0 0 22px rgba(200,67,58,0)}}
 .fi-no{min-height:44px;border:0;background:none;color:#d6e8fb;font:600 .95rem inherit;text-decoration:underline;cursor:pointer}
 .fi-hurry .fi-time{background:#c8433a;animation:fiBlink .5s steps(1) infinite}@keyframes fiBlink{50%{opacity:.6}}
 .fi-out .fi-card{animation:fiOut .3s both}@keyframes fiOut{to{transform:translateY(40px) scale(.9);opacity:0}}
@@ -254,7 +284,9 @@ function vFlood(){
  if(F.off)return `<button class="link" onclick="go('duel')">‹ Thách đấu</button><h1>Nước Dâng</h1><div class="note">Admin cần chạy <b>supabase/flood.sql</b> trên Supabase để mở game này.</div>`;
  if(F.v=='pick'){loadTargets();const now=Date.now();
   return `<button class="link" onclick="go('duel')">‹ Thách đấu</button>
-  <div class="card" style="margin-top:8px;color:#fff;border:0;background:repeating-linear-gradient(100deg,#1b3f61 0 14px,#214b72 14px 28px)"><div class="lbl" style="color:#dbe6f0">GAME · 1 ĐẤU 1</div><h1 style="margin:2px 0;color:#fff">Nước Dâng</h1><p style="margin:0;color:#dbe6f0;font-size:.92rem">Trả lời nhanh và đúng hơn bạn đấu. Ai chậm hay sai bị nước dâng lên, hết ${AIR} nấc hơi là thua. ${NQ} câu lấy từ bài bạn đang học.</p></div>
+  <div class="card" style="margin-top:8px;color:#fff;border:0;background:repeating-linear-gradient(100deg,#1b3f61 0 14px,#214b72 14px 28px)"><div class="lbl" style="color:#dbe6f0">GAME · 1 ĐẤU 1</div><h1 style="margin:2px 0;color:#fff">Nước Dâng</h1><p style="margin:0;color:#dbe6f0;font-size:.92rem">Trả lời nhanh và đúng hơn bạn đấu. Ai chậm hay sai bị nước dâng lên, hết ${AIR} nấc hơi là thua. Trận ${NQ*2} câu: ${NQ} câu chủ đề của bạn + ${NQ} câu chủ đề đối thủ chọn.</p></div>
+  <div class="sec-h"><h2>Chủ đề của bạn</h2><span class="mut">10 câu</span></div><div class="row" style="gap:8px;flex-wrap:wrap">${topics().map(t=>`<button class="chip ${(F.topic||'*')==t.id?'on':''}" aria-pressed="${(F.topic||'*')==t.id}" onclick="FLX.tp('${esc2(t.id)}')">${esc2(t.n)} · ${t.c}</button>`).join('')}</div>
+  <p class="mut" style="font-size:.85rem;margin:6px 0 0">Đối thủ cũng chọn 1 chủ đề khi nhận lời. Hệ thống trộn 10 câu của bạn + 10 câu của họ = 20 câu.</p>
   <div class="sec-h"><h2>Chọn đối thủ</h2></div><div class="stack">
   <button class="card row" style="flex-wrap:nowrap;gap:12px;text-align:left;width:100%" onclick="FLX.invite(null)"><span class="tile2-ic">🤖</span><span style="flex:1"><b>Kaka (máy)</b><small class="mut" style="display:block">Luôn sẵn sàng · đúng khoảng 70%</small></span><span class="chip">Đấu ngay</span></button>
   ${F.targets==null?'<p class="mut">Đang tải bạn bè…</p>':F.targets.length?F.targets.map(t=>{const on=F.online.has(t.user_id)||t.online===true||(t.seen&&now-t.seen<120000);return `<button class="card row" style="flex-wrap:nowrap;gap:12px;text-align:left;width:100%" onclick="FLX.invite('${t.user_id}')">${window.avatarHTML?avatarHTML(t.avatar,t.user_id,44):''}<span style="flex:1;min-width:0"><b>${esc2(t.name)}</b><small style="display:block;color:${on?'var(--good)':'var(--mut)'}">${on?'● Đang online':'Không online · có thể không kịp nhận lời'}</small></span><span class="chip">Mời</span></button>`}).join(''):'<p class="mut">Chưa có bạn bè. Kết bạn trong mục Thách đấu để mời nhé.</p>'}</div>`}
@@ -269,7 +301,7 @@ function vFlood(){
   return `${top()}<div class="fl-q"><div class="lbl" style="text-align:center">KẾT QUẢ</div><h1 style="margin:0;text-align:center">${draw?'Hòa!':won?'Bạn thắng!':esc2(F.op.name)+' thắng'}</h1>
   <p class="mut" style="margin:0;text-align:center">${draw?'Hai bạn còn số hơi bằng nhau.':won?esc2(F.op.name)+' đã hết hơi.':'Bạn đã hết hơi. Phục thù nhé!'}</p>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center"><div class="card" style="padding:10px"><b style="font:800 1.4rem var(--fd);color:var(--good)">${myOk}/${n}</b><small class="mut" style="display:block">câu đúng</small></div><div class="card" style="padding:10px"><b style="font:800 1.4rem var(--fd)">${avg}s</b><small class="mut" style="display:block">trung bình</small></div><div class="card" style="padding:10px"><b style="font:800 1.4rem var(--fd);color:var(--warn)">+${F.xp} XP</b><small class="mut" style="display:block">${won?'thắng':draw?'hòa':'tham gia'}</small></div></div>
-  ${wrong.length?`<div class="card stack" style="gap:6px;padding:12px"><b>Ôn lại câu bạn trả lời sai</b>${wrong.map(q=>`<span class="mut">${esc2(q.q)} → <b style="color:var(--ink)">${esc2(q.o[q.a])}</b></span>`).join('')}</div>`:''}
+  ${wrong.length?`<div class="card stack" style="gap:6px;padding:12px"><b>Ôn lại câu bạn trả lời sai</b>${wrong.map(q=>`<span class="mut">${q.k=='pron'?'Đọc lại: ':esc2(q.q)+' → '}<b style="color:var(--ink)">${esc2(q.k=='pron'?q.target+' ('+(q.vi||'')+')':q.o[q.a])}</b></span>`).join('')}</div>`:''}
   <button class="btn" onclick="FLX.again()">${F.bot?'Đấu lại với Kaka':'Phục thù · mời lại'}</button><button class="btn ghost" onclick="FLX.cancel()">Chọn đối thủ khác</button></div>`}
  /* đang chơi */
  const q=F.q[F.i];
@@ -277,11 +309,12 @@ function vFlood(){
  const R=F.res;const me=side();
  const fb=R?(R.lose.length==2?'Cả hai đều sai, cùng dâng nước!':R.win===me?`✓ Bạn thắng câu này${R.A[other()]&&R.A[other()].ok?` · nhanh hơn ${((R.A[other()].ms-R.A[me].ms)/1000).toFixed(1).replace('.',',')} giây`:''}`:(R.A[me]&&R.A[me].ok?`${esc2(F.op.name)} nhanh hơn ${((R.A[me].ms-R.A[other()].ms)/1000).toFixed(1).replace('.',',')} giây`:'✗ Sai rồi, nước bên bạn dâng lên')):(F.pick!=null?'Đã chọn · chờ đối thủ…':'');
  return `${top()}<div class="fl-q"><div class="row" style="justify-content:space-between"><span class="lbl">${KL[q.k]||''}</span><span class="row" style="gap:6px;flex-wrap:nowrap"><button class="ic" onclick="FLX.snd()" aria-label="${SND.on?'Tắt':'Bật'} nhạc" aria-pressed="${SND.on}">${SND.on?'🔊':'🔇'}</button><button class="link" style="font-size:.85rem" onclick="FLX.cancel()">Rời trận</button></span></div>
- <h2 style="margin:0;font-size:1.45rem;line-height:1.25;text-wrap:balance">${esc2(q.q)}</h2>${q.say?`<button class="chip" style="align-self:flex-start;min-height:44px;${F.lock?'background:var(--steel);color:#fff':''}" onclick="say(${esc2(JSON.stringify(q.say))},0.8)" aria-label="Nghe lại chậm">${F.lock?'🔊 Đang đọc… nghe kỹ nhé':'🔊 Nghe lại (chậm)'}</button>`:''}
- <div class="fl-opts">${q.o.map((o,k)=>{const cls=R?(k===q.a?'ok':k===F.pick?'no':''):(k===F.pick?'ok':'');return `<button class="${cls}" ${F.pick!=null||R||F.lock?'disabled':''} style="${F.lock?'opacity:.45':''}" onclick="FLX.answer(${k})">${esc2(o)}</button>`}).join('')}</div>
+ ${q.by?`<small class="mut" style="margin-top:-6px">Chủ đề của ${q.by===me?'bạn':esc2(F.op.name)}: ${esc2(q.by=='a'?(me=='a'?F.myTopic:F.opTopic):(me=='b'?F.myTopic:F.opTopic))||''}</small>`:''}
+ ${q.k=='pron'?`<div style="text-align:center"><h2 style="margin:0;font:800 2rem/1.15 var(--fd)">${esc2(q.target)}</h2><div class="mut">${esc2(q.vi||'')}</div></div>`:`<h2 style="margin:0;font-size:1.45rem;line-height:1.25;text-wrap:balance">${esc2(q.q)}</h2>${q.hint?`<small class="mut">${esc2(q.hint)}</small>`:''}`}${q.say?`<button class="chip" style="align-self:flex-start;min-height:44px;${F.lock?'background:var(--steel);color:#fff':''}" onclick="say(${esc2(JSON.stringify(q.say))},0.8)" aria-label="Nghe lại chậm">${F.lock?'🔊 Đang đọc… nghe kỹ nhé':'🔊 Nghe lại (chậm)'}</button>`:''}
+ ${q.k=='pron'?`<div style="display:flex;flex-direction:column;align-items:center;gap:8px"><button class="fl-mic ${F.rec?'rec':''}" onclick="FLX.pron()" ${F.pick!=null||R||F.grading?'disabled':''} aria-label="${F.rec?'Dừng và chấm':'Bấm để đọc'}"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4"/></svg></button><small class="mut">${F.rec?'● Đang nghe… đọc to rồi chạm để dừng':F.grading?'AI đang chấm…':F.pscore!=null?`AI nghe: “${esc2(F.heard||'…')}” · <b style="color:${F.pscore>=70?'var(--good)':'var(--bad)'}">${F.pscore} điểm</b>`:'Bấm micro, đọc to từ trên · đạt 70 điểm là đúng'}</small><button class="chip" onclick="say(${esc2(JSON.stringify(q.target))},0.85)">🔊 Nghe mẫu</button></div>`:`<div class="fl-opts">${q.o.map((o,k)=>{const cls=R?(k===q.a?'ok':k===F.pick?'no':''):(k===F.pick?'ok':'');return `<button class="${cls}" ${F.pick!=null||R||F.lock?'disabled':''} style="${F.lock?'opacity:.45':''}" onclick="FLX.answer(${k})">${esc2(o)}</button>`}).join('')}</div>`}
  <div role="status" style="min-height:44px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:600;color:${R&&R.win===me?'var(--good)':R?'var(--bad)':'var(--mut)'}">${fb}</div></div>`}
 function again(){const op=F.op,b=F.m&&F.m.b;F.v='pick';invite(F.bot?null:(F.host?b:F.m.a)).then(()=>{})}
-window.vFlood=vFlood;window.FLX={_fast:fastInv,snd:sndToggle,invite,answer,cancel,respond,again};
+window.vFlood=vFlood;window.FLX={pron,tp:v=>{F.topic=v;rr()},rt:v=>{F.rTopic=v},_fast:fastInv,snd:sndToggle,invite,answer,cancel,respond,again};
 /* thẻ vào game ở trang Thách đấu */
 window.floodCard=()=>`<button class="card login-nudge" onclick="FLD.v='pick';go('flood')" style="background:linear-gradient(140deg,#1e88e5,#0b3b6e);color:#fff;border:0"><span class="tile2-ic" style="background:rgba(255,255,255,.2)">🌊</span><span style="flex:1;text-align:left"><b style="color:#fff">Nước Dâng · đấu 1-1</b><small style="color:#dbe6f0">Ai chậm bị nước dâng · realtime</small></span><span class="chev" style="color:#fff">›</span></button>`;
 })();
