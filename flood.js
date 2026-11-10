@@ -82,11 +82,15 @@ function onMsg(p){if(!p||!F.m)return;
 function next(){if(!F.host)return;const i=F.i+1;
  if(i>=F.q.length||F.air.a<=0||F.air.b<=0){const w=F.air.a==F.air.b?null:(F.air.a>F.air.b?'a':'b');send({t:'end',air:F.air,win:w});return finish(w)}
  send({t:'q',i});showQ(i);
- if(F.bot){const ok=Math.random()<.7,ms=2200+Math.random()*5500;setTimeout(()=>{if(F.i!==i||F.v!='play')return;F.ans[i]=F.ans[i]||{};F.ans[i].b={ok,ms:Math.round(ms)};F.opAns=true;judge(i)},ms)}
- clearTimeout(F.timer);F.timer=setTimeout(()=>{F.ans[i]=F.ans[i]||{};for(const s of['a','b'])if(!F.ans[i][s])F.ans[i][s]={ok:false,ms:TLIM};judge(i)},TLIM+800)}
-function showQ(i){if(i===0)music(true);sfx.q();F.i=i;F.pick=null;F.res=null;F.opAns=false;F.shown=performance.now();F.v='play';rr();const q=F.q[i];if(q&&q.say)setTimeout(()=>{try{say(q.say)}catch(e){}},250);tickClock()}
+ if(F.bot){const ok=Math.random()<.7,ms=2200+Math.random()*5500,extra=F.q[i]&&F.q[i].say?3500:0;setTimeout(()=>{if(F.i!==i||F.v!='play')return;F.ans[i]=F.ans[i]||{};F.ans[i].b={ok,ms:Math.round(ms)};F.opAns=true;judge(i)},ms+extra)}
+ clearTimeout(F.timer);F.timer=setTimeout(()=>{F.ans[i]=F.ans[i]||{};for(const s of['a','b'])if(!F.ans[i][s])F.ans[i][s]={ok:false,ms:TLIM};judge(i)},TLIM+800+(F.q[i]&&F.q[i].say?4500:0))}
+function showQ(i){if(i===0)music(true);sfx.q();F.i=i;F.pick=null;F.res=null;F.opAns=false;F.shown=performance.now();F.v='play';const q=F.q[i];F.lock=!!(q&&q.say);rr();
+ /* câu nghe: tự đọc trước, đọc xong mới mở đáp án và bắt đầu tính giờ; không nghe rõ thì bấm Nghe lại */
+ if(F.lock){let done=false;const open=()=>{if(done||F.i!==i)return;done=true;F.lock=false;F.shown=performance.now();rr();tickClock()};
+  setTimeout(()=>{try{Promise.resolve(say(q.say,0.9)).then(()=>setTimeout(open,250),open)}catch(e){open()}},300);setTimeout(open,4500)}
+ else tickClock()}
 function tickClock(){clearInterval(F.clk);F.clk=setInterval(()=>{const el=document.getElementById('fl-clock');if(!el||F.res){clearInterval(F.clk);return}const left=Math.max(0,TLIM-(performance.now()-F.shown));const sec=Math.ceil(left/1000);if(sec<=5&&sec!==F.lastTick&&F.pick==null){F.lastTick=sec;sfx.tick()}el.textContent='0:'+String(sec).padStart(2,'0')},250)}
-function answer(k){if(F.pick!=null||F.res||F.v!='play')return;if(performance.now()-F.shown<350)return;
+function answer(k){if(F.pick!=null||F.res||F.v!='play'||F.lock)return;if(performance.now()-F.shown<350)return;
  const q=F.q[F.i],ok=k===q.a,ms=Math.round(performance.now()-F.shown);F.pick=k;sfx.tap();
  F.ans[F.i]=F.ans[F.i]||{};F.ans[F.i][side()]={ok,ms};send({t:'ans',i:F.i,s:side(),ok,ms});
  try{navigator.vibrate&&navigator.vibrate(ok?15:[30,40,30])}catch(e){}
@@ -108,14 +112,14 @@ async function finish(w){clearTimeout(F.timer);clearInterval(F.clk);F.v='end';F.
 /* ---------- mời / nhận lời ---------- */
 async function loadTargets(){if(F.targets)return;const {data,error}=await SB.rpc('challenge_targets');F.targets=error?[]:(data||[]);
  try{const ids=F.targets.map(t=>t.user_id);const {data:P}=await SB.from('presence').select('user_id,last_seen').in('user_id',ids);const now=Date.now();(P||[]).forEach(p=>{const t=F.targets.find(x=>x.user_id==p.user_id);if(t)t.seen=new Date(p.last_seen).getTime()});F.targets.sort((x,y)=>(y.seen||0)-(x.seen||0))}catch(e){}rr()}
-async function invite(target){try{ac()}catch(e){}if(!uid()){toast('Đăng nhập để chơi');return go('me')}
+async function invite(target){try{ac();window.actx&&actx().resume()}catch(e){}if(!uid()){toast('Đăng nhập để chơi');return go('me')}
  const q=makeQ();if(q.length<5)return toast('Bài đang học chưa đủ từ, chọn khóa khác nhé');
  const topic=(window.curTrack&&curTrack()?.name)||'Bài đang học';
  const {data,error}=await SB.rpc('flood_invite',{target:target||null,q,topic});
  if(error){if(needSql(error)){F.off=true;rr();return}return toast(error.message)}
  if(target)try{lobby&&lobby.send({type:'broadcast',event:'inv',payload:{to:target,m:data,op:{user_id:uid(),name:(PROF&&PROF.full_name)||'Bạn bè'}}})}catch(e){}
  start(data,true,target?F.targets.find(t=>t.user_id==target):{name:'Kaka',bot:true})}
-function start(m,host,op){F.m=m;F.host=host;F.bot=!m.b;F.q=m.q;F.i=-1;F.air={a:AIR,b:AIR};F.ans={};F.res=null;F.pick=null;F.win=undefined;
+function start(m,host,op){try{window.ttsPrefetch&&ttsPrefetch((m.q||[]).filter(x=>x.say).map(x=>x.say))}catch(e){}F.m=m;F.host=host;F.bot=!m.b;F.q=m.q;F.i=-1;F.air={a:AIR,b:AIR};F.ans={};F.res=null;F.pick=null;F.win=undefined;
  F.me={name:(PROF&&PROF.full_name)||'Bạn',avatar:PROF&&PROF.avatar,id:uid()};F.op=op||{name:'Đối thủ'};
  if(F.bot){F.v='play';go('flood');setTimeout(next,900);return}
  join(m.id);
@@ -157,7 +161,7 @@ function showInv(){document.getElementById('fl-inv')?.remove();const I=F.inv;if(
   if(left<=0){clearInterval(F.invClk);F.inv=null;d.classList.add('fi-out');setTimeout(()=>d.remove(),300);toast('Lời mời của '+(I.op.name||'bạn bè')+' đã hết hạn')}},250);
  /* báo người mời là mình đã thấy lời mời */
  if(F.v!='play'&&!F.ch){join(I.m.id);setTimeout(()=>send({t:'seen'}),700)}}
-async function respond(ok){if(ok)try{ac()}catch(e){}const I=F.inv;F.inv=null;clearInterval(F.invRing);clearInterval(F.invClk);
+async function respond(ok){if(ok)try{ac();window.actx&&actx().resume()}catch(e){}const I=F.inv;F.inv=null;clearInterval(F.invRing);clearInterval(F.invClk);
  const d=document.getElementById('fl-inv');if(d){d.classList.add(ok?'fi-go':'fi-out');setTimeout(()=>d.remove(),ok?450:300)}if(!I)return;
  if(!ok){send({t:'decline'});setTimeout(leave,500);SB.rpc('flood_respond',{mid:I.m.id,accept:false}).catch(()=>{});return}
  const {data,error}=await SB.rpc('flood_respond',{mid:I.m.id,accept:true});
@@ -273,8 +277,8 @@ function vFlood(){
  const R=F.res;const me=side();
  const fb=R?(R.lose.length==2?'Cả hai đều sai, cùng dâng nước!':R.win===me?`✓ Bạn thắng câu này${R.A[other()]&&R.A[other()].ok?` · nhanh hơn ${((R.A[other()].ms-R.A[me].ms)/1000).toFixed(1).replace('.',',')} giây`:''}`:(R.A[me]&&R.A[me].ok?`${esc2(F.op.name)} nhanh hơn ${((R.A[me].ms-R.A[other()].ms)/1000).toFixed(1).replace('.',',')} giây`:'✗ Sai rồi, nước bên bạn dâng lên')):(F.pick!=null?'Đã chọn · chờ đối thủ…':'');
  return `${top()}<div class="fl-q"><div class="row" style="justify-content:space-between"><span class="lbl">${KL[q.k]||''}</span><span class="row" style="gap:6px;flex-wrap:nowrap"><button class="ic" onclick="FLX.snd()" aria-label="${SND.on?'Tắt':'Bật'} nhạc" aria-pressed="${SND.on}">${SND.on?'🔊':'🔇'}</button><button class="link" style="font-size:.85rem" onclick="FLX.cancel()">Rời trận</button></span></div>
- <h2 style="margin:0;font-size:1.45rem;line-height:1.25;text-wrap:balance">${esc2(q.q)}</h2>${q.say?`<button class="chip" style="align-self:flex-start" onclick="say(${esc2(JSON.stringify(q.say))})">🔊 Nghe lại</button>`:''}
- <div class="fl-opts">${q.o.map((o,k)=>{const cls=R?(k===q.a?'ok':k===F.pick?'no':''):(k===F.pick?'ok':'');return `<button class="${cls}" ${F.pick!=null||R?'disabled':''} onclick="FLX.answer(${k})">${esc2(o)}</button>`}).join('')}</div>
+ <h2 style="margin:0;font-size:1.45rem;line-height:1.25;text-wrap:balance">${esc2(q.q)}</h2>${q.say?`<button class="chip" style="align-self:flex-start;min-height:44px;${F.lock?'background:var(--steel);color:#fff':''}" onclick="say(${esc2(JSON.stringify(q.say))},0.8)" aria-label="Nghe lại chậm">${F.lock?'🔊 Đang đọc… nghe kỹ nhé':'🔊 Nghe lại (chậm)'}</button>`:''}
+ <div class="fl-opts">${q.o.map((o,k)=>{const cls=R?(k===q.a?'ok':k===F.pick?'no':''):(k===F.pick?'ok':'');return `<button class="${cls}" ${F.pick!=null||R||F.lock?'disabled':''} style="${F.lock?'opacity:.45':''}" onclick="FLX.answer(${k})">${esc2(o)}</button>`}).join('')}</div>
  <div role="status" style="min-height:44px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:600;color:${R&&R.win===me?'var(--good)':R?'var(--bad)':'var(--mut)'}">${fb}</div></div>`}
 function again(){const op=F.op,b=F.m&&F.m.b;F.v='pick';invite(F.bot?null:(F.host?b:F.m.a)).then(()=>{})}
 window.vFlood=vFlood;window.FLX={_fast:fastInv,snd:sndToggle,invite,answer,cancel,respond,again};
