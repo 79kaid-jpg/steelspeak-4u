@@ -30,7 +30,7 @@ function count(){NT.unread=NT.list.filter(n=>!n.read_at).length;NT.msgUnread=NT.
 /* --- Nút tin nhắn nổi: chỉ hiện khi có tin chưa đọc; rung + chữ BUZZ khi có BUZZ --- */
 function fab(){let el=document.getElementById('msgfab');const L=NT.list.filter(n=>!n.read_at&&n.kind=='msg');
  /* luôn hiện (khi đã đăng nhập) để nhắn tin nhanh; có tin mới thì nở to kèm tên người gửi */
- const hide=typeof USER=='undefined'||!USER||(typeof S!='undefined'&&(S.tab=='msg'||S.game));
+ const hide=typeof USER=='undefined'||!USER||(typeof S!='undefined'&&(S.tab=='msg'||S.game||(S.tab=='flood'&&window.FLD&&FLD.v=='play')));
  if(hide){if(el)el.remove();return}
  if(!document.getElementById('fabcss')){const st=document.createElement('style');st.id='fabcss';st.textContent=`
 #msgfab{position:fixed;left:max(16px,calc(50vw - 224px));bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:60;display:flex;align-items:center;gap:8px;min-height:52px;padding:0 16px 0 12px;border-radius:999px;border:0;background:var(--steel);color:var(--onsteel);font:inherit;font-weight:700;box-shadow:0 8px 22px color-mix(in srgb,var(--steel) 45%,transparent);animation:mfin .35s cubic-bezier(.2,1.3,.4,1)}
