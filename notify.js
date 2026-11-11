@@ -95,14 +95,15 @@ async function loadThread(uid,inc){const first=NT.thread!==uid||!document.queryS
 function fitDock(){const sh=document.querySelector('.cx-shell');document.body.classList.toggle('cx-on',!!sh);if(!sh)return;const vv=window.visualViewport,n=document.querySelector('nav');
  const vh=vv?vv.height:innerHeight,kb=innerHeight-vh>120;const h=kb?vh:vh-((n&&n.offsetHeight)||0);sh.style.height=h+'px';sh.style.transform=vv&&kb?`translateY(${vv.offsetTop}px)`:'';sh.classList.toggle('kb',kb);watchList()}
 const scEl=()=>document.getElementById('cxscroll');
-(function hookR(){if(typeof render!='function')return setTimeout(hookR,300);if(render._cx)return;const r0=render;const w=function(){const e0=scEl(),st=e0?e0.scrollTop:null,ne=e0?nearEnd():true;const x=r0.apply(this,arguments);try{fitDock();const e=scEl();if(e){if(ne)e.scrollTop=e.scrollHeight;else if(st!=null)e.scrollTop=st}}catch(e){}return x};Object.assign(w,r0);w._cx=1;window.render=w})();
+(function hookR(){if(typeof render!='function')return setTimeout(hookR,300);if(render._cx)return;const r0=render;const w=function(){const e0=scEl(),st=e0?e0.scrollTop:null,ne=e0?nearEnd():true;const x=r0.apply(this,arguments);try{if(!e0&&!document.querySelector('.cx-shell')&&!document.body.classList.contains('cx-on'))return x;fitDock();const e=scEl();if(e){if(ne)e.scrollTop=e.scrollHeight;else if(st!=null)e.scrollTop=st}}catch(e){}return x};Object.assign(w,r0);w._cx=1;window.render=w})();
 const nearEnd=()=>{const e=scEl();return !e||e.scrollTop+e.clientHeight>=e.scrollHeight-160};
 /* danh sách cao thêm (ảnh tải xong, tin mới) khi đang ở cuối → bám theo cuối */
 let roL=null;const ro=window.ResizeObserver?new ResizeObserver(()=>{const e=scEl();if(e&&e._atEnd!==false)e.scrollTop=e.scrollHeight}):null;
 function watchList(){const l=document.querySelector('.cx-list');if(!ro||!l||l===roL)return;try{roL&&ro.unobserve(roL)}catch(_){}roL=l;ro.observe(l)}
 function onScroll(){const e=scEl();if(e)e._atEnd=nearEnd();if(NT.newPill&&nearEnd()){NT.newPill=0;document.querySelector('.cx-new')?.remove()}}
-if(window.visualViewport){visualViewport.addEventListener('resize',()=>{const w=nearEnd();fitDock();if(w)toEnd()});visualViewport.addEventListener('scroll',fitDock)}
-function toEnd(sm){if(NT.newPill){NT.newPill=0;document.querySelector('.cx-new')?.remove()}fitDock();const e=scEl();if(e)e.scrollTo({top:e.scrollHeight,behavior:sm?'smooth':'auto'});else window.scrollTo({top:document.documentElement.scrollHeight,behavior:sm?'smooth':'auto'})}
+/* chỉ can thiệp khi đang mở khung chat; các trang khác (ô nhập bài học…) để iPhone tự xử lý bàn phím */
+if(window.visualViewport){visualViewport.addEventListener('resize',()=>{if(!scEl())return;const w=nearEnd();fitDock();if(w)toEnd()});visualViewport.addEventListener('scroll',()=>{if(scEl())fitDock()})}
+function toEnd(sm){if(NT.newPill){NT.newPill=0;document.querySelector('.cx-new')?.remove()}fitDock();const e=scEl();if(e)e.scrollTo({top:e.scrollHeight,behavior:sm?'smooth':'auto'})}
 addEventListener('resize',()=>fitDock());addEventListener('scroll',()=>{if(NT.newPill&&innerHeight+scrollY>=document.documentElement.scrollHeight-60){NT.newPill=0;document.querySelector('.cx-new')?.remove()}},{passive:true});
 async function loadThreads(){const {data,error}=await SB.rpc('admin_threads');NT.threads=error?[]:(data||[]);NT.terr=error&&error.message;rr()}
 /* Ký tự nhanh → emoji, ví dụ :) → 🙂 */
