@@ -84,15 +84,25 @@ async function readNotes(kind,ref){const ids=NT.list.filter(n=>!n.read_at&&(!kin
  NT.list.forEach(n=>{if(ids.includes(n.id))n.read_at=new Date().toISOString()});count();await SB.from('notifications').update({read_at:new Date().toISOString()}).in('id',ids)}
 
 /* --- tin nhắn --- */
-async function loadThread(uid,inc){const first=NT.thread!==uid||!document.querySelector('.cx-list');if(first)NT.seenIds=new Set();NT.thread=uid;const near=innerHeight+scrollY>=document.documentElement.scrollHeight-220,y=scrollY;
+async function loadThread(uid,inc){const first=NT.thread!==uid||!document.querySelector('.cx-list');if(first)NT.seenIds=new Set();NT.thread=uid;const near=nearEnd(),y=scEl()?scEl().scrollTop:0;
  const {data}=await SB.from('messages').select('*').eq('user_id',uid).order('id').limit(300);
  const pend=(NT.msgs||[]).filter(m=>m.pending);(data||[]).forEach(m=>{const k=pend.findIndex(p=>p.body===m.body);if(k>=0){NT.seenIds.add(String(m.id));pend.splice(k,1)}});
  NT.msgs=(data||[]).concat(pend);if(first){markSeen()}
  if(first)rr();else rrChat();
  SB.rpc('msg_read',{thread:uid}).then(()=>{},()=>{});NT.list.forEach(n=>{if(n.kind=='msg'&&n.ref==uid)n.read_at=n.read_at||new Date().toISOString()});count();
- if(inc&&!near){NT.newPill=(NT.newPill||0)+1;rr();setTimeout(()=>{fitDock();scrollTo(0,y)},30)}else{NT.newPill=0;requestAnimationFrame(()=>{fitDock();toEnd(!first)});setTimeout(()=>document.querySelectorAll('.cx-list img').forEach(im=>{if(!im.complete)im.addEventListener('load',()=>{if(innerHeight+scrollY>=document.documentElement.scrollHeight-400)toEnd()},{once:true})}),60)}}
-function fitDock(){const d=document.querySelector('.cx-dock'),n=document.querySelector('nav'),sp=document.getElementById('cxsp');if(!d)return;if(n&&n.offsetHeight)d.style.bottom=n.offsetHeight+'px';if(sp)sp.style.height=(d.offsetHeight+8)+'px'}
-function toEnd(sm){if(NT.newPill){NT.newPill=0;document.querySelector('.cx-new')?.remove()}fitDock();window.scrollTo({top:document.documentElement.scrollHeight,behavior:sm?'smooth':'auto'})}
+ if(inc&&!near){NT.newPill=(NT.newPill||0)+1;rr();setTimeout(()=>{fitDock();const e=scEl();if(e)e.scrollTop=y},30)}else{NT.newPill=0;requestAnimationFrame(()=>{fitDock();toEnd(!first)});setTimeout(()=>document.querySelectorAll('.cx-list img').forEach(im=>{if(!im.complete)im.addEventListener('load',()=>{if(nearEnd())toEnd()},{once:true})}),60)}}
+/* khung chat cố định theo vùng nhìn thấy (visualViewport): bàn phím mở thì khung co lại vừa phía trên bàn phím, trang không tự cuộn/giật */
+function fitDock(){const sh=document.querySelector('.cx-shell');document.body.classList.toggle('cx-on',!!sh);if(!sh)return;const vv=window.visualViewport,n=document.querySelector('nav');
+ const vh=vv?vv.height:innerHeight,kb=innerHeight-vh>120;const h=kb?vh:vh-((n&&n.offsetHeight)||0);sh.style.height=h+'px';sh.style.transform=vv&&kb?`translateY(${vv.offsetTop}px)`:'';sh.classList.toggle('kb',kb);watchList()}
+const scEl=()=>document.getElementById('cxscroll');
+(function hookR(){if(typeof render!='function')return setTimeout(hookR,300);if(render._cx)return;const r0=render;const w=function(){const e0=scEl(),st=e0?e0.scrollTop:null,ne=e0?nearEnd():true;const x=r0.apply(this,arguments);try{fitDock();const e=scEl();if(e){if(ne)e.scrollTop=e.scrollHeight;else if(st!=null)e.scrollTop=st}}catch(e){}return x};Object.assign(w,r0);w._cx=1;window.render=w})();
+const nearEnd=()=>{const e=scEl();return !e||e.scrollTop+e.clientHeight>=e.scrollHeight-160};
+/* danh sách cao thêm (ảnh tải xong, tin mới) khi đang ở cuối → bám theo cuối */
+let roL=null;const ro=window.ResizeObserver?new ResizeObserver(()=>{const e=scEl();if(e&&e._atEnd!==false)e.scrollTop=e.scrollHeight}):null;
+function watchList(){const l=document.querySelector('.cx-list');if(!ro||!l||l===roL)return;try{roL&&ro.unobserve(roL)}catch(_){}roL=l;ro.observe(l)}
+function onScroll(){const e=scEl();if(e)e._atEnd=nearEnd();if(NT.newPill&&nearEnd()){NT.newPill=0;document.querySelector('.cx-new')?.remove()}}
+if(window.visualViewport){visualViewport.addEventListener('resize',()=>{const w=nearEnd();fitDock();if(w)toEnd()});visualViewport.addEventListener('scroll',fitDock)}
+function toEnd(sm){if(NT.newPill){NT.newPill=0;document.querySelector('.cx-new')?.remove()}fitDock();const e=scEl();if(e)e.scrollTo({top:e.scrollHeight,behavior:sm?'smooth':'auto'});else window.scrollTo({top:document.documentElement.scrollHeight,behavior:sm?'smooth':'auto'})}
 addEventListener('resize',()=>fitDock());addEventListener('scroll',()=>{if(NT.newPill&&innerHeight+scrollY>=document.documentElement.scrollHeight-60){NT.newPill=0;document.querySelector('.cx-new')?.remove()}},{passive:true});
 async function loadThreads(){const {data,error}=await SB.rpc('admin_threads');NT.threads=error?[]:(data||[]);NT.terr=error&&error.message;rr()}
 /* Ký tự nhanh → emoji, ví dụ :) → 🙂 */
@@ -193,6 +203,13 @@ function chatCss(){if(document.getElementById('chatcss'))return;const s=document
 .cx-img{display:block;max-width:min(46vw,170px);max-height:200px;border-radius:14px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.28))}.cx-row.nw .cx-img{animation:cxpop .35s both}
 .cx-imgb{color:var(--steel);background:color-mix(in srgb,var(--steel) 10%,transparent);cursor:pointer}
 .cx-scene{display:none}
+.cx-shell{position:fixed;left:0;right:0;top:0;z-index:5;max-width:480px;margin:0 auto;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 8px) 16px 0;box-sizing:border-box;background:var(--bg)}
+.cx-shell .cx-head{position:relative!important;top:auto!important;flex:none;margin:0 -16px}
+.cx-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;margin:0 -16px;padding:0 16px 8px}
+.cx-shell .cx-dock{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;max-width:none;flex:none;margin:0 -16px;padding-bottom:8px}
+.cx-shell.kb .cx-dock{padding-bottom:6px}
+body.cx-on{overflow:hidden;overscroll-behavior:none}body.cx-on #app{min-height:0}
+html:is([data-season="noel"],[data-season="tet"]) .cx-shell{background:transparent}
 .cx-new{position:absolute;left:50%;top:-40px;transform:translateX(-50%);min-height:36px;padding:0 16px;border-radius:99px;font:700 .86rem var(--fd);color:#fff;background:var(--steel);box-shadow:0 6px 18px rgba(0,0,0,.3);animation:cxin .25s both}
 .cx-pend{position:relative}.cx-pend .cx-img{opacity:.55}
 .cx-spin{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;border:3px solid rgba(255,255,255,.4);border-top-color:#fff;animation:cxsp .8s linear infinite}
@@ -240,15 +257,15 @@ function vChat(){chatCss();const adm=isAdm()&&NT.thread!==USER.id;const th=adm&&
   const big=emojiOnly(m.body);
   out+=`<div class="cx-row${nw} ${mine?'me':'them'} ${last?'last':''}${m.pending?' pend':''}" style="${last?'margin-bottom:6px':''}">${av}${big?`<div style="text-align:${mine?'right':'left'}"><div class="cx-big" style="font-size:${big==1?'4rem':big<=3?'3rem':'2.3rem'}">${esc(m.body.trim())}</div>${last?`<div class="cx-t" style="justify-content:${mine?'flex-end':'flex-start'};color:var(--mut)">${hm(m.created_at)} ${seen}</div>`:''}</div>`:`<div class="cx-b ${mine?'me':'them'}">${esc(m.body)}${last?`<div class="cx-t">${hm(m.created_at)} ${seen}</div>`:''}</div>`}</div>`});
  const sub=adm?(th&&th.last_seen?(live?'Đang học: '+esc(th.activity||''):'Học lần cuối '+ago(th.last_seen)):'Học viên'):'Thường trả lời trong ngày';
- return `${scene()}<div class="cx-head"><button class="cx-back" aria-label="Quay lại" onclick="${adm?"NT.thread=null;NTX.threads();go('msg')":"go('me')"}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+ return `${scene()}<div class="cx-shell"><div class="cx-head"><button class="cx-back" aria-label="Quay lại" onclick="${adm?"NT.thread=null;NTX.threads();go('msg')":"go('me')"}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
  <span class="cx-av fun ${live?'on':''}" aria-hidden="true">${funAv(adm?NT.thread:'admin')}</span><div style="min-width:0"><div class="cx-name">${esc(who)}</div><div class="cx-sub">${sub}</div></div></div>
- <div class="cx-list">${out||'<p class="mut" style="text-align:center;margin:40px 0">Chưa có tin nhắn nào. Gửi lời chào đầu tiên nhé! 👋</p>'}${NT.pend?`<div class="cx-row me last"><div class="cx-pend"><img class="cx-img" src="${NT.pend}" alt="Đang gửi hình"><span class="cx-spin" role="status" aria-label="Đang gửi hình"></span></div></div>`:''}<div id="msgend"></div></div>
+ <div class="cx-scroll" id="cxscroll" onscroll="NTX.onScroll()"><div class="cx-list">${out||'<p class="mut" style="text-align:center;margin:40px 0">Chưa có tin nhắn nào. Gửi lời chào đầu tiên nhé! 👋</p>'}${NT.pend?`<div class="cx-row me last"><div class="cx-pend"><img class="cx-img" src="${NT.pend}" alt="Đang gửi hình"><span class="cx-spin" role="status" aria-label="Đang gửi hình"></span></div></div>`:''}<div id="msgend"></div></div>
  ${adm&&th&&!live?`<p class="cx-note">Người này đang không mở app. Tin nhắn vẫn được lưu và hiện khi họ mở app.</p>`:''}
- <div id="cxsp" style="height:150px"></div><div class="cx-dock">${NT.newPill?`<button class="cx-new" onclick="NTX.toEnd(1)">↓ ${NT.newPill} tin mới</button>`:''}<div class="cx-emo" aria-label="Gửi nhanh emoji">${emoList().map(e=>`<button onclick="NTX.sendEmo('${e}')" aria-label="Gửi ${e}">${e}</button>`).join('')}</div>
+</div><div class="cx-dock">${NT.newPill?`<button class="cx-new" onclick="NTX.toEnd(1)">↓ ${NT.newPill} tin mới</button>`:''}<div class="cx-emo" aria-label="Gửi nhanh emoji">${emoList().map(e=>`<button onclick="NTX.sendEmo('${e}')" aria-label="Gửi ${e}">${e}</button>`).join('')}</div>
  <div class="cx-bar"><button class="cx-ib cx-buzzb" aria-label="BUZZ: rung màn hình người nhận" title="BUZZ" onclick="NTX.buzz()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4 8v8M20 8v8M1.5 10v4M22.5 10v4"/></svg></button>
  <label class="cx-ib cx-imgb" aria-label="Gửi hình hoặc sticker" title="Gửi hình"><input type="file" accept="image/*" hidden onchange="NTX.upImg(this.files[0]);this.value=''"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></label>
  <div id="msgin" class="cx-ed" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Nội dung tin nhắn" data-ph="Nhắn tin…" data-empty="${(NT.draft||'').trim()?'':'1'}" oninput="NTX.edIn(this)" onpaste="NTX.pasteImg(event)" enterkeyhint="send" onkeydown="if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();NTX.send()}" onfocus="setTimeout(()=>NTX.toEnd(1),300)">${esc(NT.draft||'')}</div>
- <button class="cx-ib cx-send" aria-label="Gửi" ${NT.sending?'disabled':''} onclick="NTX.send()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button></div></div>`}
+ <button class="cx-ib cx-send" aria-label="Gửi" ${NT.sending?'disabled':''} onclick="NTX.send()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button></div></div></div>`}
 /* ===== Hộp thư admin, gọn: 3 tab (Tin nhắn · Hoạt động · Quà), mỗi dòng 1 hàng kiểu Messenger ===== */
 const IBX={tab:'msg',q:''};
 function ibxDay(d){const x=new Date(d),t=new Date();const k=v=>v.toDateString();if(k(x)==k(t))return 'Hôm nay';const y=new Date(t);y.setDate(t.getDate()-1);if(k(x)==k(y))return 'Hôm qua';return x.toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit'})}
@@ -300,7 +317,7 @@ function meCard(){if(!on()||NT.off)return '';const adm=isAdm();const n=NT.msgUnr
 function userBtns(u){if(!on()||!isAdm()||u.id==USER.id)return '';const w=NT.watch.has(u.id),nm=esc(JSON.stringify(u.full_name||u.email));
  return `<button class="chip ${w?'on':''}" title="Báo khi người này bắt đầu học" onclick="NTX.toggleWatch('${u.id}',${nm})">${w?'🔔 Đang theo dõi':'🔕 Báo khi học'}</button><button class="chip" onclick="NTX.openChat('${u.id}')">✉ Nhắn</button>`}
 
-window.NTX={ibx:t=>{IBX.tab=t;rr()},ibxq:v=>{IBX.q=v;clearTimeout(IBX.t);IBX.t=setTimeout(()=>{rr();const i=document.querySelector('.ibx-search');if(i){i.focus();i.setSelectionRange(v.length,v.length)}},250)},toEnd,upImg,pasteImg,edIn,buzz,sendEmo,addEmo,send,toggleWatch,askPerm,openChat,openInbox,readNotes,threads:loadThreads,vMsg,meCard,userBtns};
+window.NTX={onScroll,ibx:t=>{IBX.tab=t;rr()},ibxq:v=>{IBX.q=v;clearTimeout(IBX.t);IBX.t=setTimeout(()=>{rr();const i=document.querySelector('.ibx-search');if(i){i.focus();i.setSelectionRange(v.length,v.length)}},250)},toEnd,upImg,pasteImg,edIn,buzz,sendEmo,addEmo,send,toggleWatch,askPerm,openChat,openInbox,readNotes,threads:loadThreads,vMsg,meCard,userBtns};
 window.vMsg=vMsg;
 
 /* --- khởi động / theo dõi đăng nhập --- */
