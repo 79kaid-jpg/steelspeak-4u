@@ -115,7 +115,7 @@ function check(){if(g(()=>typeof S=='undefined'))return;const s=stats();
  if(!fresh.length){saveST();return}
  saveST();syncUp(fresh);
  const silent=first&&fresh.length>3; // lần đầu bật tính năng: không dồn quá nhiều hộp chúc mừng
- first=false;Q.push(...(silent?[{summary:fresh}]:fresh));showNext();try{render()}catch(e){}}
+ first=false;Q.push(...(silent?[{summary:fresh}]:fresh));showNext();try{if(S.tab!=='msg')render()}catch(e){}}
 setTimeout(()=>{first=true;check();first=false},2500);
 setInterval(check,6000);
 

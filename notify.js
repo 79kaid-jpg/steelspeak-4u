@@ -5,10 +5,17 @@
  - Thông báo đến ngay khi app đang mở (realtime), kèm thông báo của trình duyệt nếu đã cho phép.
  - Tin nhắn: mỗi học viên có một cuộc trò chuyện với ban admin. */
 (function(){
-const NT={uid:null,unread:0,msgUnread:0,list:[],thread:null,msgs:[],threads:null,watch:new Set(),ch:null,hb:null,off:false,sending:false};
+const NT={seenIds:new Set(),uid:null,unread:0,msgUnread:0,list:[],thread:null,msgs:[],threads:null,watch:new Set(),ch:null,hb:null,off:false,sending:false};
 window.NT=NT;
 const on=()=>{try{return typeof USER!='undefined'&&USER&&typeof SB!='undefined'}catch(e){return false}};
 const rr=()=>{try{render()}catch(e){}};
+/* vẽ lại khung chat tại chỗ: chỉ thay danh sách tin + đầu trang, giữ nguyên ô soạn tin (không mất bàn phím, không nháy) */
+function rrChat(){const list=document.querySelector('.cx-list'),head=document.querySelector('.cx-head');
+ if(S.tab!=='msg'||!NT.thread||!list||!head){rr();return}
+ try{const t=document.createElement('div');t.innerHTML=vChat();const nl=t.querySelector('.cx-list'),nh=t.querySelector('.cx-head');if(!nl){rr();return}
+  list.innerHTML=nl.innerHTML;if(nh)head.innerHTML=nh.innerHTML;const np=t.querySelector('.cx-new'),op=document.querySelector('.cx-new');if(!np&&op)op.remove()}catch(e){rr();return}
+ markSeen()}
+function markSeen(){(NT.msgs||[]).forEach(m=>NT.seenIds.add(String(m.id)))}
 const isAdm=()=>{try{return !!PROF?.is_admin}catch(e){return false}};
 
 /* --- đang học gì? (rỗng = không phải màn hình học) --- */
@@ -77,9 +84,13 @@ async function readNotes(kind,ref){const ids=NT.list.filter(n=>!n.read_at&&(!kin
  NT.list.forEach(n=>{if(ids.includes(n.id))n.read_at=new Date().toISOString()});count();await SB.from('notifications').update({read_at:new Date().toISOString()}).in('id',ids)}
 
 /* --- tin nhắn --- */
-async function loadThread(uid,inc){NT.thread=uid;const near=innerHeight+scrollY>=document.documentElement.scrollHeight-220,y=scrollY;const {data}=await SB.from('messages').select('*').eq('user_id',uid).order('id').limit(300);NT.msgs=data||[];
- await SB.rpc('msg_read',{thread:uid});NT.list.forEach(n=>{if(n.kind=='msg'&&n.ref==uid)n.read_at=n.read_at||new Date().toISOString()});count();rr();
- if(inc&&!near){NT.newPill=(NT.newPill||0)+1;rr();setTimeout(()=>{fitDock();scrollTo(0,y)},30)}else{NT.newPill=0;[30,180,500,1200].forEach(t=>setTimeout(()=>{fitDock();toEnd()},t));setTimeout(()=>document.querySelectorAll('.cx-msgs img,.cx img').forEach(im=>{if(!im.complete)im.addEventListener('load',()=>{if(innerHeight+scrollY>=document.documentElement.scrollHeight-400)toEnd()},{once:true})}),60)}}
+async function loadThread(uid,inc){const first=NT.thread!==uid||!document.querySelector('.cx-list');if(first)NT.seenIds=new Set();NT.thread=uid;const near=innerHeight+scrollY>=document.documentElement.scrollHeight-220,y=scrollY;
+ const {data}=await SB.from('messages').select('*').eq('user_id',uid).order('id').limit(300);
+ const pend=(NT.msgs||[]).filter(m=>m.pending);(data||[]).forEach(m=>{const k=pend.findIndex(p=>p.body===m.body);if(k>=0){NT.seenIds.add(String(m.id));pend.splice(k,1)}});
+ NT.msgs=(data||[]).concat(pend);if(first){markSeen()}
+ if(first)rr();else rrChat();
+ SB.rpc('msg_read',{thread:uid}).then(()=>{},()=>{});NT.list.forEach(n=>{if(n.kind=='msg'&&n.ref==uid)n.read_at=n.read_at||new Date().toISOString()});count();
+ if(inc&&!near){NT.newPill=(NT.newPill||0)+1;rr();setTimeout(()=>{fitDock();scrollTo(0,y)},30)}else{NT.newPill=0;requestAnimationFrame(()=>{fitDock();toEnd(!first)});setTimeout(()=>document.querySelectorAll('.cx-list img').forEach(im=>{if(!im.complete)im.addEventListener('load',()=>{if(innerHeight+scrollY>=document.documentElement.scrollHeight-400)toEnd()},{once:true})}),60)}}
 function fitDock(){const d=document.querySelector('.cx-dock'),n=document.querySelector('nav'),sp=document.getElementById('cxsp');if(!d)return;if(n&&n.offsetHeight)d.style.bottom=n.offsetHeight+'px';if(sp)sp.style.height=(d.offsetHeight+8)+'px'}
 function toEnd(sm){if(NT.newPill){NT.newPill=0;document.querySelector('.cx-new')?.remove()}fitDock();window.scrollTo({top:document.documentElement.scrollHeight,behavior:sm?'smooth':'auto'})}
 addEventListener('resize',()=>fitDock());addEventListener('scroll',()=>{if(NT.newPill&&innerHeight+scrollY>=document.documentElement.scrollHeight-60){NT.newPill=0;document.querySelector('.cx-new')?.remove()}},{passive:true});
@@ -94,9 +105,12 @@ function emoLive(el){const sel=getSelection();if(!sel.rangeCount)return;const n=
  const k=m[2],start=off-k.length-1,e=EMOM[k];n.data=n.data.slice(0,start)+e+n.data.slice(off-1);const r=document.createRange();r.setStart(n,start+e.length+1);r.collapse(true);sel.removeAllRanges();sel.addRange(r)}
 async function send(){const ta=document.getElementById('msgin');const body=emoText((ta?(ta.innerText??ta.value):'').replace(/\u00a0/g,' ').trim());if(!body||NT.sending)return;if(body.length>2000)return toast('Tin nhắn tối đa 2000 ký tự');
  NT.sending=true;const adm=isAdm()&&NT.thread!==USER.id;
- const {error}=await SB.from('messages').insert({user_id:NT.thread,from_admin:adm,body});NT.sending=false;
- if(error)return toast(/messages/.test(error.message)?'Admin cần chạy supabase/messaging.sql':'Chưa gửi được: '+error.message);
- NT.draft='';await loadThread(NT.thread)}
+ /* hiện tin ngay (mờ nhẹ) rồi mới gửi lên máy chủ: gõ xong là thấy, không chờ */
+ const tmp={id:'tmp'+Date.now(),body,from_admin:adm,created_at:new Date().toISOString(),pending:true};NT.msgs=[...(NT.msgs||[]),tmp];NT.draft='';
+ if(ta){ta.innerText='';ta.dataset.empty='1'}rrChat();requestAnimationFrame(()=>toEnd(true));NT.sending=false;
+ const {error}=await SB.from('messages').insert({user_id:NT.thread,from_admin:adm,body});
+ if(error){NT.msgs=NT.msgs.filter(m=>m!==tmp);rrChat();if(ta&&!ta.innerText.trim()){ta.innerText=body;ta.dataset.empty=''}return toast(/messages/.test(error.message)?'Admin cần chạy supabase/messaging.sql':'Chưa gửi được: '+error.message)}
+ await loadThread(NT.thread)}
 async function toggleWatch(uid,name){const w=NT.watch.has(uid);
  const q=w?SB.from('study_watches').delete().eq('admin_id',USER.id).eq('user_id',uid):SB.from('study_watches').insert({admin_id:USER.id,user_id:uid});
  const {error}=await q;if(error)return toast(/study_watches/.test(error.message)?'Admin cần chạy supabase/messaging.sql':'Lỗi: '+error.message);
@@ -155,12 +169,13 @@ function chatCss(){if(document.getElementById('chatcss'))return;const s=document
 .cx-row{display:flex;align-items:flex-end;gap:6px}.cx-row.me{justify-content:flex-end}
 .cx-row .mini{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:700 .72rem var(--fd);color:#fff;background:linear-gradient(135deg,var(--steel),var(--steel2))}
 .cx-row .ph{flex:none;width:28px}
-.cx-b{position:relative;max-width:76%;padding:9px 13px 7px;border-radius:20px;line-height:1.42;white-space:pre-wrap;overflow-wrap:anywhere;animation:cxin .28s cubic-bezier(.2,.9,.3,1.2) both}
+.cx-b{position:relative;max-width:76%;padding:9px 13px 7px;border-radius:20px;line-height:1.42;white-space:pre-wrap;overflow-wrap:anywhere}
+.cx-row.nw .cx-b{animation:cxin .28s cubic-bezier(.2,.9,.3,1.2) both}.cx-row.pend .cx-b{opacity:.65}
 .cx-b.me{color:#fff;background:linear-gradient(135deg,var(--steel2),var(--steel) 70%);box-shadow:0 6px 16px color-mix(in srgb,var(--steel) 30%,transparent)}
 .cx-b.them{background:color-mix(in srgb,var(--card) 92%,transparent);border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .cx-row.me.last .cx-b{border-bottom-right-radius:6px}.cx-row.them.last .cx-b{border-bottom-left-radius:6px}
 .cx-t{display:flex;justify-content:flex-end;align-items:center;gap:4px;margin-top:2px;font-size:.66rem;opacity:.75}
-.cx-big{font-size:3.2rem;line-height:1.1;animation:cxpop .45s cubic-bezier(.2,1.5,.4,1) both}
+.cx-big{font-size:3.2rem;line-height:1.1}.cx-row.nw .cx-big{animation:cxpop .45s cubic-bezier(.2,1.5,.4,1) both}
 .cx-buzz{align-self:center;margin:6px 0;padding:6px 14px;border-radius:99px;background:color-mix(in srgb,var(--bad) 14%,var(--card));color:var(--bad);font:700 .86rem var(--fd);letter-spacing:.06em}
 .cx-dock{position:fixed;left:0;right:0;margin:0 auto;max-width:480px;box-sizing:border-box;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:4;padding:14px 12px 10px;background:linear-gradient(to top,var(--bg) 70%,color-mix(in srgb,var(--bg) 0%,transparent))}
 .cx-emo{display:flex;gap:2px;overflow-x:auto;padding:0 2px 6px;scrollbar-width:none}.cx-emo::-webkit-scrollbar{display:none}
@@ -175,7 +190,7 @@ function chatCss(){if(document.getElementById('chatcss'))return;const s=document
 .cx-send{color:#fff;background:linear-gradient(135deg,var(--steel2),var(--steel));box-shadow:0 6px 14px color-mix(in srgb,var(--steel) 40%,transparent);transition:transform .15s}
 .cx-send:active{transform:scale(.9)}.cx-send:disabled{opacity:.5}
 .cx-av.fun{font-size:1.6rem;background:var(--soft)!important;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--steel) 40%,transparent)}.cx-row .mini.fun{font-size:1.05rem;background:var(--soft)!important}
-.cx-img{display:block;max-width:min(46vw,170px);max-height:200px;border-radius:14px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.28));animation:cxpop .35s both}
+.cx-img{display:block;max-width:min(46vw,170px);max-height:200px;border-radius:14px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.28))}.cx-row.nw .cx-img{animation:cxpop .35s both}
 .cx-imgb{color:var(--steel);background:color-mix(in srgb,var(--steel) 10%,transparent);cursor:pointer}
 .cx-scene{display:none}
 .cx-new{position:absolute;left:50%;top:-40px;transform:translateX(-50%);min-height:36px;padding:0 16px;border-radius:99px;font:700 .86rem var(--fd);color:#fff;background:var(--steel);box-shadow:0 6px 18px rgba(0,0,0,.3);animation:cxin .25s both}
@@ -219,10 +234,11 @@ function vChat(){chatCss();const adm=isAdm()&&NT.thread!==USER.id;const th=adm&&
   if(isBuzz(m.body)){out+=`<div class="cx-buzz">📳 ${mine?'Bạn đã BUZZ':esc(adm?who:'Admin')+' đã BUZZ bạn'}!!! · ${hm(m.created_at)}</div>`;return}
   const nx=M[k+1],nxMine=nx&&(adm?nx.from_admin:!nx.from_admin),last=!nx||nxMine!==mine||isBuzz(nx.body)||dayLbl(nx.created_at)!==dl;
   const seen=mine&&m.read_at?'<svg width="14" height="10" viewBox="0 0 16 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-label="đã xem" role="img"><path d="m1 5 3 3 6-7M7 8l1 1 6-8"/></svg>':'';
+  const nw=!NT.seenIds.has(String(m.id))?' nw':'';
   const av=mine?'':last?`<span class="mini fun" aria-hidden="true">${funAv(adm?NT.thread:'admin')}</span>`:'<span class="ph"></span>';
-  if(isImg(m.body)){const u=m.body.slice(IMG.length);out+=`<div class="cx-row ${mine?'me':'them'} ${last?'last':''}" style="${last?'margin-bottom:6px':''}">${av}<div style="text-align:${mine?'right':'left'}"><a href="${esc(u)}" target="_blank" rel="noopener"><img class="cx-img" src="${esc(u)}" alt="Hình ảnh" loading="lazy"></a>${last?`<div class="cx-t" style="justify-content:${mine?'flex-end':'flex-start'};color:var(--mut)">${hm(m.created_at)} ${seen}</div>`:''}</div></div>`;return}
+  if(isImg(m.body)){const u=m.body.slice(IMG.length);out+=`<div class="cx-row${nw} ${mine?'me':'them'} ${last?'last':''}${m.pending?' pend':''}" style="${last?'margin-bottom:6px':''}">${av}<div style="text-align:${mine?'right':'left'}"><a href="${esc(u)}" target="_blank" rel="noopener"><img class="cx-img" src="${esc(u)}" alt="Hình ảnh" loading="lazy"></a>${last?`<div class="cx-t" style="justify-content:${mine?'flex-end':'flex-start'};color:var(--mut)">${hm(m.created_at)} ${seen}</div>`:''}</div></div>`;return}
   const big=emojiOnly(m.body);
-  out+=`<div class="cx-row ${mine?'me':'them'} ${last?'last':''}" style="${last?'margin-bottom:6px':''}">${av}${big?`<div style="text-align:${mine?'right':'left'}"><div class="cx-big" style="font-size:${big==1?'4rem':big<=3?'3rem':'2.3rem'}">${esc(m.body.trim())}</div>${last?`<div class="cx-t" style="justify-content:${mine?'flex-end':'flex-start'};color:var(--mut)">${hm(m.created_at)} ${seen}</div>`:''}</div>`:`<div class="cx-b ${mine?'me':'them'}">${esc(m.body)}${last?`<div class="cx-t">${hm(m.created_at)} ${seen}</div>`:''}</div>`}</div>`});
+  out+=`<div class="cx-row${nw} ${mine?'me':'them'} ${last?'last':''}${m.pending?' pend':''}" style="${last?'margin-bottom:6px':''}">${av}${big?`<div style="text-align:${mine?'right':'left'}"><div class="cx-big" style="font-size:${big==1?'4rem':big<=3?'3rem':'2.3rem'}">${esc(m.body.trim())}</div>${last?`<div class="cx-t" style="justify-content:${mine?'flex-end':'flex-start'};color:var(--mut)">${hm(m.created_at)} ${seen}</div>`:''}</div>`:`<div class="cx-b ${mine?'me':'them'}">${esc(m.body)}${last?`<div class="cx-t">${hm(m.created_at)} ${seen}</div>`:''}</div>`}</div>`});
  const sub=adm?(th&&th.last_seen?(live?'Đang học: '+esc(th.activity||''):'Học lần cuối '+ago(th.last_seen)):'Học viên'):'Thường trả lời trong ngày';
  return `${scene()}<div class="cx-head"><button class="cx-back" aria-label="Quay lại" onclick="${adm?"NT.thread=null;NTX.threads();go('msg')":"go('me')"}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
  <span class="cx-av fun ${live?'on':''}" aria-hidden="true">${funAv(adm?NT.thread:'admin')}</span><div style="min-width:0"><div class="cx-name">${esc(who)}</div><div class="cx-sub">${sub}</div></div></div>
