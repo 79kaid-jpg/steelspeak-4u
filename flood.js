@@ -88,7 +88,7 @@ function leave(){try{F.ch&&SB.removeChannel(F.ch)}catch(e){}F.ch=null;clearTimeo
 const send=p=>{try{F.ch&&F.ch.send({type:'broadcast',event:'m',payload:p})}catch(e){}};
 const side=()=>F.host?'a':'b',other=()=>F.host?'b':'a';
 
-function onMsg(p){if(!p||!F.m)return;F.lastOp=Date.now();if(p.t=='hb')return;if(p.t=='emo'){showEmo(p.e,'op');return}
+function onMsg(p){if(!p||!F.m)return;F.lastOp=Date.now();if(p.t=='hb')return;if(p.t=='emo'){showEmo(p.e,'op');return}if(p.t=='sleep'){sleepAsk();return}if(p.t=='sleepok'){goSleep(false);return}if(p.t=='sleepno'){F.sleepWait=false;clearTimeout(F.sleepT);rr();toast((F.op&&F.op.name||'Đối thủ')+' chưa cho ngủ: đấu tiếp nào! 💪');return}
  if(p.t=='hello'&&F.host&&F.v=='wait'){clearTimeout(F.timer);F.q=mix(F.myQ,Array.isArray(p.q)&&p.q.length?p.q:makeQ('*',NQ,F.words));F.opTopic=p.topic||'';
   send({t:'qs',q:F.q,ta:F.myTopic});F.v='play';rr();try{window.ttsPrefetch&&ttsPrefetch(F.q.filter(x=>x.say).map(x=>x.say))}catch(e){}setTimeout(()=>next(),1200)}
  else if(p.t=='qs'&&!F.host){clearInterval(F.hello);F.q=p.q;F.opTopic=p.ta||'';try{window.ttsPrefetch&&ttsPrefetch(F.q.filter(x=>x.say).map(x=>x.say))}catch(e){}rr()}
@@ -121,6 +121,29 @@ function showEmo(e,who){if(!EMOS.includes(e))return;/* chỉ nhận biểu cảm
   const live=document.getElementById('fl-emo-live');if(live)live.textContent=(F.op&&F.op.name||'Đối thủ')+' thả '+e+(TAUNT[e]?' '+TAUNT[e]:'')}}
 function botTaunt(win){if(!F.bot||Math.random()>.45)return;const L=win?['😎','😜','🐢','🫧','👋']:['🙈','💪','😂'];setTimeout(()=>showEmo(L[Math.random()*L.length|0],'op'),600+Math.random()*900)}
 function emoBar(){return `<div class="fl-emobar" role="group" aria-label="Thả biểu cảm chọc đối thủ">${EMOS.map(e=>`<button onclick="FLX.emo('${e}')" aria-label="Thả ${e}${TAUNT[e]?' '+TAUNT[e]:''}">${e}</button>`).join('')}</div><span id="fl-emo-live" class="sr-only" role="status" aria-live="polite"></span>`}
+
+/* ===== "Xin đi ngủ": xin dừng trận một cách dễ thương; đối thủ đồng ý (hoặc 15 giây không trả lời) thì cả hai cùng nghỉ, hiện lời chúc ngủ ngon ===== */
+function sleepReq(){if(F.v!=='play'||F.sleepWait)return;F.sleepWait=true;rr();
+ if(F.bot){setTimeout(()=>{showEmo('👋','op');goSleep(true)},1200);return}
+ send({t:'sleep'});clearTimeout(F.sleepT);F.sleepT=setTimeout(()=>{if(F.sleepWait&&F.v=='play')goSleep(true)},15000)}
+function sleepAsk(){if(F.v!=='play')return;document.getElementById('fl-sleep')?.remove();const d=document.createElement('div');d.id='fl-sleep';d.setAttribute('role','alertdialog');d.setAttribute('aria-label','Đối thủ xin đi ngủ');
+ d.innerHTML=`<div class="fs-card"><div class="fs-moon" aria-hidden="true">😴</div><b>${esc2(F.op&&F.op.name||'Đối thủ')} xin đi ngủ</b><p>Dừng trận ở đây nhé? Cả hai cùng được XP tham gia.</p><div class="fs-act"><button class="btn" onclick="FLX.sleepAns(true)">Cho đi ngủ 🌙</button><button class="btn ghost" onclick="FLX.sleepAns(false)">Chưa! Đấu tiếp 💪</button></div></div>`;
+ document.body.appendChild(d);try{navigator.vibrate&&navigator.vibrate(40)}catch(e){}setTimeout(()=>{if(document.getElementById('fl-sleep')===d)sleepAns(true)},14000)}
+function sleepAns(ok){document.getElementById('fl-sleep')?.remove();if(ok){send({t:'sleepok'});goSleep(true)}else send({t:'sleepno'})}
+async function goSleep(me){if(F.v!=='play')return;clearTimeout(F.sleepT);F.sleepWait=false;F.slept=true;F.sleepBy=me?'me':'op';
+ clearTimeout(F.timer);clearInterval(F.clk);F.v='end';F.win=null;music(false);
+ try{const t=ac()?.currentTime;if(t!=null)[784,659,523,392].forEach((f,k)=>tone(f,t+k*.28,.5,{type:'sine',g:.12}))}catch(e){}
+ const xp=10;try{S.xp=(S.xp||0)+xp;window.tick&&tick();save()}catch(e){}F.xp=xp;
+ if(F.host&&F.m&&F.m.id)try{await SB.rpc('flood_finish',{mid:F.m.id,a_left:F.air.a,b_left:F.air.b,win:null})}catch(e){}
+ setTimeout(leave,1500);rr()}
+function vSleep(){const me=side(),myOk=Object.values(F.ans).filter(a=>a&&a[me]&&a[me].ok).length,n=Object.keys(F.ans).length,nm=esc2(F.op&&F.op.name||'bạn');
+ const h=new Date().getHours(),night=h>=21||h<5;
+ return `<div class="fs-night" aria-hidden="true">${Array.from({length:26},(_,k)=>`<i style="left:${(k*37)%100}%;top:${(k*53)%70}%;animation-delay:${(k%7)*.3}s"></i>`).join('')}</div>
+ <div class="fs-page"><div class="fs-big" aria-hidden="true">🌙</div><span class="fi-tag" style="color:#ffd257">TRẬN ĐẤU ĐÃ NGHỈ</span>
+ <h1 style="margin:4px 0;color:#fff">Chúc ngủ ngon, ${nm}! 😴</h1>
+ <p style="margin:0;color:#c9d6f2">${F.sleepBy=='me'?nm+' đã cho bạn đi ngủ.':'Bạn đã cho '+nm+' đi ngủ.'} Mơ thấy toàn từ vựng tiếng Anh nha 💤</p>
+ <div class="fs-stats"><span><b>${myOk}/${n}</b> câu đúng</span><span><b>+${F.xp} XP</b> tham gia</span></div>
+ <button class="btn" style="width:100%" onclick="FLX.cancel()">Hẹn mai đấu tiếp 👋</button></div>`}
 
 /* ---------- vòng câu hỏi ---------- */
 function next(){if(!F.host)return;const i=F.i+1;
@@ -178,7 +201,7 @@ async function invite(target){try{ac();window.actx&&actx().resume()}catch(e){}if
  if(error){if(needSql(error)){F.off=true;rr();return}return toast(error.message)}
  if(target)try{lobby&&lobby.send({type:'broadcast',event:'inv',payload:{to:target,m:data,op:{user_id:uid(),name:(PROF&&PROF.full_name)||'Bạn bè'}}})}catch(e){}
  start(data,true,target?F.targets.find(t=>t.user_id==target):{name:'Kaka',bot:true})}
-function start(m,host,op){F.lastOp=0;try{window.ttsPrefetch&&ttsPrefetch((m.q||[]).filter(x=>x.say).map(x=>x.say))}catch(e){}F.m=m;F.host=host;F.bot=!m.b;F.q=host?m.q:[];if(host)F.myQ=m.q;F.i=-1;F.air={a:AIR,b:AIR};F.ans={};F.res=null;F.pick=null;F.win=undefined;
+function start(m,host,op){F.lastOp=0;F.slept=false;F.sleepWait=false;try{window.ttsPrefetch&&ttsPrefetch((m.q||[]).filter(x=>x.say).map(x=>x.say))}catch(e){}F.m=m;F.host=host;F.bot=!m.b;F.q=host?m.q:[];if(host)F.myQ=m.q;F.i=-1;F.air={a:AIR,b:AIR};F.ans={};F.res=null;F.pick=null;F.win=undefined;
  F.me={name:(PROF&&PROF.full_name)||'Bạn',avatar:PROF&&PROF.avatar,id:uid()};F.op=op||{name:'Đối thủ'};
  if(F.bot){F.q=mix(F.myQ||m.q,makeQ('*',NQ,F.words));F.opTopic=(F.course?F.course.name+' · ':'')+'Kaka chọn ngẫu nhiên';F.v='play';go('flood');setTimeout(next,900);return}
  join(m.id);
@@ -305,7 +328,16 @@ const css2=`#fl-inv{position:fixed;inset:0;z-index:2147483100;display:grid;place
 .fw-dots{display:flex;gap:6px;justify-content:center;margin:0}.fw-dots i{width:8px;height:8px;border-radius:50%;background:var(--steel);animation:fwD 1.2s infinite}.fw-dots i:nth-child(2){animation-delay:.2s}.fw-dots i:nth-child(3){animation-delay:.4s}
 @keyframes fwD{0%,80%,100%{opacity:.25;transform:none}40%{opacity:1;transform:translateY(-5px)}}
 @media (prefers-reduced-motion:reduce){#fl-inv *,#fl-wfab,#fl-wfab *,.fw-page *{animation:none!important}}`;
-const css3=`.fl-emobar{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:4px 16px 2px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 16px,#000 calc(100% - 16px),transparent)}.fl-emobar::-webkit-scrollbar{display:none}
+const css3=`#fl-sleep{position:fixed;inset:0;z-index:2147483300;display:grid;place-items:center;padding:16px;background:rgba(10,14,40,.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.fs-card{width:min(340px,100%);border-radius:24px;padding:20px;text-align:center;color:#fff;background:linear-gradient(170deg,#2a2f6b,#141a3f);box-shadow:0 20px 50px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:8px;animation:fiPop .45s both}
+.fs-card b{font:800 1.3rem var(--fd)}.fs-card p{margin:0;color:#c9d6f2;font-size:.92rem}.fs-act{display:flex;flex-direction:column;gap:8px;margin-top:6px}.fs-act .ghost{color:#fff;border-color:rgba(255,255,255,.4)}
+.fs-moon{font-size:52px;animation:fiBob 1.8s ease-in-out infinite}
+.fs-night{position:fixed;inset:0;z-index:0;background:linear-gradient(180deg,#0b1030,#1b2160 70%,#2b2f6b);pointer-events:none}
+.fs-night i{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;animation:fsTw 2.2s ease-in-out infinite}@keyframes fsTw{50%{opacity:.2;transform:scale(.6)}}
+.fs-page{position:relative;z-index:1;text-align:center;padding-top:40px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.fs-big{font-size:96px;line-height:1;filter:drop-shadow(0 0 30px rgba(255,230,140,.6));animation:fiBob 3s ease-in-out infinite}
+.fs-stats{display:flex;gap:10px;margin:8px 0}.fs-stats span{padding:8px 14px;border-radius:14px;background:rgba(255,255,255,.1);color:#c9d6f2;font-size:.85rem}.fs-stats b{color:#ffd257;font:800 1.05rem var(--fd)}
+.fl-emobar{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:4px 16px 2px;-webkit-mask-image:linear-gradient(90deg,transparent,#000 16px,#000 calc(100% - 16px),transparent)}.fl-emobar::-webkit-scrollbar{display:none}
 .fl-emobar button{flex:none;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--soft);font-size:1.4rem;line-height:1;cursor:pointer;transition:transform .12s}.fl-emobar button:active{transform:scale(1.25)}
 .fl-emo{position:fixed;z-index:2147483200;pointer-events:none;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:2px;animation:flEmo 2.2s cubic-bezier(.2,.9,.3,1) both}
 .fl-emo .e{font-size:64px;line-height:1;filter:drop-shadow(0 4px 8px rgba(0,0,0,.4))}
@@ -346,6 +378,7 @@ function vFlood(){
   <p id="fw-seen" class="mut" role="status" style="margin:0">Đang gõ cửa nhà ${esc2(F.op.name)}…</p><p class="fw-dots" aria-hidden="true"><i></i><i></i><i></i></p>
   <p class="mut" style="margin:0">Còn <b id="fl-wait">60 giây</b>. Bạn cứ đi học trang khác, thẻ chờ sẽ đi theo bạn.</p>
   <div class="row" style="gap:8px;justify-content:center;margin-top:8px"><button class="btn ghost" onclick="go('home')">Đi học trong lúc chờ</button><button class="btn ghost" style="color:var(--bad)" onclick="FLX.cancel()">Hủy lời mời</button></div></div>`;
+ if(F.v=='end'&&F.slept)return vSleep();
  if(F.v=='end'){const me=side(),won=F.win===me,draw=F.win==null;const myOk=Object.values(F.ans).filter(a=>a&&a[me]&&a[me].ok).length,n=Object.keys(F.ans).length;
   const msA=Object.values(F.ans).map(a=>a&&a[me]).filter(x=>x&&x.ok).map(x=>x.ms);const avg=msA.length?(msA.reduce((a,b)=>a+b,0)/msA.length/1000).toFixed(1).replace('.',','):'–';
   const wrong=F.q.filter((q,i)=>F.ans[i]&&F.ans[i][me]&&!F.ans[i][me].ok).slice(0,4);
@@ -359,7 +392,7 @@ function vFlood(){
  if(!q)return `${top()}<div class="fl-q"><h2 style="text-align:center;margin:20px 0">${F.host||F.bot?'Chuẩn bị…':'Đang kết nối với '+esc2(F.op.name)+'…'}</h2><button class="btn ghost" onclick="FLX.cancel()">Rời trận</button></div>`;
  const R=F.res;const me=side();
  const fb=R?(R.lose.length==2?'Cả hai đều sai, cùng dâng nước!':R.win===me?`✓ Bạn thắng câu này${R.A[other()]&&R.A[other()].ok?` · nhanh hơn ${((R.A[other()].ms-R.A[me].ms)/1000).toFixed(1).replace('.',',')} giây`:''}`:(R.A[me]&&R.A[me].ok?`${esc2(F.op.name)} nhanh hơn ${((R.A[me].ms-R.A[other()].ms)/1000).toFixed(1).replace('.',',')} giây`:'✗ Sai rồi, nước bên bạn dâng lên')):(F.pick!=null?'Đã chọn · chờ đối thủ…':'');
- return `${top()}<div class="fl-q"><div class="row" style="justify-content:space-between"><span class="lbl">${KL[q.k]||''}</span><span class="row" style="gap:6px;flex-wrap:nowrap"><button class="ic" onclick="FLX.snd()" aria-label="${SND.on?'Tắt':'Bật'} nhạc" aria-pressed="${SND.on}">${SND.on?'🔊':'🔇'}</button><button class="link" style="font-size:.85rem" onclick="FLX.cancel()">Rời trận</button></span></div>
+ return `${top()}<div class="fl-q"><div class="row" style="justify-content:space-between"><span class="lbl">${KL[q.k]||''}</span><span class="row" style="gap:6px;flex-wrap:nowrap"><button class="ic" onclick="FLX.snd()" aria-label="${SND.on?'Tắt':'Bật'} nhạc" aria-pressed="${SND.on}">${SND.on?'🔊':'🔇'}</button><button class="link" style="font-size:.85rem" onclick="FLX.cancel()">Rời trận</button></span></div><div class="row" style="justify-content:flex-end;margin-top:-6px"><button class="chip" onclick="FLX.sleep()" ${F.sleepWait?'disabled':''} aria-label="Xin đối thủ dừng trận để đi ngủ">${F.sleepWait?'😴 Đang xin đi ngủ…':'😴 Xin đi ngủ'}</button></div>
  ${q.by?`<small class="mut" style="margin-top:-6px">Chủ đề của ${q.by===me?'bạn':esc2(F.op.name)}: ${esc2(q.by=='a'?(me=='a'?F.myTopic:F.opTopic):(me=='b'?F.myTopic:F.opTopic))||''}</small>`:''}
  ${q.k=='pron'?`<div style="text-align:center"><h2 style="margin:0;font:800 2rem/1.15 var(--fd)">${esc2(q.target)}</h2><div class="mut">${esc2(q.vi||'')}</div></div>`:`<h2 style="margin:0;font-size:1.45rem;line-height:1.25;text-wrap:balance">${esc2(q.q)}</h2>${q.hint?`<small class="mut">${esc2(q.hint)}</small>`:''}`}${q.say?`<button class="chip" style="align-self:flex-start;min-height:44px;${F.lock?'background:var(--steel);color:#fff':''}" onclick="say(${esc2(JSON.stringify(q.say))},0.8)" aria-label="Nghe lại chậm">${F.lock?'🔊 Đang đọc… nghe kỹ nhé':'🔊 Nghe lại (chậm)'}</button>`:''}
  ${q.k=='pron'?`<div style="display:flex;flex-direction:column;align-items:center;gap:8px"><button class="fl-mic ${F.rec?'rec':''}" onclick="FLX.pron()" ${F.pick!=null||R||F.grading?'disabled':''} aria-label="${F.rec?'Dừng và chấm':'Bấm để đọc'}"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4"/></svg></button><small class="mut">${F.rec?'● Đang nghe… đọc to rồi chạm để dừng':F.grading?'AI đang chấm…':F.pscore!=null?`AI nghe: “${esc2(F.heard||'…')}” · <b style="color:${F.pscore>=70?'var(--good)':'var(--bad)'}">${F.pscore} điểm</b>`:'Bấm micro, đọc to từ trên · đạt 70 điểm là đúng'}</small><button class="chip" onclick="say(${esc2(JSON.stringify(q.target))},0.85)">🔊 Nghe mẫu</button></div>`:`<div class="fl-opts">${q.o.map((o,k)=>{const cls=R?(k===q.a?'ok':k===F.pick?'no':''):(k===F.pick?'ok':'');return `<button class="${cls}" ${F.pick!=null||R||F.lock?'disabled':''} style="${F.lock?'opacity:.45':''}" onclick="FLX.answer(${k})">${esc2(o)}</button>`}).join('')}</div>`}
@@ -368,7 +401,7 @@ function again(){const b=F.m&&F.m.b;const t=F.bot?null:(F.host?b:F.m.a);if(F.cou
 window.vFlood=vFlood; async function choose(t){F.target=t;F.course=null;F.words=null;F.topic='*';F.v='topic';rr();const L=await courses(t);
  const pref=(L||[]).find(c=>c.mine)||(L||[])[0];if(pref)await pickCourse(pref.id);else rr()}
 async function pickCourse(id){const L=CRS[F.target||'me']||[];F.course=L.find(c=>c.id==id)||null;F.words=null;F.topic='*';rr();if(F.course){F.words=await wordsOf(F.course,F.target);rr()}}
-window.FLX={emo:sendEmo,choose,pickCourse,back:()=>{F.v='pick';rr()},rc:v=>{F.rCourse=v},pron,tp:v=>{F.topic=v;rr()},rt:v=>{F.rTopic=v},_fast:fastInv,snd:sndToggle,invite,answer,cancel,respond,again};
+window.FLX={sleep:sleepReq,sleepAns,emo:sendEmo,choose,pickCourse,back:()=>{F.v='pick';rr()},rc:v=>{F.rCourse=v},pron,tp:v=>{F.topic=v;rr()},rt:v=>{F.rTopic=v},_fast:fastInv,snd:sndToggle,invite,answer,cancel,respond,again};
 /* thẻ vào game ở trang Thách đấu */
 window.floodCard=()=>`<button class="card login-nudge" onclick="FLD.v='pick';go('flood')" style="background:linear-gradient(140deg,#1e88e5,#0b3b6e);color:#fff;border:0"><span class="tile2-ic" style="background:rgba(255,255,255,.2)">🌊</span><span style="flex:1;text-align:left"><b style="color:#fff">Nước Dâng · đấu 1-1</b><small style="color:#dbe6f0">Ai chậm bị nước dâng · realtime</small></span><span class="chev" style="color:#fff">›</span></button>`;
 })();
