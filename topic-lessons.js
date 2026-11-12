@@ -279,7 +279,7 @@ function tlPart(p){shReset();SH.on=false;TLS.part=p;TLS.a={};S.res=null;render()
 const tlNorm=s=>String(s||'').toLowerCase().replace(/[^a-z' ]/g,' ').replace(/\s+/g,' ').trim();
 
 /* Thẻ hiển thị trên trang Học */
-window.TL_SHOWALL=window.TL_SHOWALL||false;
+window.TL_SHOWALL=window.TL_SHOWALL||false;window.TL_SHOWDONE=window.TL_SHOWDONE||false;
 function vTopicHome(){if(typeof tkSlug=='function'&&tkSlug()=='steel')return '';
  const A=tlAll().filter(x=>String(x.id)[0]!='p'),N=TL_PARTS.length,prog=L=>TL_PARTS.filter(([p])=>tlDone(L.id,p)).length;
  /* đưa bài đang học dở lên đầu, rồi bài chưa học, bài xong xuống cuối */
@@ -294,9 +294,9 @@ function vTopicHome(){if(typeof tkSlug=='function'&&tkSlug()=='steel')return '';
 .tlc-bar{height:6px;border-radius:99px;background:var(--soft);overflow:hidden;margin-top:4px}.tlc-bar i{display:block;height:100%;border-radius:inherit;background:var(--steel)}
 .tlc-new{justify-content:center;align-items:center;text-align:center;border-style:dashed;color:var(--steel)}.tlc-new b{min-height:0;font-size:.9rem}
 .tl-all .tlc{width:auto}.tl-all{display:grid;grid-template-columns:1fr 1fr;gap:10px}`;document.head.appendChild(st)}
- const all=window.TL_SHOWALL;
+ const all=window.TL_SHOWALL;const doneL=S2.filter(L=>prog(L)==N);const showDone=window.TL_SHOWDONE;const vis=showDone?S2:S2.filter(L=>prog(L)<N);
  return `<div class="sec-h"><h2>Bài học theo chủ đề</h2><button class="link" onclick="TL_SHOWALL=!TL_SHOWALL;render()">${all?'Thu gọn':`Tất cả ${A.length} ›`}</button></div>
- <div class="${all?'tl-all':'tlc-row'}">${(all?S2:S2.slice(0,8)).map(card).join('')}<button class="tlc tlc-new" onclick="TLN.msg='';TLS={id:'__new',part:'vocab',a:{}};go('tl')"><span style="font-size:1.6rem">＋</span><b>Tạo bài từ truyện ngắn</b></button></div>`}
+ <div class="${all?'tl-all':'tlc-row'}">${(all?vis:vis.slice(0,8)).map(card).join('')}${doneL.length?`<button class="tlc tlc-new" onclick="TL_SHOWDONE=!TL_SHOWDONE;render()"><span style="font-size:1.3rem">${showDone?'🙈':'✓'}</span><b>${showDone?'Ẩn bài đã xong':'Đã xong '+doneL.length+' bài'}</b><small>${showDone?'':'Chạm để xem lại'}</small></button>`:''}<button class="tlc tlc-new" onclick="TLN.msg='';TLS={id:'__new',part:'vocab',a:{}};go('tl')"><span style="font-size:1.6rem">＋</span><b>Tạo bài từ truyện ngắn</b></button></div>`}
 
 function vTopic(){if(TLS.id=='__new')return vStoryForm();const L=tlLesson();if(typeof CATS!='undefined'&&!CATS.tl)CATS.tl={n:'Bài học chủ đề'};
  const tabs=`<div class="chips" style="margin:10px 0;flex-wrap:nowrap;overflow-x:auto">${TL_PARTS.map(([p,n])=>`<button class="chip ${TLS.part==p?'on':''}" onclick="tlPart('${p}')">${tlDone(L.id,p)?'✓ ':''}${n}</button>`).join('')}</div>`;
