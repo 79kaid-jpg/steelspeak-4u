@@ -93,7 +93,7 @@ async function loadThread(uid,inc){const first=NT.thread!==uid||!document.queryS
  if(inc&&!near){NT.newPill=(NT.newPill||0)+1;rr();setTimeout(()=>{fitDock();const e=scEl();if(e)e.scrollTop=y},30)}else{NT.newPill=0;requestAnimationFrame(()=>{fitDock();toEnd(!first)});setTimeout(()=>document.querySelectorAll('.cx-list img').forEach(im=>{if(!im.complete)im.addEventListener('load',()=>{if(nearEnd())toEnd()},{once:true})}),60)}}
 /* khung chat cố định theo vùng nhìn thấy (visualViewport): bàn phím mở thì khung co lại vừa phía trên bàn phím, trang không tự cuộn/giật */
 function fitDock(){const sh=document.querySelector('.cx-shell');document.body.classList.toggle('cx-on',!!sh);if(!sh)return;const vv=window.visualViewport,n=document.querySelector('nav');
- const vh=vv?vv.height:innerHeight,kb=innerHeight-vh>120;const h=kb?vh:vh-((n&&n.offsetHeight)||0);sh.style.height=h+'px';sh.style.transform=vv&&kb?`translateY(${vv.offsetTop}px)`:'';sh.classList.toggle('kb',kb);watchList()}
+ const vh=vv?vv.height:innerHeight,kb=innerHeight-vh>120;const h=kb?vh:vh-((n&&n.offsetHeight)||0);sh.style.height=Math.round(h)+'px';sh.style.top=(vv&&kb?Math.max(0,Math.round(vv.offsetTop)):0)+'px';sh.style.transform='';if(scrollY)window.scrollTo(0,0);sh.classList.toggle('kb',kb);watchList()}
 const scEl=()=>document.getElementById('cxscroll');
 (function hookR(){if(typeof render!='function')return setTimeout(hookR,300);if(render._cx)return;const r0=render;const w=function(){const e0=scEl(),st=e0?e0.scrollTop:null,ne=e0?nearEnd():true;const x=r0.apply(this,arguments);try{if(!e0&&!document.querySelector('.cx-shell')&&!document.body.classList.contains('cx-on'))return x;fitDock();const e=scEl();if(e){if(ne)e.scrollTop=e.scrollHeight;else if(st!=null)e.scrollTop=st}}catch(e){}return x};Object.assign(w,r0);w._cx=1;window.render=w})();
 const nearEnd=()=>{const e=scEl();return !e||e.scrollTop+e.clientHeight>=e.scrollHeight-160};
@@ -103,6 +103,8 @@ function watchList(){const l=document.querySelector('.cx-list');if(!ro||!l||l===
 function onScroll(){const e=scEl();if(e)e._atEnd=nearEnd();if(NT.newPill&&nearEnd()){NT.newPill=0;document.querySelector('.cx-new')?.remove()}}
 /* chỉ can thiệp khi đang mở khung chat; các trang khác (ô nhập bài học…) để iPhone tự xử lý bàn phím */
 if(window.visualViewport){visualViewport.addEventListener('resize',()=>{if(!scEl())return;const w=nearEnd();fitDock();if(w)toEnd()});visualViewport.addEventListener('scroll',()=>{if(scEl())fitDock()})}
+addEventListener('scroll',()=>{if(document.body.classList.contains('cx-on')&&scrollY)window.scrollTo(0,0)},{passive:true});
+document.addEventListener('focusin',e=>{if(e.target&&e.target.id==='msgin')[50,250,500].forEach(t=>setTimeout(()=>{fitDock();toEnd()},t))});
 function toEnd(sm){if(NT.newPill){NT.newPill=0;document.querySelector('.cx-new')?.remove()}fitDock();const e=scEl();if(e)e.scrollTo({top:e.scrollHeight,behavior:sm?'smooth':'auto'})}
 addEventListener('resize',()=>fitDock());addEventListener('scroll',()=>{if(NT.newPill&&innerHeight+scrollY>=document.documentElement.scrollHeight-60){NT.newPill=0;document.querySelector('.cx-new')?.remove()}},{passive:true});
 async function loadThreads(){const {data,error}=await SB.rpc('admin_threads');NT.threads=error?[]:(data||[]);NT.terr=error&&error.message;rr()}
@@ -209,7 +211,7 @@ function chatCss(){if(document.getElementById('chatcss'))return;const s=document
 .cx-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;margin:0 -16px;padding:0 16px 8px}
 .cx-shell .cx-dock{position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;max-width:none;flex:none;margin:0 -16px;padding-bottom:8px}
 .cx-shell.kb .cx-dock{padding-bottom:6px}
-body.cx-on{overflow:hidden;overscroll-behavior:none}body.cx-on #app{min-height:0}
+body.cx-on{position:fixed;left:0;right:0;top:0;bottom:0;overflow:hidden;overscroll-behavior:none}body.cx-on #app{min-height:0}
 html:is([data-season="noel"],[data-season="tet"]) .cx-shell{background:transparent}
 .cx-new{position:absolute;left:50%;top:-40px;transform:translateX(-50%);min-height:36px;padding:0 16px;border-radius:99px;font:700 .86rem var(--fd);color:#fff;background:var(--steel);box-shadow:0 6px 18px rgba(0,0,0,.3);animation:cxin .25s both}
 .cx-pend{position:relative}.cx-pend .cx-img{opacity:.55}
