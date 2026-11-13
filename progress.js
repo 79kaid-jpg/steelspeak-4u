@@ -73,3 +73,12 @@ function hookExam(){if(typeof examHome!='function'||typeof SCTX!='function')retu
  w._all=1;window.examHome=w}
 hookExam();
 })();
+/* ---- Quản trị: công tắc "Ẩn học viên khác với nhau" (supabase/peers_privacy.sql) ---- */
+(function(){const P={on:null,busy:false};
+ async function load(){const {data,error}=await SB.from('app_settings').select('value').eq('key','hide_peers').maybeSingle();P.on=error?null:!!(data&&data.value&&data.value.on);P.err=error&&/app_settings|does not exist|schema cache/i.test(error.message);if(S.tab=='admin')render()}
+ async function set(v){if(P.busy)return;P.busy=true;const prev=P.on;P.on=v;render();
+  const {error}=await SB.from('app_settings').upsert({key:'hide_peers',value:{on:v},updated_at:new Date().toISOString()});P.busy=false;
+  if(error){P.on=prev;toast('Chưa lưu được: '+error.message)}else toast(v?'Đã ẩn học viên với nhau ✓':'Học viên lại thấy nhau ✓');render()}
+ window.peerCard=()=>{if(P.on===null&&!P.loading){P.loading=1;load().finally(()=>P.loading=0)}
+  return `<label class="card row" style="flex-wrap:nowrap;gap:12px;cursor:pointer"><span class="tile2-ic">🙈</span><span style="flex:1;min-width:0"><b>Ẩn học viên khác với nhau</b><small class="mut" style="display:block">${P.err?'Đang chờ GitHub Action chạy peers_privacy.sql':'Bật: học viên chỉ thấy Admin. Bảng xếp hạng hiện "Học viên #n", tắt gợi ý & kết bạn, thách đấu chỉ với Admin.'}</small></span><input type="checkbox" role="switch" aria-label="Ẩn học viên khác với nhau" ${P.on?'checked':''} ${P.on===null||P.busy?'disabled':''} onchange="PEERX.set(this.checked)" style="width:24px;height:24px;flex:none"></label>`};
+ window.PEERX={set};})();
