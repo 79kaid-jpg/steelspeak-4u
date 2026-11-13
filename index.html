@@ -715,6 +715,8 @@ html,body{max-width:100%;overflow-x:hidden}@supports (overflow:clip){html,body{o
 <script src="saga-core.js"></script>
 <script src="reader.js"></script>
 <script src="topic-lessons.js"></script>
+<script src="conv-data.js"></script>
+<script src="conv.js"></script>
 <script src="notify.js"></script>
 <script src="badges.js"></script>
 <script src="challenge.js"></script>
@@ -1030,7 +1032,7 @@ const slow=(t)=>`<button class="ic" aria-label="Nghe chậm" onclick="event.stop
 const TABS=[['home','Học','home'],['vocab','Từ vựng','book'],['saga','Đua level','trophy'],['read','Đọc truyện','story'],['make','Tạo bài','plus'],['me','Tài khoản','user']];
 function go(t){S.tab=t;S.game=null;render();scrollTo(0,0)}
 function render(){document.body.classList.toggle('in-game',!!(S.game&&!S.game.saga));const onMap=S.tab=='saga'&&!S.game&&SG.view!='board'&&SG.view!='friends';document.documentElement.style.background=onMap?mapBottomColor():'';try{musicSync()}catch(e){}$('#nav').innerHTML=TABS.map(([k,n,i])=>`<button class="${S.tab==k?'on':''} t-${k}" onclick="go('${k}')" style="position:relative" aria-label="${n}"${S.tab==k?' aria-current="page"':''}><span class="nv-ic">${navIcon(k)||svg(i)}</span><span class="nv-t">${n}</span>${k=='me'&&(ADMN.total||window.MSGU)?`<span class="nav-dot" aria-label="${ADMN.total} việc quản trị chờ xử lý"></span>`:''}</button>`).join('');
-const GATED=['vocab','speak','make','saga','contrib'];$('#app').innerHTML=S.game?vGame():(GATED.includes(S.tab)&&!canLearn()?trackBar()+vGate():({home:vHome,vocab:vVocab,speak:vSpeak,make:vMake,spec:vSpec,me:vMe,admin:vAdmin,saga:vSaga,tracks:vTracks,contrib:vContrib,ielts:vIelts,cert:vCert,read:vRead,tl:vTopic,msg:vMsg,badges:vBadgeShelf,duel:vDuel,lucky:vLucky,luckyadm:vLuckyAdmin,greetadm:()=>window.vGreetAdmin?vGreetAdmin():"",duet:()=>window.vDuet?vDuet():"",song:()=>window.vSong?vSong():"",flood:()=>window.vFlood?vFlood():"",sys:()=>window.vSys?vSys():"",progadm:()=>window.vProgAdm?vProgAdm():""})[S.tab]())}
+const GATED=['vocab','speak','make','saga','contrib'];$('#app').innerHTML=S.game?vGame():(GATED.includes(S.tab)&&!canLearn()?trackBar()+vGate():({home:vHome,vocab:vVocab,speak:vSpeak,make:vMake,spec:vSpec,me:vMe,admin:vAdmin,saga:vSaga,tracks:vTracks,contrib:vContrib,ielts:vIelts,cert:vCert,read:vRead,tl:vTopic,msg:vMsg,badges:vBadgeShelf,duel:vDuel,lucky:vLucky,luckyadm:vLuckyAdmin,greetadm:()=>window.vGreetAdmin?vGreetAdmin():"",duet:()=>window.vDuet?vDuet():"",song:()=>window.vSong?vSong():"",flood:()=>window.vFlood?vFlood():"",sys:()=>window.vSys?vSys():"",progadm:()=>window.vProgAdm?vProgAdm():"",conv:()=>window.vConv?vConv():""})[S.tab]())}
 /* ---- home ---- */
 const PATH_STEEL=[['coat','Cấu trúc thép phủ màu'],['qual','Thử nghiệm & khiếu nại'],['nspe','Quy trình NSPE'],['colr','Pha màu & chạy thử'],['npd','Phát triển sản phẩm mới'],['talk','Họp & email với CFT']];
 function pathList(){const tr=curTrack();if(!tr||tr.slug=='steel')return PATH_STEEL;const used=new Set(TERMS.map(x=>x.cat));return Object.entries(tr.cats||{}).filter(([k])=>used.has(k)).map(([k,v])=>[k,v])}
