@@ -1,14 +1,10 @@
 -- Riêng tư giữa học viên: Admin bật "Ẩn học viên khác với nhau" → học viên chỉ thấy Admin.
 -- Bảng xếp hạng đổi tên người khác thành "Học viên #n", tắt gợi ý/kết bạn giữa học viên, thách đấu chỉ với Admin.
-create table if not exists public.app_settings (key text primary key, value jsonb not null, updated_at timestamptz default now());
-alter table public.app_settings enable row level security;
-drop policy if exists "settings read" on public.app_settings;
-drop policy if exists "settings admin" on public.app_settings;
-create policy "settings read" on public.app_settings for select to authenticated using (true);
-create policy "settings admin" on public.app_settings for all to authenticated using (public.is_admin()) with check (public.is_admin());
+-- dùng bảng app_settings có sẵn (ai_settings.sql: key text, value text); giá trị 'on' / 'off'
+create table if not exists public.app_settings (key text primary key, value text, updated_at timestamptz default now());
 
 create or replace function public.peers_hidden() returns boolean language sql security definer set search_path = public stable as $$
-  select coalesce((select (value->>'on')::boolean from app_settings where key='hide_peers'), false) and not public.is_admin()
+  select coalesce((select value = 'on' from app_settings where key='hide_peers'), false) and not public.is_admin()
 $$;
 
 create or replace function public.saga_board(period text default 'week', track uuid default null)
