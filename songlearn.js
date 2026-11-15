@@ -3,6 +3,8 @@
  → chia sẻ cho người được chọn. Người học: nghe, lời tự sáng theo ca sĩ, học & hát từng câu, AI chấm.
  Máy chủ: supabase/private_songs.sql (bảng private_songs, bucket riêng tư 'psong'). */
 (function(){
+/* bù độ trễ tai nghe Bluetooth (giây): lời sáng muộn lại cho khớp tiếng ra tai nghe */
+let _lat=0;try{_lat=+localStorage.getItem('ps_lat')||0}catch(e){}const LAT=()=>_lat;
 const P={list:null,err:'',view:'list',song:null,url:'',i:-1,vi:true,hide:false,rate:1,loop:false,edit:null,people:null,sync:-1,busy:'',rec:null,res:{}};
 const e2=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const isAdm=()=>typeof PROF!='undefined'&&PROF&&PROF.is_admin;
@@ -71,14 +73,14 @@ function vPlay(){P._k=null;setTimeout(syncUI,0);const s=P.song,ls=L();const t=A?
  ${P.loading?`<div class="note" style="margin-top:10px">Đang tải nhạc… (lần đầu khoảng vài giây)</div>`:''}${P.err?`<div class="note" style="margin-top:10px">${e2(P.err)}</div>`:''}
  ${ls.some(l=>l.t==null)?`<div class="note" style="margin-top:10px">Bài chưa khớp nhạc đủ${isAdm()?'. Bấm “Sửa” ở danh sách → “Chạm theo nhịp”.':', lời sẽ chưa tự sáng.'}</div>`:''}
  <div class="ps-mus" id="psmus" role="status" hidden><span class="ps-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span><b>Nhạc dạo đầu</b><small></small></span></div><div class="ps-lyr ${P.hide?'hide':''}" id="pslyr">${ls.map((l,k)=>`<div class="ps-l" id="psl${k}" onclick="PSONG.seek(${k})"><p class="ps-en ${sungText(l)?'':'ps-skip'}">${wordsHTML(l,k)}</p>${P.vi&&l.vi?`<p class="ps-vi">${e2(l.vi)}</p>`:''}${(l.words||[]).length?`<div class="ps-chips">${l.words.map(w=>`<span><b>${e2(w[0])}</b> · ${e2(w[1])}</span>`).join('')}</div>`:''}</div>`).join('')}</div>
- <div class="ps-dock"><div class="row" style="gap:8px;justify-content:center"><button class="chip" onclick="PSONG.rate()">Tốc độ ${P.rate}×</button><button class="chip ${P.vi?'on':''}" onclick="PSONG.tog('vi')">Hiện nghĩa</button><button class="chip ${P.hide?'on':''}" onclick="PSONG.tog('hide')">Ẩn lời</button></div>
+ <div class="ps-dock"><div class="row" style="gap:8px;justify-content:center"><button class="chip" onclick="PSONG.rate()">Tốc độ ${P.rate}×</button><button class="chip ${P.vi?'on':''}" onclick="PSONG.tog('vi')">Hiện nghĩa</button><button class="chip ${P.hide?'on':''}" onclick="PSONG.tog('hide')">Ẩn lời</button><button class="chip ${_lat?'on':''}" onclick="PSONG.lat()" aria-label="Bù độ trễ tai nghe Bluetooth">🎧 ${_lat?'+'+Math.round(_lat*1000)+'ms':'Tai nghe'}</button></div>
  <div class="row" style="justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:nowrap"><button class="ps-ib" aria-label="Câu trước" onclick="PSONG.step(-1)">${IC.prev}</button><button class="ps-ib ${P.loop?'on':''}" aria-label="Lặp lại câu này" aria-pressed="${P.loop}" onclick="PSONG.tog('loop')">${IC.loop}</button><button class="ps-pp" id="pspp" aria-label="Phát / tạm dừng" onclick="PSONG.pp()">${A&&!A.paused?IC.pause:IC.play}</button><button class="ps-ib" style="color:var(--bad)" aria-label="Học và hát câu này" onclick="PSONG.line(Math.max(0,PSONG.cur()))">${IC.mic}</button><button class="ps-ib" aria-label="Câu sau" onclick="PSONG.step(1)">${IC.next}</button></div></div>`}
 let raf=0;function tick(){cancelAnimationFrame(raf);const f=()=>{syncUI();if(A&&!A.paused)raf=requestAnimationFrame(f)};f();uiBtn()}
 function uiBtn(){const b=document.getElementById('pspp');if(b)b.innerHTML=A&&!A.paused?IC.pause:IC.play}
 /* thời lượng ước tính khi ca sĩ hát 1 câu: dùng để nhận ra đoạn nhạc dạo / gian tấu giữa các câu */
 const sungDur=k=>{const n=sungText(L()[k]||{}).split(/\s+/).filter(Boolean).length;return n?Math.min(8,Math.max(2,n*0.45+1.3)):0};
 const lineEnd=k=>{const W=L()[k]&&L()[k].w;if(W&&W.length)return Math.min(endOf(k),W[W.length-1][1]+0.4);const s0=startOf(k),nx=endOf(k),d=sungDur(k);return nx-s0>d+2.5?s0+d:nx};
-function syncUI(){if(!A||P.view!='play')return;const t=A.currentTime;
+function syncUI(){if(!A||P.view!='play')return;const t=Math.max(0,A.currentTime-LAT());
  if(P.loop&&P.i>=0&&startOf(P.i)!=null&&t>=endOf(P.i)-0.05){A.currentTime=startOf(P.i);return}
  let k=lineAt(t);const f=document.getElementById('psfill');if(f&&A.duration)f.style.width=(t/A.duration*100)+'%';
  const te=document.getElementById('pst');if(te)te.textContent=fmt(t);const de=document.getElementById('psd');if(de)de.textContent=fmt(A.duration);
@@ -201,6 +203,7 @@ window.PSONG={open,get E(){return P.edit},cur:()=>P.i,redraw:rr,
  seekBar(ev){const a=audio();if(!a.duration)return;const r=ev.currentTarget.getBoundingClientRect();a.currentTime=(ev.clientX-r.left)/r.width*a.duration;syncUI()},
  step(d){let k=Math.min(L().length-1,Math.max(0,(P.i<0?0:P.i)+d));while(startOf(k)==null&&k>0&&k<L().length-1)k+=d;PSONG.seek(k)},
  rate(){P.rate=P.rate==1?0.75:P.rate==0.75?0.6:1;if(A)A.playbackRate=P.rate;rr()},
+ lat(){const L=[0,0.15,0.25,0.35,0.5,0.7];_lat=L[(L.indexOf(_lat)+1)%L.length];try{localStorage.setItem('ps_lat',_lat)}catch(e){}toast(_lat?`Lời sáng chậm lại ${Math.round(_lat*1000)}ms cho khớp tai nghe Bluetooth`:'Tắt bù độ trễ (loa ngoài / tai nghe dây)');rr()},
  tog(k){P[k]=!P[k];rr();setTimeout(syncUI,30)},
  line(k){if(k<0||k>=L().length)return;try{A&&A.pause()}catch(e){}P.i=k;P.view='line';P.err='';rr();scrollTo(0,0)},
  toPlay(){P.view='play';P.err='';rr();setTimeout(()=>{const n=document.getElementById('psl'+P.i);n&&n.scrollIntoView({block:'center'});syncUI()},60)},
