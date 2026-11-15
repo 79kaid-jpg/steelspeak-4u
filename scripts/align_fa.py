@@ -34,7 +34,7 @@ for li,l in enumerate(lines):
 from faster_whisper import WhisperModel
 import difflib
 wm=WhisperModel('small.en',device='cpu',compute_type='int8')
-segs,_=wm.transcribe(voc,language='en',word_timestamps=True,vad_filter=False,condition_on_previous_text=False,initial_prompt=' '.join(' '.join(sung(l['en'])) for l in lines)[:800])
+segs,_=wm.transcribe(src,language='en',word_timestamps=True,vad_filter=False,condition_on_previous_text=False,initial_prompt=' '.join(' '.join(sung(l['en'])) for l in lines)[:800])
 H=[(clean(w.word),w.start,w.end) for sg in segs for w in (sg.words or []) if clean(w.word)]
 sm=difflib.SequenceMatcher(None,words,[h[0] for h in H],autojunk=False)
 hm={}
@@ -44,9 +44,16 @@ LS=[None]*len(lines); LE=[None]*len(lines)
 for k,(li,wi) in enumerate(owner):
     if k in hm:
         h=H[hm[k]]; LS[li]=h[1] if LS[li] is None else min(LS[li],h[1]); LE[li]=h[2] if LE[li] is None else max(LE[li],h[2])
+# câu Whisper không nghe ra → nội suy mốc giữa 2 câu có mốc (không bao giờ để về 0)
+known=[i for i in range(len(lines)) if LS[i] is not None]
+for i in range(len(lines)):
+    if LS[i] is None and known:
+        p=max([j for j in known if j<i],default=None); q=min([j for j in known if j>i],default=None)
+        if p is not None and q is not None: LS[i]=LE[p]+(LS[q]-LE[p])*(i-p)/(q-p); LE[i]=LS[i]+(LS[q]-LE[p])/(q-p)
+        elif p is not None: LS[i]=LE[p]+0.5*(i-p); LE[i]=LS[i]+3
+        else: LS[i]=max(0,LS[q]-3.5*(q-i)); LE[i]=LS[i]+3
 def nb(arr,i,step):
     j=i+step
-    while 0<=j<len(arr) and arr[j] is None: j+=step
     return arr[j] if 0<=j<len(arr) else None
 times={}; fr=lambda t:max(0,min(em.shape[1],int(t/ratio)))
 for li,l in enumerate(lines):
