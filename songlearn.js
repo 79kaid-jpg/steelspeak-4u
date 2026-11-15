@@ -18,7 +18,7 @@ class WA{constructor(){this.ctx=null;this.buf=null;this.src=null;this.off=0;this
  get currentTime(){return this.paused||!this.ctx?this.off:Math.min(this.duration||0,this.off+(this.ctx.currentTime-this.t0)*this.rate)}
  set currentTime(t){t=Math.max(0,Math.min(t,(this.duration||0)-0.01));if(this.paused){this.off=t}else{this._stop();this.off=t;this._start()}}
  get playbackRate(){return this.rate}set playbackRate(r){const c=this.currentTime;this.rate=r;if(!this.paused){this._stop();this.off=c;this._start()}}
- _ctx(){if(!this.ctx)this.ctx=new (window.AudioContext||window.webkitAudioContext)();return this.ctx}
+ _ctx(){/* iPhone: Web Audio bị tắt tiếng khi gạt nút im lặng → khai báo phiên phát nhạc */try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}if(!this.ctx)this.ctx=new (window.AudioContext||window.webkitAudioContext)();return this.ctx}
  async load(url){this.pause();this.buf=null;this.off=0;this.url=url;const c=this._ctx();const ab=await (await fetch(url)).arrayBuffer();if(this.url!==url)return;
   this.buf=await new Promise((ok,no)=>{const p=c.decodeAudioData(ab,ok,no);p&&p.catch&&p.catch(no)});this.emit('loaded')}
  _start(){const c=this._ctx(),s=c.createBufferSource();s.buffer=this.buf;s.playbackRate.value=this.rate;s.connect(c.destination);
@@ -35,7 +35,8 @@ async function load(){const c=sb();if(!c||typeof USER=='undefined'||!USER){P.lis
  const {data,error}=await c.from('private_songs').select('*').order('created_at',{ascending:false});
  P.err=error?(/private_songs|does not exist|schema cache/i.test(error.message)?'Chưa có bảng bài hát (supabase/private_songs.sql).':error.message):'';P.list=data||[];rr();try{if(S.tab=='home')render()}catch(e){}}
 async function signed(s){const {data,error}=await sb().storage.from('psong').createSignedUrl(s.audio_path,3600);if(error)throw error;return data.signedUrl}
-function count(){if(P.list==null){P.list=[];setTimeout(load,800)}return P.list.length}
+let _cl=0;function count(){/* tải danh sách khi đã đăng nhập; thử lại vài lần vì lúc mở app USER có thể chưa sẵn */
+ if(!P._loaded&&Date.now()-_cl>3000&&typeof USER!='undefined'&&USER){_cl=Date.now();load().then(()=>{P._loaded=true})}if(P.list==null)P.list=[];return P.list.length}
 
 /* ---------- danh sách ---------- */
 function vList(){if(P.list==null){load();return '<h1>Học theo bài hát</h1><p class="mut">Đang tải…</p>'}
@@ -100,7 +101,7 @@ function vLine(){const k=P.i<0?0:P.i,l=L()[k];if(!l)return vPlay();const r=P.res
  <div class="row" style="gap:8px;flex-wrap:nowrap"><button class="btn" style="flex:1" onclick="PSONG.clip(${k},1)" ${l.t==null?'disabled':''}>Nghe ca sĩ hát</button><button class="btn ghost" style="flex:1" onclick="PSONG.clip(${k},0.7)" ${l.t==null?'disabled':''}>Nghe chậm 0.7×</button></div></div>
  ${r?`<div class="card stack" style="margin-top:12px"><div class="row" style="justify-content:space-between;align-items:baseline;flex-wrap:nowrap"><b>Bạn vừa hát</b><span class="ps-score ${r.score>=80?'good':r.score>=60?'warn':'bad'}">${r.score}</span></div><p style="margin:0;font-size:1.1rem;line-height:1.6">${(r.words||[]).map(w=>`<span class="${w.s=='g'?'good':w.s=='y'?'warn':'bad'}" style="${w.s!='g'?'text-decoration:underline':''}">${e2(w.w)}</span>`).join(' ')}</p>${r.aiTip?`<p class="mut" style="margin:0;font-size:.86rem">${e2(r.aiTip)}</p>`:''}</div>`:''}
  ${P.err?`<div class="note" style="margin-top:12px">${e2(P.err)}</div>`:''}
- ${(l.words||[]).length?`<div class="lbl" style="margin:14px 0 8px">TỪ MỚI TRONG CÂU</div><div class="row" style="gap:8px">${l.words.map(w=>`<button class="chip" onclick="say('${e2(w[0]).replace(/'/g,'&#39;')}')"><b>${e2(w[0])}</b>&nbsp;· ${e2(w[1])}</button>`).join('')}</div>`:''}
+ ${(l.words||[]).length?`<div class="lbl" style="margin:14px 0 8px">TỪ MỚI TRONG CÂU</div><div class="row" style="gap:8px">${l.words.map(w=>`<button class="chip" data-say="${e2(w[0])}" onclick="say(this.dataset.say)"><b>${e2(w[0])}</b>&nbsp;· ${e2(w[1])}</button>`).join('')}</div>`:''}
  <div class="row" style="gap:12px;align-items:center;margin-top:18px;flex-wrap:nowrap"><button class="btn ghost" style="flex:1" onclick="PSONG.line(${k-1})" ${k<1?'disabled':''}>‹ Câu trước</button>
  ${sungText(l)?`<button class="ps-mic ${P.rec?'rec':''}" aria-label="${P.rec?'Dừng và chấm':'Bấm để hát'}" onclick="PSONG.sing(${k})" ${P.busy?'disabled':''}>${P.busy=='grade'?'…':P.rec?'■':IC.mic}</button>`:''}
  <button class="btn amber" style="flex:1" onclick="PSONG.line(${k+1})" ${k>=L().length-1?'disabled':''}>Câu sau ›</button></div>`}
