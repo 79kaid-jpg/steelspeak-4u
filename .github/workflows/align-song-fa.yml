@@ -1,0 +1,20 @@
+# Khớp TỪNG CHỮ chính xác: tách giọng ca sĩ (Demucs) + dóng cưỡng bức lời vào giọng hát (torchaudio MMS).
+name: Align song (word, precise)
+on:
+  workflow_dispatch:
+    inputs:
+      song_id: { description: 'id bài hát (private_songs.id)', required: true }
+jobs:
+  align:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: bstlbodjjnndmgxhqerf
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: sudo apt-get -qq install -y ffmpeg >/dev/null
+      - run: pip install -q torch==2.4.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cpu && pip install -q demucs==4.0.1 soundfile
+      - run: python scripts/align_fa.py "${{ inputs.song_id }}"
