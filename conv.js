@@ -37,6 +37,8 @@ function css(){if(document.getElementById('cv-css'))return;const s=document.crea
 function myCefr(){try{const tr=curTrack();if(!tr||tr.kind!='cefr'||typeof certOf!='function')return null;if(CERT.for!=='all'){certLoad();return null}
  const ch=SCTX().chapters||[];const c=ch.find((_,i)=>!certOf(i));return c?c.cat:(ch.length?ch[ch.length-1].cat:null)}catch(e){return null}}
 window.myCefr=myCefr;
+/* bài tự tạo chỉ gồm chủ đề cấp thấp hơn cấp hiện tại → ẩn */
+window.lesLow=function(l){const ML=myCefr();if(!ML||!l||!Array.isArray(l.cats)||!l.cats.length||l.terms)return false;const r=x=>LV.indexOf(String(x).slice(0,2));return l.cats.every(c=>r(c)>=0&&r(c)<r(ML))};
 function home(){css();const A=lessons();if(!A.length)return '';const ML=myCefr();const LVS=ML&&!CV.low?LV.slice(Math.max(0,LV.indexOf(ML))):LV;
  if(CV.lv&&!LVS.includes(CV.lv))CV.lv=null;
  const lv=CV.lv||LVS.find(l=>A.some(x=>x.lv==l&&P.done[x.id]==null))||LVS[0];CV.lv=lv;
