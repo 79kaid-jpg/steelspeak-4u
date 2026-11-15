@@ -58,7 +58,7 @@ const L=()=>(P.song&&P.song.lines)||[];
 const startOf=k=>L()[k]&&L()[k].t;
 const endOf=k=>{for(let j=k+1;j<L().length;j++)if(L()[j].t!=null)return L()[j].t;return (A&&A.duration)||((startOf(k)||0)+5)};
 function lineAt(t){let k=-1;L().forEach((l,j)=>{if(l.t!=null&&l.t<=t+0.05)k=j});return k}
-function wordsHTML(l,k){const ws=String(l.en).split(/(\s+)/);let n=0;return ws.map(w=>/^\s+$/.test(w)?w:`<span class="ps-w" data-k="${k}" data-n="${n++}">${e2(w)}</span>`).join('')}
+function wordsHTML(l,k){const ws=String(l.en).split(/(\s+)/);let n=0,par=false;return ws.map(w=>{if(/^\s+$/.test(w))return w;if(w.startsWith('('))par=true;const skip=par;if(par&&/\)/.test(w))par=false;return skip?`<span class="ps-par">${e2(w)}</span>`:`<span class="ps-w" data-k="${k}" data-n="${n++}">${e2(w)}</span>`}).join('')}
 function vPlay(){P._k=null;setTimeout(syncUI,0);const s=P.song,ls=L();const t=A?A.currentTime:0;const cur=P.i;
  return `<div class="ps-top"><button class="ps-ib" aria-label="Quay lại" onclick="PSONG.back()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><b class="ps-tt">Học theo bài hát</b>${isAdm()?`<button class="chip" onclick="PSONG.edit('${s.id}')">Sửa · khớp nhạc</button>`:`<span class="ps-priv">${IC.lock} Riêng tư</span>`}</div>
  <div class="ps-head"><div class="row" style="flex-wrap:nowrap;gap:12px;align-items:center"><span class="ps-cv" aria-hidden="true">${IC.note}</span><div style="flex:1;min-width:0"><b class="ps-name">${e2(s.title)}</b><small>${e2(s.artist||'')}${s.artist?' · ':''}${ls.length} câu</small></div><span class="mono" id="psn">${cur+1>0?cur+1:0}/${ls.length}</span></div>
@@ -72,7 +72,7 @@ let raf=0;function tick(){cancelAnimationFrame(raf);const f=()=>{syncUI();if(A&&
 function uiBtn(){const b=document.getElementById('pspp');if(b)b.innerHTML=A&&!A.paused?IC.pause:IC.play}
 /* thời lượng ước tính khi ca sĩ hát 1 câu: dùng để nhận ra đoạn nhạc dạo / gian tấu giữa các câu */
 const sungDur=k=>{const n=sungText(L()[k]||{}).split(/\s+/).filter(Boolean).length;return n?Math.min(8,Math.max(2,n*0.45+1.3)):0};
-const lineEnd=k=>{const s0=startOf(k),nx=endOf(k),d=sungDur(k);return nx-s0>d+2.5?s0+d:nx};
+const lineEnd=k=>{const W=L()[k]&&L()[k].w;if(W&&W.length)return Math.min(endOf(k),W[W.length-1][1]+0.4);const s0=startOf(k),nx=endOf(k),d=sungDur(k);return nx-s0>d+2.5?s0+d:nx};
 function syncUI(){if(!A||P.view!='play')return;const t=A.currentTime;
  if(P.loop&&P.i>=0&&startOf(P.i)!=null&&t>=endOf(P.i)-0.05){A.currentTime=startOf(P.i);return}
  let k=lineAt(t);const f=document.getElementById('psfill');if(f&&A.duration)f.style.width=(t/A.duration*100)+'%';
@@ -87,8 +87,10 @@ function syncUI(){if(!A||P.view!='play')return;const t=A.currentTime;
   if(!music&&k>=0){const n=document.getElementById('psl'+k);if(n){n.classList.add('now');n.scrollIntoView({block:'center',behavior:'smooth'})}}
   else{const n=document.getElementById('psl'+(k+1));n&&n.scrollIntoView({block:'center',behavior:'smooth'})}}
  if(k!==P.i){P.i=k;const c=document.getElementById('psn');if(c)c.textContent=(k+1)+'/'+L().length}
- if(k>=0&&!music){const s0=startOf(k),s1=lineEnd(k),ws=document.querySelectorAll(`#psl${k} .ps-w`);const fr=Math.min(1,Math.max(0,(t-s0)/Math.max(0.5,s1-s0)*1.08));const on=Math.ceil(fr*ws.length);
-  ws.forEach((w,j)=>{w.classList.toggle('sung',j<on-1);w.classList.toggle('cur',j===on-1)})}}
+ if(k>=0&&!music){const ws=document.querySelectorAll(`#psl${k} .ps-w`),W=L()[k].w;
+  if(W&&W.length===ws.length){ws.forEach((w,j)=>{const [a,b]=W[j];const on=t>=a&&t<b;w.classList.toggle('sung',t>=b);w.classList.toggle('cur',on);w.classList.toggle('wipe',on);if(on)w.style.setProperty('--p',Math.round((t-a)/Math.max(0.05,b-a)*100)+'%')})}
+  else{const s0=startOf(k),s1=lineEnd(k);const fr=Math.min(1,Math.max(0,(t-s0)/Math.max(0.5,s1-s0)*1.08));const on=Math.ceil(fr*ws.length);
+  ws.forEach((w,j)=>{w.classList.toggle('sung',j<on-1);w.classList.toggle('cur',j===on-1)})}}}
 
 /* ---------- học từng câu ---------- */
 function vLine(){const k=P.i<0?0:P.i,l=L()[k];if(!l)return vPlay();const r=P.res[k];
@@ -119,6 +121,7 @@ async function sing(k){if(P.rec){const r=P.rec;P.rec=null;await new Promise(ok=>
 
 /* ---------- admin: thêm / sửa, khớp nhạc ---------- */
 function vEdit(){const E=P.edit;if(!isAdm())return '<p class="mut">Chỉ admin.</p>';if(P.people==null){P.people=[];sb().rpc('psong_people').then(({data})=>{P.people=data||[];rr()})}
+ if(P.ws)return vWSync();
  if(P.sync>=0)return vSync();
  const ellyIds=P.people.filter(p=>/elly|hạnh|hanh/i.test(p.name+p.email)).map(p=>p.id);if(!E.id&&!E._def&&ellyIds.length){E.share=[...new Set([...E.share,...ellyIds])];E._def=1}
  return `<button class="link" onclick="PSONG.list()">‹ Danh sách bài hát</button><h1 style="margin-top:6px">${E.id?'Sửa bài hát':'Thêm bài hát riêng'}</h1>
@@ -132,6 +135,16 @@ function vEdit(){const E=P.edit;if(!isAdm())return '<p class="mut">Chỉ admin.<
  ${E.id&&(E.audio_path||E.file)?`<button class="btn ghost" style="width:100%;margin-top:8px" onclick="PSONG.syncStart()">♪ Tự chạm theo nhịp</button>`:''}${E.id&&E.lines.length&&E.lines.every(l=>l.t!=null)?`<button class="btn ghost" style="width:100%;margin-top:8px" onclick="PSONG.adjust()">Chỉnh thời gian từng câu (không chạm lại)</button>`:''}
  <div class="card stack" style="margin-top:12px"><b>${IC.lock} Chia sẻ cho</b>${E.id?'<small class="mut">Bấm chọn là lưu ngay.</small>':''}${P.people.map(p=>`<label class="row" style="gap:10px;flex-wrap:nowrap;min-height:40px"><input type="checkbox" ${E.share.includes(p.id)?'checked':''} onchange="PSONG.share('${p.id}',this.checked)"><span style="flex:1;min-width:0"><b>${e2(p.name)}</b> <small class="mut">${e2(p.email)}</small></span></label>`).join('')||'<small class="mut">Đang tải danh sách…</small>'}<small class="mut">Người không được chọn sẽ không thấy bài và không mở được file nhạc.</small></div>
  ${E.id?`<button class="link" style="margin-top:14px;color:var(--bad)" onclick="PSONG.del()">Xóa bài hát này</button>`:''}`}
+const swords=l=>sungText(l).split(/\s+/).filter(Boolean);
+function vWSync(){const W=P.ws,ls=P.edit.lines,l=ls[W.k];if(!l)return `<button class="link" onclick="PSONG.wsStop()">‹ Xong</button><div class="card" style="text-align:center;margin-top:10px"><b>✓ Đã khớp tới cuối bài</b><p class="mut">Bấm Lưu để giữ thời gian từng chữ.</p><button class="btn amber" onclick="PSONG.syncSave()">Lưu</button></div>`;
+ const w=swords(l),nx=ls.slice(W.k+1).find(x=>swords(x).length);
+ return `<button class="link" onclick="PSONG.wsStop()">‹ Về danh sách câu</button><h1 style="margin-top:6px">Khớp từng chữ</h1>
+ <p class="mut" style="margin:0 0 10px"><b>Nhấn giữ Space</b> (hoặc nút lớn) đúng lúc ca sĩ hát mỗi chữ, <b>giữ</b> khi chữ được ngân dài, <b>nhả</b> khi hết chữ.</p>
+ <div class="card stack" style="text-align:center"><span class="lbl">CÂU ${W.k+1}/${ls.length}</span><div class="ps-wk">${w.map((x,j)=>`<span class="${j<W.j?'done':j===W.j?(W.down!=null?'hold':'now'):''}">${e2(x)}</span>`).join(' ')}</div>${nx?`<small class="mut">Câu sau: ${e2(nx.en)}</small>`:''}</div>
+ <button class="ps-tap ${W.down!=null?'on':''}" onpointerdown="event.preventDefault();PSONG.wdown()" onpointerup="PSONG.wup()" onpointerleave="PSONG.wup()" oncontextmenu="return false" style="touch-action:none;user-select:none;-webkit-user-select:none">${W.down!=null?'Đang giữ…':'Nhấn giữ theo từng chữ'}</button>
+ <div class="row" style="gap:8px;margin:10px 0;flex-wrap:nowrap"><button class="btn ghost" style="flex:1" onclick="PSONG.wback()">↶ Lùi 1 chữ</button><button class="btn ghost" style="flex:1" onclick="PSONG.wrate()">Tốc độ ${A?A.playbackRate:1}×</button><button class="btn ghost" style="flex:1" onclick="PSONG.pp()">Phát / dừng</button></div>
+ <button class="btn amber" style="width:100%" onclick="PSONG.wsSave()" ${P.busy?'disabled':''}>Lưu thời gian từng chữ</button>
+ <p class="mut" style="text-align:center;font-size:.82rem;margin:8px 0 0">Máy tính: giữ <kbd>Space</kbd> · <kbd>Backspace</kbd> lùi 1 chữ · <kbd>Enter</kbd> phát/dừng</p>`}
 function vSync(){const ls=P.edit.lines,k=P.sync,n=ls.length;
  const card=k>=n?`<div class="card" style="text-align:center"><b>✓ Đã khớp đủ ${n} câu</b><p class="mut" style="margin:6px 0 0">Bấm ▶ ở vài câu bên dưới để nghe thử, rồi bấm Lưu.</p></div>`
   :k==0?`<div class="card" style="text-align:center"><span class="lbl">BƯỚC 1 · CHỜ CA SĨ BẮT ĐẦU HÁT</span><p class="ps-big" style="margin:8px 0">${e2(ls[0].en)}</p><small class="mut">Chạm ngay khi nghe chữ đầu tiên của câu này (bỏ qua đoạn nhạc dạo).</small></div>`
@@ -143,13 +156,13 @@ function vSync(){const ls=P.edit.lines,k=P.sync,n=ls.length;
  <p class="mut" style="text-align:center;font-size:.82rem;margin:6px 0 0">Trên máy tính: <kbd>Space</kbd> = chạm · <kbd>Backspace</kbd> = lùi 1 câu · <kbd>Enter</kbd> = phát/dừng</p>
  <div class="row" style="gap:8px;margin:10px 0;flex-wrap:nowrap"><button class="btn ghost" style="flex:1" onclick="PSONG.syncBack()">↶ Lùi 1 câu</button><button class="btn ghost" style="flex:1" onclick="PSONG.pp()">Phát / dừng</button><button class="btn amber" style="flex:1" onclick="PSONG.syncSave()" ${P.busy?'disabled':''}>Lưu</button></div>
  <div class="card stack" style="gap:8px;margin-bottom:10px"><b>Chỉnh cả bài</b><div class="row" style="gap:8px"><button class="chip" onclick="PSONG.shift(-1)">Lời hiện chậm 1 câu → sửa</button><button class="chip" onclick="PSONG.shift(1)">Lời hiện sớm 1 câu → sửa</button><button class="chip" onclick="PSONG.all(-0.5)">Cả bài sớm 0,5s</button><button class="chip" onclick="PSONG.all(0.5)">Cả bài muộn 0,5s</button></div><small class="mut">Chỉnh xong bấm ▶ ở một câu để nghe thử, rồi bấm Lưu.</small></div>
- <div class="card" style="padding:0">${ls.map((l,j)=>`<div class="row" style="flex-wrap:nowrap;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);${j==k?'background:var(--soft)':''}"><span class="mono" style="width:44px;color:var(--steel)">${l.t==null?'–':fmt(l.t)+(l.t%1).toFixed(1).slice(1)}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e2(l.en)}</span>${l.t!=null?`<button class="chip" aria-label="Sớm hơn" onclick="PSONG.nudge(${j},-0.2)">−</button><button class="chip" aria-label="Muộn hơn" onclick="PSONG.nudge(${j},0.2)">＋</button><button class="chip" aria-label="Nghe từ câu này" onclick="PSONG.from(${j})">▶</button>`:''}</div>`).join('')}</div>`}
+ <div class="card" style="padding:0">${ls.map((l,j)=>`<div class="row" style="flex-wrap:nowrap;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);${j==k?'background:var(--soft)':''}"><span class="mono" style="width:44px;color:var(--steel)">${l.t==null?'–':fmt(l.t)+(l.t%1).toFixed(1).slice(1)}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e2(l.en)}</span>${l.t!=null?`<button class="chip" aria-label="Sớm hơn" onclick="PSONG.nudge(${j},-0.2)">−</button><button class="chip" aria-label="Muộn hơn" onclick="PSONG.nudge(${j},0.2)">＋</button><button class="chip" aria-label="Nghe từ câu này" onclick="PSONG.from(${j})">▶</button><button class="chip" aria-label="Khớp từng chữ từ câu này" onclick="PSONG.wsStart(${j})">✎</button>`:''}</div>`).join('')}</div>`}
 const parse=t=>String(t||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
 async function save(){const E=P.edit,c=sb();P.err='';if(!E.title.trim())return P.err='Nhập tên bài.',rr();const en=parse(E.text);if(!en.length)return P.err='Dán lời bài hát.',rr();
  try{P.busy='Đang lưu…';rr();let id=E.id;
   if(!id){const {data,error}=await c.from('private_songs').insert({title:E.title.trim(),artist:E.artist.trim(),share_with:E.share}).select().single();if(error)throw error;id=E.id=data.id}
   let path=E.audio_path;if(E.file){P.busy='Đang tải nhạc lên…';rr();path=id+'/audio.'+((E.file.name.split('.').pop()||'mp3').toLowerCase());const {error}=await c.storage.from('psong').upload(path,E.file,{upsert:true,contentType:E.file.type||'audio/mpeg'});if(error)throw error;E.file=null}
-  const old=E.lines||[];let lines=en.map((x,j)=>{const o=old.find(l=>l.en===x&&!l._u)||null;if(o)o._u=1;return o?{en:x,vi:o.vi,words:o.words,t:o.t}:{en:x,vi:'',words:[],t:old[j]&&old.length===en.length?old[j].t:null}});old.forEach(l=>delete l._u);
+  const old=E.lines||[];let lines=en.map((x,j)=>{const o=old.find(l=>l.en===x&&!l._u)||null;if(o)o._u=1;return o?{en:x,vi:o.vi,words:o.words,t:o.t,w:o.w}:{en:x,vi:'',words:[],t:old[j]&&old.length===en.length?old[j].t:null}});old.forEach(l=>delete l._u);
   const need=lines.map((l,j)=>j).filter(j=>!lines[j].vi&&sungText(lines[j]));
   if(need.length){P.busy='AI đang dịch '+need.length+' câu…';rr();try{const r=await ai('song_vi',{lines:need.map(j=>lines[j].en)});(r.lines||[]).forEach((x,q)=>{const j=need[q];if(j!=null&&x){lines[j].vi=String(x.vi||'');lines[j].words=Array.isArray(x.words)?x.words.slice(0,3):[]}})}catch(e){P.err='Đã lưu, nhưng AI chưa dịch được ('+(e.message||e)+'). Bấm Lưu lần nữa để thử lại.'}}
   const {error}=await c.from('private_songs').update({title:E.title.trim(),artist:E.artist.trim(),audio_path:path,lines,share_with:E.share,updated_at:new Date().toISOString()}).eq('id',id);if(error)throw error;
@@ -157,7 +170,7 @@ async function save(){const E=P.edit,c=sb();P.err='';if(!E.title.trim())return P
  catch(e){P.busy='';P.err='Chưa lưu được: '+(e.message||e)}rr()}
 async function syncStart(){const E=P.edit;if(E.file||!E.lines?.length){await save();if(!E.id||!E.lines?.length)return}
  const a=audio();try{if(a._sid!==E.audio_path||!a.buf){a._sid=E.audio_path;await loadAudio(E)}a.playbackRate=1;a.currentTime=0;await a.play()}catch(e){P.err='Không phát được nhạc: '+(e.message||e);return rr()}
- P.sync=0;E.lines.forEach(l=>l.t=null);rr()}
+ P.sync=0;E.lines.forEach(l=>{l.t=null;delete l.w});rr()}
 function tap(){const E=P.edit;if(P.sync>=E.lines.length)return;E.lines[P.sync].t=Math.max(0,+(A.currentTime-0.15).toFixed(2));P.sync++;rr()}
 async function syncSave(){const E=P.edit;P.busy='Đang lưu…';rr();const {error}=await sb().from('private_songs').update({lines:E.lines,updated_at:new Date().toISOString()}).eq('id',E.id);P.busy='';if(error)P.err=error.message;else{toast('Đã lưu thời gian từng câu');try{A.pause()}catch(e){}P.sync=-1;await load()}rr()}
 
@@ -168,7 +181,10 @@ async function open(id){const s=(P.list||[]).find(x=>x.id===id);if(!s)return;P.s
 function vSong(){css();return P.view=='play'&&P.song?vPlay():P.view=='line'&&P.song?vLine():P.view=='edit'&&P.edit?vEdit():vList()}
 window.vSong=vSong;
 /* Chạm theo nhịp bằng bàn phím: Space = sang câu tiếp, Backspace = lùi 1 câu, Enter = phát/dừng */
-addEventListener('keydown',e=>{if(S.tab!=='song'||P.view!=='edit'||P.sync<0||!P.edit)return;const tg=e.target;if(tg&&/INPUT|TEXTAREA|SELECT/.test(tg.tagName))return;
+addEventListener('keydown',e=>{if(S.tab!=='song'||P.view!=='edit'||!P.ws)return;const tg=e.target;if(tg&&/INPUT|TEXTAREA|SELECT/.test(tg.tagName))return;
+ if(e.code==='Space'||e.key===' '){e.preventDefault();if(!e.repeat)PSONG.wdown()}else if(e.key==='Backspace'){e.preventDefault();PSONG.wback()}else if(e.key==='Enter'){e.preventDefault();PSONG.pp()}});
+addEventListener('keyup',e=>{if(P.ws&&(e.code==='Space'||e.key===' ')){e.preventDefault();PSONG.wup()}});
+addEventListener('keydown',e=>{if(S.tab!=='song'||P.view!=='edit'||P.sync<0||!P.edit||P.ws)return;const tg=e.target;if(tg&&/INPUT|TEXTAREA|SELECT/.test(tg.tagName))return;
  if(e.code==='Space'||e.key===' '){e.preventDefault();if(!e.repeat)PSONG.tap()}
  else if(e.key==='Backspace'){e.preventDefault();PSONG.syncBack()}
  else if(e.key==='Enter'){e.preventDefault();PSONG.pp()}});
@@ -184,18 +200,31 @@ window.PSONG={open,get E(){return P.edit},cur:()=>P.i,redraw:rr,
  line(k){if(k<0||k>=L().length)return;try{A&&A.pause()}catch(e){}P.i=k;P.view='line';P.err='';rr();scrollTo(0,0)},
  toPlay(){P.view='play';P.err='';rr();setTimeout(()=>{const n=document.getElementById('psl'+P.i);n&&n.scrollIntoView({block:'center'});syncUI()},60)},
  clip,sing,
- edit(id){const s=id&&(P.list||[]).find(x=>x.id===id);P.edit=s?{id:s.id,title:s.title,artist:s.artist||'',text:(s.lines||[]).map(l=>l.en).join('\n'),lines:JSON.parse(JSON.stringify(s.lines||[])),audio_path:s.audio_path,share:[...(s.share_with||[])],file:null}:{id:null,title:'',artist:'',text:'',lines:[],audio_path:null,share:[],file:null};P.view='edit';P.err='';P.sync=-1;go('song');scrollTo(0,0)},
+ edit(id){const s=id&&(P.list||[]).find(x=>x.id===id);P.edit=s?{id:s.id,title:s.title,artist:s.artist||'',text:(s.lines||[]).map(l=>l.en).join('\n'),lines:JSON.parse(JSON.stringify(s.lines||[])),audio_path:s.audio_path,share:[...(s.share_with||[])],file:null}:{id:null,title:'',artist:'',text:'',lines:[],audio_path:null,share:[],file:null};P.view='edit';P.err='';P.sync=-1;P.ws=null;go('song');scrollTo(0,0)},
  async share(id,on){const E=P.edit;E.share=on?[...new Set([...E.share,id])]:E.share.filter(x=>x!==id);if(E.id){const {error}=await sb().from('private_songs').update({share_with:E.share}).eq('id',E.id);if(error)toast('Chưa lưu được: '+error.message);else{toast(on?'Đã chia sẻ':'Đã bỏ chia sẻ');load()}}},
  save,syncStart,
  async autoSync(){const E=P.edit;if(!E.id)return;P.err='';P.busy='AI đang nghe bài hát…';rr();
   try{const r=await ai('song_align',{id:E.id});if(r.error)throw new Error(r.error);E.lines=r.lines;P.busy='';toast(`Đã khớp ${r.hit}/${r.total} câu · dùng ${r.via||'AI'}`);await load();P.sync=E.lines.length;const a=audio();if(a._sid!==E.audio_path||!a.buf){a._sid=E.audio_path;loadAudio(E).catch(()=>{})}}
   catch(e){P.busy='';P.err='AI chưa khớp được: '+(e.message||e)+'. Bạn có thể dùng “Tự chạm theo nhịp”.'}rr()},async adjust(){const E=P.edit,a=audio();try{if(a._sid!==E.audio_path||!a.buf){a._sid=E.audio_path;await loadAudio(E)}}catch(e){return}P.sync=E.lines.length;rr()},tap,syncSave,syncStop(){try{A.pause()}catch(e){}P.sync=-1;rr()},
  syncBack(){if(P.sync>0){P.sync--;P.edit.lines[P.sync].t=null;A.currentTime=Math.max(0,(P.sync>0?P.edit.lines[P.sync-1].t:0)||0)}rr()},
- shift(d){const ls=P.edit.lines,o=ls.map(l=>l.t);if(o.some(t=>t==null))return toast('Cần khớp đủ các câu trước');
+ shift(d){const ls=P.edit.lines,o=ls.map(l=>l.t);ls.forEach(l=>delete l.w);if(o.some(t=>t==null))return toast('Cần khớp đủ các câu trước');
   if(d<0){ls.forEach((l,k)=>l.t=k?o[k-1]:Math.max(0,+(o[0]-(o[1]-o[0])).toFixed(2)))}else{ls.forEach((l,k)=>l.t=k<o.length-1?o[k+1]:+(o[k]+(o[k]-o[k-1])).toFixed(2))}
   P.sync=ls.length;toast('Đã dời lời 1 câu. Nghe thử rồi bấm Lưu');rr()},
- all(d){P.edit.lines.forEach(l=>{if(l.t!=null)l.t=Math.max(0,+(l.t+d).toFixed(2))});P.sync=P.edit.lines.length;rr()},
- nudge(j,d){const l=P.edit.lines[j];l.t=Math.max(0,+(l.t+d).toFixed(2));rr()},
+ all(d){P.edit.lines.forEach(l=>{if(l.t!=null)l.t=Math.max(0,+(l.t+d).toFixed(2));if(l.w)l.w=l.w.map(([a,b])=>[Math.max(0,+(a+d).toFixed(2)),Math.max(0,+(b+d).toFixed(2))])});P.sync=P.edit.lines.length;rr()},
+ async wsStart(k){const E=P.edit,a=audio();try{if(a._sid!==E.audio_path||!a.buf){a._sid=E.audio_path;await loadAudio(E)}}catch(e){return}
+  while(E.lines[k]&&!swords(E.lines[k]).length)k++;if(!E.lines[k])return;P.ws={k,j:0,down:null};a.playbackRate=0.75;
+  const pv=k>0&&E.lines[k-1].w?E.lines[k-1].w.at(-1)[1]:(E.lines[k].t??2)-2.5;a.currentTime=Math.max(0,pv-0.3);rr();a.play().catch(()=>{})},
+ wdown(){const W=P.ws;if(!W||W.down!=null||!A||A.paused)return;W.down=Math.max(0,A.currentTime-0.06);rr()},
+ wup(){const W=P.ws;if(!W||W.down==null)return;const E=P.edit,l=E.lines[W.k],n=swords(l).length;const end=Math.max(W.down+0.08,A.currentTime-0.04);
+  if(!Array.isArray(l.w)||l.w.length!==n)l.w=swords(l).map(()=>null);l.w[W.j]=[+W.down.toFixed(2),+end.toFixed(2)];W.down=null;W.j++;
+  if(W.j>=n){/* chữ chưa có thời gian (lùi lại giữa chừng) → điền đều */l.w=l.w.map((x,i,a)=>x||[a[i-1]?a[i-1][1]:l.w.find(Boolean)[0],a[i-1]?a[i-1][1]+0.3:l.w.find(Boolean)[0]]);l.t=l.w[0][0];
+   let k=W.k+1;while(E.lines[k]&&!swords(E.lines[k]).length){E.lines[k].t=end+0.2;k++}W.k=k;W.j=0}rr()},
+ wback(){const W=P.ws;if(!W)return;const E=P.edit;if(W.j>0)W.j--;else{let k=W.k-1;while(k>=0&&!swords(E.lines[k]).length)k--;if(k<0)return;W.k=k;W.j=swords(E.lines[k]).length-1}
+  const w=E.lines[W.k].w&&E.lines[W.k].w[W.j];if(A&&w)A.currentTime=Math.max(0,w[0]-1.5);rr()},
+ wrate(){if(!A)return;A.playbackRate=A.playbackRate==0.75?1:A.playbackRate==1?0.6:0.75;rr()},
+ wsStop(){try{A.pause()}catch(e){}P.ws=null;P.sync=P.edit.lines.length;rr()},
+ async wsSave(){await PSONG.syncSave();P.ws=null;rr()},
+ nudge(j,d){const l=P.edit.lines[j];l.t=Math.max(0,+(l.t+d).toFixed(2));if(l.w)l.w=l.w.map(([a,b])=>[Math.max(0,+(a+d).toFixed(2)),Math.max(0,+(b+d).toFixed(2))]);rr()},
  from(j){const a=audio();a.currentTime=P.edit.lines[j].t;a.play().catch(()=>{})},
  async del(){if(!confirm('Xóa bài hát này và file nhạc?'))return;const E=P.edit;if(E.audio_path)await sb().storage.from('psong').remove([E.audio_path]);await sb().from('private_songs').delete().eq('id',E.id);P.edit=null;P.view='list';await load()}};
 /* đổi bài đang phát khi rời trang */
@@ -231,6 +260,9 @@ function css(){if(document.getElementById('ps-css'))return;const s=document.crea
 .ps-mus{position:sticky;top:8px;z-index:5;display:flex;align-items:center;gap:12px;margin-top:10px;padding:10px 14px;border-radius:14px;background:#1b3f61;color:#fff}.ps-mus[hidden]{display:none}.ps-mus b{display:block;font:700 1rem var(--fd)}.ps-mus small{color:#c9d8e6;font-size:.8rem}
 .ps-eq{display:flex;align-items:flex-end;gap:3px;height:22px}.ps-eq i{width:4px;border-radius:2px;background:#f0b347;animation:pseq .9s ease-in-out infinite}.ps-eq i:nth-child(2){animation-delay:.2s}.ps-eq i:nth-child(3){animation-delay:.4s}.ps-eq i:nth-child(4){animation-delay:.1s}
 @keyframes pseq{0%,100%{height:5px}50%{height:22px}}@media (prefers-reduced-motion:reduce){.ps-eq i{animation:none;height:12px}}
+.ps-l.now .ps-w.wipe{background:linear-gradient(90deg,var(--steel) var(--p,0%),var(--mut) var(--p,0%));-webkit-background-clip:text;background-clip:text;color:transparent}
+.ps-par{font-style:italic;color:var(--mut)}
+.ps-wk{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.ps-wk span{padding:6px 10px;border-radius:10px;background:var(--soft);font:600 1.05rem var(--fd)}.ps-wk span.done{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}.ps-wk span.now{background:var(--steel);color:#fff}.ps-wk span.hold{background:var(--amber);color:#14212e}
 body:has(.ps-dock) #msgfab{display:none!important}
 @media (prefers-reduced-motion:reduce){.ps-mic.rec{animation:none}}`;document.head.appendChild(s)}
 })();

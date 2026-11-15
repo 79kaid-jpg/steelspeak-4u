@@ -126,27 +126,37 @@ async function llmJSON(admin: any, prompt: string, temperature = 0.3): Promise<a
 
 // ===== Khớp lời bài hát riêng với nhạc: nhận dạng giọng hát có mốc thời gian từng chữ rồi dóng hàng với lời =====
 const nw = (w: string) => w.toLowerCase().replace(/[’`]/g, "'").replace(/[^a-z0-9']/g, "");
-function alignLines(lines: { en: string }[], H: { w: string; t: number }[]): { T: number[]; hit: number } {
+function alignLines(lines: { en: string }[], H: { w: string; t: number; e: number }[]): { T: number[]; W: number[][][]; hit: number } {
   const L: { w: string; li: number; off: number }[] = [];
-  lines.forEach((l, li) => { let off = 0; String(l.en).replace(/\([^)]*\)[.…\s]*/g, "").split(/\s+/).forEach((w) => { const x = nw(w); if (x) L.push({ w: x, li, off: off++ }); }); });
+  lines.forEach((l, li) => { let off = 0; String(l.en).replace(/\([^)]*\)[.…\s]*/g, "").split(/\s+/).forEach((w) => { if (w.trim()) L.push({ w: nw(w), li, off: off++ }); }); });
   const n = L.length, m = H.length, D = Array.from({ length: n + 1 }, () => new Int16Array(m + 1));
-  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) D[i][j] = L[i].w === H[j].w ? D[i + 1][j + 1] + 1 : Math.max(D[i + 1][j], D[i][j + 1]);
-  const first = new Map<number, [number, number]>();
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) D[i][j] = L[i].w && L[i].w === H[j].w ? D[i + 1][j + 1] + 1 : Math.max(D[i + 1][j], D[i][j + 1]);
+  const match: (number | null)[] = new Array(n).fill(null);
   let i = 0, j = 0;
-  while (i < n && j < m) {
-    if (L[i].w === H[j].w) { const k = L[i]; const f = first.get(k.li); if (!f || k.off < f[0]) first.set(k.li, [k.off, H[j].t]); i++; j++; }
-    else if (D[i + 1][j] >= D[i][j + 1]) i++; else j++;
-  }
-  const T: (number | null)[] = lines.map((_, li) => { const f = first.get(li); return f ? Math.max(0, f[1] - f[0] * 0.35 - 0.1) : null; });
+  while (i < n && j < m) { if (L[i].w && L[i].w === H[j].w) { match[i] = j; i++; j++; } else if (D[i + 1][j] >= D[i][j + 1]) i++; else j++; }
+  const W: number[][][] = lines.map(() => []); let hit = 0;
+  const T: (number | null)[] = lines.map(() => null);
+  lines.forEach((_, li) => {
+    const idx = L.map((x, k) => [x, k] as const).filter(([x]) => x.li === li).map(([, k]) => k);
+    if (!idx.length) return;
+    const got = idx.filter((k) => match[k] != null); if (got.length) hit++; else return;
+    const ws = idx.map((k) => match[k] != null ? [H[match[k]!].t, H[match[k]!].e] : null) as (number[] | null)[];
+    for (let a = 0; a < ws.length; a++) if (!ws[a]) {
+      let p = a - 1; while (p >= 0 && !ws[p]) p--; let q = a + 1; while (q < ws.length && !ws[q]) q++;
+      const s0 = p >= 0 ? ws[p]![1] : (q < ws.length ? ws[q]![0] - 0.4 * (q - a) : 0), s1 = q < ws.length ? ws[q]![0] : s0 + 0.4 * (a - p);
+      const k = q - p - 1, st = (s1 - s0) / Math.max(1, k), pos = a - p - 1; ws[a] = [s0 + st * pos, s0 + st * (pos + 1)];
+    }
+    W[li] = ws.map((w) => [Math.round(Math.max(0, w![0]) * 100) / 100, Math.round(Math.max(w![0] + 0.08, w![1]) * 100) / 100]);
+    T[li] = W[li][0][0];
+  });
   for (let a = 0; a < T.length; a++) if (T[a] == null) {
     let p = a - 1; while (p >= 0 && T[p] == null) p--; let q = a + 1; while (q < T.length && T[q] == null) q++;
     T[a] = p >= 0 && q < T.length ? T[p]! + (T[q]! - T[p]!) * (a - p) / (q - p) : p >= 0 ? T[p]! + 4 : q < T.length ? Math.max(0, T[q]! - 4) : a * 4;
   }
   for (let a = 1; a < T.length; a++) if (T[a]! <= T[a - 1]!) T[a] = T[a - 1]! + 0.3;
-  return { T: T.map((t) => Math.round(t! * 100) / 100), hit: first.size };
+  return { T: T.map((t) => Math.round(t! * 100) / 100), W, hit };
 }
-let SONG_SRC = "";
-async function songWords(file: Blob, name: string, lyrics: string): Promise<{ w: string; t: number }[]> {
+async function songWords(file: Blob, name: string, lyrics: string): Promise<{ w: string; t: number; e: number }[]> {
   const errs: string[] = [];
   if (env("GROQ_API_KEY")) {
     try {
@@ -157,7 +167,7 @@ async function songWords(file: Blob, name: string, lyrics: string): Promise<{ w:
       const r = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", { method: "POST", headers: { Authorization: "Bearer " + env("GROQ_API_KEY") }, body: fd });
       if (!r.ok) throw new Error(`groq ${r.status}: ${(await r.text()).slice(0, 160)}`);
       const j = await r.json();
-      const W = (j.words ?? []).map((x: any) => ({ w: nw(String(x.word)), t: Number(x.start) })).filter((x: any) => x.w);
+      const W = (j.words ?? []).map((x: any) => ({ w: nw(String(x.word)), t: Number(x.start), e: Number(x.end ?? x.start) })).filter((x: any) => x.w);
       if (W.length > 10) { SONG_SRC = "Groq Whisper"; return W; }
       throw new Error("groq: không có mốc thời gian từng chữ");
     } catch (e) { errs.push(String((e as Error).message ?? e)); }
@@ -165,12 +175,12 @@ async function songWords(file: Blob, name: string, lyrics: string): Promise<{ w:
   if (env("GEMINI_API_KEY")) {
     try {
       const buf = new Uint8Array(await file.arrayBuffer()); let bin = ""; for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
-      const ask = `Listen to this song. For every word the singer sings, give the time in seconds when it starts. Lyrics for reference:\n${lyrics.slice(0, 4000)}\nReturn JSON only: {"words":[["word",12.34]]}`;
+      const ask = `Listen to this song. For every word the singer sings, give the time in seconds when it starts and when it ends (held notes end later). Lyrics for reference:\n${lyrics.slice(0, 4000)}\nReturn JSON only: {"words":[["word",12.34,12.9]]}`;
       const g = await geminiTry(async (model) => { const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env("GEMINI_API_KEY")}`, { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ contents: [{ role: "user", parts: [{ inlineData: { mimeType: file.type || "audio/mpeg", data: btoa(bin) } }, { text: ask }] }], generationConfig: { temperature: 0, responseMimeType: "application/json" } }) });
         if (!r.ok) throw new Error(`gemini ${r.status}: ${(await r.text()).slice(0, 160)}`); return r.json(); });
       const txt = g?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") ?? "";
-      const W = (JSON.parse(txt.replace(/^```json|```$/g, "")).words ?? []).map((x: any) => ({ w: nw(String(x[0])), t: Number(x[1]) })).filter((x: any) => x.w && isFinite(x.t));
+      const W = (JSON.parse(txt.replace(/^```json|```$/g, "")).words ?? []).map((x: any) => ({ w: nw(String(x[0])), t: Number(x[1]), e: Number(x[2] ?? x[1]) })).filter((x: any) => x.w && isFinite(x.t));
       if (W.length > 10) { SONG_SRC = "Gemini (Groq lỗi: " + (errs[0] ?? "chưa có khóa").slice(0, 80) + ")"; return W; }
       throw new Error("gemini: không đọc được mốc thời gian");
     } catch (e) { errs.push(String((e as Error).message ?? e)); }
@@ -314,8 +324,8 @@ DOCUMENT:
       if (de || !file) return json({ error: "Không tải được nhạc: " + (de?.message ?? "") }, 500);
       try {
         const H = await songWords(file, song.audio_path.split("/").pop() || "audio.mp3", lines.map((l) => l.en).join("\n"));
-        const { T, hit } = alignLines(lines, H);
-        const out = lines.map((l, i) => ({ ...l, t: T[i] }));
+        const { T, W, hit } = alignLines(lines, H);
+        const out = lines.map((l, i) => ({ ...l, t: T[i], w: W[i].length ? W[i] : undefined }));
         await admin.from("private_songs").update({ lines: out, updated_at: new Date().toISOString() }).eq("id", song.id);
         return json({ ok: true, hit, total: lines.length, words: H.length, lines: out, via: SONG_SRC });
       } catch (e) { return json({ error: String((e as Error).message ?? e) }, 502); }
