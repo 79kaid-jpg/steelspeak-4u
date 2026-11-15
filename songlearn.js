@@ -88,7 +88,7 @@ function syncUI(){if(!A||P.view!='play')return;const t=A.currentTime;
   else{const n=document.getElementById('psl'+(k+1));n&&n.scrollIntoView({block:'center',behavior:'smooth'})}}
  if(k!==P.i){P.i=k;const c=document.getElementById('psn');if(c)c.textContent=(k+1)+'/'+L().length}
  if(k>=0&&!music){const ws=document.querySelectorAll(`#psl${k} .ps-w`),W=L()[k].w;
-  if(W&&W.length===ws.length){ws.forEach((w,j)=>{const [a,b]=W[j];const on=t>=a&&t<b;w.classList.toggle('sung',t>=b);w.classList.toggle('cur',on);w.classList.toggle('wipe',on);if(on)w.style.setProperty('--p',Math.round((t-a)/Math.max(0.05,b-a)*100)+'%')})}
+  if(W&&W.length===ws.length){ws.forEach((w,j)=>{const a=W[j][0],nx=W[j+1],b=nx&&nx[0]-W[j][1]<0.5?nx[0]:W[j][1];const on=t>=a&&t<b;w.classList.toggle('sung',t>=b);w.classList.toggle('cur',on);w.classList.toggle('wipe',on);if(on)w.style.setProperty('--p',Math.round((t-a)/Math.max(0.05,b-a)*100)+'%')})}
   else{const s0=startOf(k),s1=lineEnd(k);const fr=Math.min(1,Math.max(0,(t-s0)/Math.max(0.5,s1-s0)*1.08));const on=Math.ceil(fr*ws.length);
   ws.forEach((w,j)=>{w.classList.toggle('sung',j<on-1);w.classList.toggle('cur',j===on-1)})}}}
 
