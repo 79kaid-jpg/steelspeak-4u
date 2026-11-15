@@ -249,6 +249,13 @@ From the DOCUMENT below, pick the ${n} most useful English terms/phrases for thi
 Return JSON only: {"title":"...","terms":[{"en":"","vi":"","ex":"","exvi":""}]}
 DOCUMENT:
 """${text}"""`;
+    } else if (body.task === "song_vi") {
+      const lines = (Array.isArray(body.lines) ? body.lines : []).slice(0, 120).map((x: unknown) => String(x).slice(0, 200));
+      if (!lines.length) return json({ error: "Chưa có lời" }, 400);
+      prompt = `You help Vietnamese adult learners (around B1) learn English through a song. For EACH numbered lyric line below, give a natural Vietnamese translation that keeps the feeling of the song, and pick 0-3 words or phrases from THAT line worth learning (skip very easy words like I, the, love, you). If a line is only a sound/instruction like "(Whistle)", give vi "" and words [].
+Return JSON only: {"lines":[{"vi":"...","words":[["english as in the line","nghĩa tiếng Việt"]]}]} with exactly ${lines.length} items in the same order.
+LINES:
+${lines.map((l: string, i: number) => (i + 1) + ". " + l).join("\n")}`;
     } else if (body.task === "scene") {
       const words = (body.words ?? []).slice(0, 8).map(String).join(", ");
       const ctx = String(body.context ?? "").slice(0, 500);
