@@ -140,6 +140,7 @@ function vSync(){const ls=P.edit.lines,k=P.sync,n=ls.length;
  <p class="mut" style="margin:0 0 10px">${k==0?'Nhạc đang phát.':'Nghe câu đang hát. Khi ca sĩ <b>hát xong câu này và sang câu tiếp</b>, chạm nút lớn.'}</p>
  ${card}
  <button class="ps-tap" onclick="PSONG.tap()" ${k>=n?'disabled':''}>${k>=n?'Xong':k==0?'▶ Ca sĩ bắt đầu hát':'Sang câu tiếp ›'}</button>
+ <p class="mut" style="text-align:center;font-size:.82rem;margin:6px 0 0">Trên máy tính: <kbd>Space</kbd> = chạm · <kbd>Backspace</kbd> = lùi 1 câu · <kbd>Enter</kbd> = phát/dừng</p>
  <div class="row" style="gap:8px;margin:10px 0;flex-wrap:nowrap"><button class="btn ghost" style="flex:1" onclick="PSONG.syncBack()">↶ Lùi 1 câu</button><button class="btn ghost" style="flex:1" onclick="PSONG.pp()">Phát / dừng</button><button class="btn amber" style="flex:1" onclick="PSONG.syncSave()" ${P.busy?'disabled':''}>Lưu</button></div>
  <div class="card stack" style="gap:8px;margin-bottom:10px"><b>Chỉnh cả bài</b><div class="row" style="gap:8px"><button class="chip" onclick="PSONG.shift(-1)">Lời hiện chậm 1 câu → sửa</button><button class="chip" onclick="PSONG.shift(1)">Lời hiện sớm 1 câu → sửa</button><button class="chip" onclick="PSONG.all(-0.5)">Cả bài sớm 0,5s</button><button class="chip" onclick="PSONG.all(0.5)">Cả bài muộn 0,5s</button></div><small class="mut">Chỉnh xong bấm ▶ ở một câu để nghe thử, rồi bấm Lưu.</small></div>
  <div class="card" style="padding:0">${ls.map((l,j)=>`<div class="row" style="flex-wrap:nowrap;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);${j==k?'background:var(--soft)':''}"><span class="mono" style="width:44px;color:var(--steel)">${l.t==null?'–':fmt(l.t)+(l.t%1).toFixed(1).slice(1)}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e2(l.en)}</span>${l.t!=null?`<button class="chip" aria-label="Sớm hơn" onclick="PSONG.nudge(${j},-0.2)">−</button><button class="chip" aria-label="Muộn hơn" onclick="PSONG.nudge(${j},0.2)">＋</button><button class="chip" aria-label="Nghe từ câu này" onclick="PSONG.from(${j})">▶</button>`:''}</div>`).join('')}</div>`}
@@ -166,6 +167,11 @@ async function open(id){const s=(P.list||[]).find(x=>x.id===id);if(!s)return;P.s
  const a=audio();a.playbackRate=P.rate;if(a.url&&a.buf&&a._sid===s.audio_path)return;a._sid=s.audio_path;loadAudio(s).catch(()=>{})}
 function vSong(){css();return P.view=='play'&&P.song?vPlay():P.view=='line'&&P.song?vLine():P.view=='edit'&&P.edit?vEdit():vList()}
 window.vSong=vSong;
+/* Chạm theo nhịp bằng bàn phím: Space = sang câu tiếp, Backspace = lùi 1 câu, Enter = phát/dừng */
+addEventListener('keydown',e=>{if(S.tab!=='song'||P.view!=='edit'||P.sync<0||!P.edit)return;const tg=e.target;if(tg&&/INPUT|TEXTAREA|SELECT/.test(tg.tagName))return;
+ if(e.code==='Space'||e.key===' '){e.preventDefault();if(!e.repeat)PSONG.tap()}
+ else if(e.key==='Backspace'){e.preventDefault();PSONG.syncBack()}
+ else if(e.key==='Enter'){e.preventDefault();PSONG.pp()}});
 window.SONGL={count:()=>count()+(isAdm()&&!count()?1:0)};
 window.PSONG={open,get E(){return P.edit},cur:()=>P.i,redraw:rr,
  back(){try{A&&A.pause()}catch(e){}P.view='list';rr()},list(){try{A&&A.pause()}catch(e){}P.view='list';P.edit=null;P.sync=-1;rr()},
