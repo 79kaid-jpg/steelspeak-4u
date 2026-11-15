@@ -119,13 +119,14 @@ function vEdit(){const E=P.edit;if(!isAdm())return '<p class="mut">Chỉ admin.<
  <div class="card stack" style="margin-top:12px"><b>${IC.lock} Chia sẻ cho</b>${P.people.map(p=>`<label class="row" style="gap:10px;flex-wrap:nowrap;min-height:40px"><input type="checkbox" ${E.share.includes(p.id)?'checked':''} onchange="PSONG.share('${p.id}',this.checked)"><span style="flex:1;min-width:0"><b>${e2(p.name)}</b> <small class="mut">${e2(p.email)}</small></span></label>`).join('')||'<small class="mut">Đang tải danh sách…</small>'}<small class="mut">Người không được chọn sẽ không thấy bài và không mở được file nhạc.</small></div>
  ${P.err?`<div class="note" style="margin-top:12px">${e2(P.err)}</div>`:''}
  <button class="btn amber" style="width:100%;margin-top:12px" onclick="PSONG.save()" ${P.busy?'disabled':''}>${P.busy||'Lưu bài hát'}</button>
- ${E.id&&(E.audio_path||E.file)?`<button class="btn" style="width:100%;margin-top:8px" onclick="PSONG.syncStart()">♪ Chạm theo nhịp (khớp lời với nhạc)</button>`:''}
+ ${E.id&&(E.audio_path||E.file)?`<button class="btn" style="width:100%;margin-top:8px" onclick="PSONG.syncStart()">♪ Chạm theo nhịp (khớp lời với nhạc)</button>`:''}${E.id&&E.lines.length&&E.lines.every(l=>l.t!=null)?`<button class="btn ghost" style="width:100%;margin-top:8px" onclick="PSONG.adjust()">Chỉnh thời gian từng câu (không chạm lại)</button>`:''}
  ${E.id?`<button class="link" style="margin-top:14px;color:var(--bad)" onclick="PSONG.del()">Xóa bài hát này</button>`:''}`}
 function vSync(){const ls=P.edit.lines,k=P.sync;
  return `<button class="link" onclick="PSONG.syncStop()">‹ Dừng khớp</button><h1 style="margin-top:6px">Chạm theo nhịp</h1><p class="mut" style="margin:0 0 10px">Nhạc đang phát. Mỗi khi ca sĩ <b>bắt đầu</b> hát một câu, chạm nút lớn. Sai thì chỉnh ±0,2s ở danh sách bên dưới.</p>
  <div class="card" style="text-align:center"><small class="mut">Câu tiếp theo (${Math.min(k+1,ls.length)}/${ls.length})</small><p class="ps-big" style="margin:6px 0">${k<ls.length?e2(ls[k].en):'Xong tất cả câu ✓'}</p></div>
  <button class="ps-tap" onclick="PSONG.tap()" ${k>=ls.length?'disabled':''}>${k>=ls.length?'Xong':'Bắt đầu câu này'}</button>
  <div class="row" style="gap:8px;margin:10px 0;flex-wrap:nowrap"><button class="btn ghost" style="flex:1" onclick="PSONG.syncBack()">↶ Lùi 1 câu</button><button class="btn ghost" style="flex:1" onclick="PSONG.pp()">Phát / dừng</button><button class="btn amber" style="flex:1" onclick="PSONG.syncSave()" ${P.busy?'disabled':''}>Lưu</button></div>
+ <div class="card stack" style="gap:8px;margin-bottom:10px"><b>Chỉnh cả bài</b><div class="row" style="gap:8px"><button class="chip" onclick="PSONG.shift(-1)">Lời hiện chậm 1 câu → sửa</button><button class="chip" onclick="PSONG.shift(1)">Lời hiện sớm 1 câu → sửa</button><button class="chip" onclick="PSONG.all(-0.5)">Cả bài sớm 0,5s</button><button class="chip" onclick="PSONG.all(0.5)">Cả bài muộn 0,5s</button></div><small class="mut">Chỉnh xong bấm ▶ ở một câu để nghe thử, rồi bấm Lưu.</small></div>
  <div class="card" style="padding:0">${ls.map((l,j)=>`<div class="row" style="flex-wrap:nowrap;gap:8px;padding:8px 12px;border-bottom:1px solid var(--line);${j==k?'background:var(--soft)':''}"><span class="mono" style="width:44px;color:var(--steel)">${l.t==null?'–':fmt(l.t)+(l.t%1).toFixed(1).slice(1)}</span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e2(l.en)}</span>${l.t!=null?`<button class="chip" aria-label="Sớm hơn" onclick="PSONG.nudge(${j},-0.2)">−</button><button class="chip" aria-label="Muộn hơn" onclick="PSONG.nudge(${j},0.2)">＋</button><button class="chip" aria-label="Nghe từ câu này" onclick="PSONG.from(${j})">▶</button>`:''}</div>`).join('')}</div>`}
 const parse=t=>String(t||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
 async function save(){const E=P.edit,c=sb();P.err='';if(!E.title.trim())return P.err='Nhập tên bài.',rr();const en=parse(E.text);if(!en.length)return P.err='Dán lời bài hát.',rr();
@@ -164,8 +165,12 @@ window.PSONG={open,get E(){return P.edit},cur:()=>P.i,redraw:rr,
  clip,sing,
  edit(id){const s=id&&(P.list||[]).find(x=>x.id===id);P.edit=s?{id:s.id,title:s.title,artist:s.artist||'',text:(s.lines||[]).map(l=>l.en).join('\n'),lines:JSON.parse(JSON.stringify(s.lines||[])),audio_path:s.audio_path,share:[...(s.share_with||[])],file:null}:{id:null,title:'',artist:'',text:'',lines:[],audio_path:null,share:[],file:null};P.view='edit';P.err='';P.sync=-1;go('song');scrollTo(0,0)},
  share(id,on){const E=P.edit;E.share=on?[...new Set([...E.share,id])]:E.share.filter(x=>x!==id)},
- save,syncStart,tap,syncSave,syncStop(){try{A.pause()}catch(e){}P.sync=-1;rr()},
+ save,syncStart,async adjust(){const E=P.edit,a=audio();try{if(a._sid!==E.audio_path||!a.buf){a._sid=E.audio_path;await loadAudio(E)}}catch(e){return}P.sync=E.lines.length;rr()},tap,syncSave,syncStop(){try{A.pause()}catch(e){}P.sync=-1;rr()},
  syncBack(){if(P.sync>0){P.sync--;P.edit.lines[P.sync].t=null;A.currentTime=Math.max(0,(P.sync>0?P.edit.lines[P.sync-1].t:0)||0)}rr()},
+ shift(d){const ls=P.edit.lines,o=ls.map(l=>l.t);if(o.some(t=>t==null))return toast('Cần khớp đủ các câu trước');
+  if(d<0){ls.forEach((l,k)=>l.t=k?o[k-1]:Math.max(0,+(o[0]-(o[1]-o[0])).toFixed(2)))}else{ls.forEach((l,k)=>l.t=k<o.length-1?o[k+1]:+(o[k]+(o[k]-o[k-1])).toFixed(2))}
+  P.sync=ls.length;toast('Đã dời lời 1 câu. Nghe thử rồi bấm Lưu');rr()},
+ all(d){P.edit.lines.forEach(l=>{if(l.t!=null)l.t=Math.max(0,+(l.t+d).toFixed(2))});P.sync=P.edit.lines.length;rr()},
  nudge(j,d){const l=P.edit.lines[j];l.t=Math.max(0,+(l.t+d).toFixed(2));rr()},
  from(j){const a=audio();a.currentTime=P.edit.lines[j].t;a.play().catch(()=>{})},
  async del(){if(!confirm('Xóa bài hát này và file nhạc?'))return;const E=P.edit;if(E.audio_path)await sb().storage.from('psong').remove([E.audio_path]);await sb().from('private_songs').delete().eq('id',E.id);P.edit=null;P.view='list';await load()}};
