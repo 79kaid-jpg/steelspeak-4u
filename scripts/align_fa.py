@@ -30,9 +30,41 @@ for li,l in enumerate(lines):
     for wi,w in enumerate(sung(l['en'])):
         c=clean(w)
         if c: words.append(c); owner.append((li,wi))
-spans=aligner(em[0],tok(words))
-times={}
-for (li,wi),sp in zip(owner,spans): times[(li,wi)]=[round(sp[0].start*ratio,2),round(sp[-1].end*ratio,2)]
+# 3) mốc từng câu: Whisper nghe trên giọng đã tách (ít nhiễu) → mỗi câu chỉ dóng trong cửa sổ quanh mốc của nó
+from faster_whisper import WhisperModel
+import difflib
+wm=WhisperModel('small.en',device='cpu',compute_type='int8')
+segs,_=wm.transcribe(voc,language='en',word_timestamps=True,vad_filter=False,condition_on_previous_text=False,initial_prompt=' '.join(' '.join(sung(l['en'])) for l in lines)[:800])
+H=[(clean(w.word),w.start,w.end) for sg in segs for w in (sg.words or []) if clean(w.word)]
+sm=difflib.SequenceMatcher(None,words,[h[0] for h in H],autojunk=False)
+hm={}
+for a0,b0,n in sm.get_matching_blocks():
+    for k in range(n): hm[a0+k]=b0+k
+LS=[None]*len(lines); LE=[None]*len(lines)
+for k,(li,wi) in enumerate(owner):
+    if k in hm:
+        h=H[hm[k]]; LS[li]=h[1] if LS[li] is None else min(LS[li],h[1]); LE[li]=h[2] if LE[li] is None else max(LE[li],h[2])
+def nb(arr,i,step):
+    j=i+step
+    while 0<=j<len(arr) and arr[j] is None: j+=step
+    return arr[j] if 0<=j<len(arr) else None
+times={}; fr=lambda t:max(0,min(em.shape[1],int(t/ratio)))
+for li,l in enumerate(lines):
+    idx=[k for k,(x,_) in enumerate(owner) if x==li]
+    if not idx: continue
+    s0=LS[li] if LS[li] is not None else (nb(LE,li,-1) or 0); e0=LE[li] if LE[li] is not None else (nb(LS,li,1) or s0+6)
+    lo=max(s0-1.2, (nb(LE,li,-1) or 0)-0.3); hi=e0+1.2
+    nx=nb(LS,li,1)
+    if nx is not None: hi=min(hi,nx+0.6)
+    a1,b1=fr(lo),fr(max(hi,lo+0.5*len(idx)+0.5))
+    try:
+        sp=aligner(em[0,a1:b1],tok([words[k] for k in idx]))
+        ws=[[round((a1+x[0].start)*ratio,2),round((a1+x[-1].end)*ratio,2)] for x in sp]
+        if ws[0][1]-ws[0][0]>3 and LS[li] is not None: raise ValueError('lệch')
+    except Exception:
+        ws=[[H[hm[k]][1],H[hm[k]][2]] if k in hm else None for k in idx]
+    for (li2,wi),w in zip([owner[k] for k in idx],ws):
+        if w: times[(li2,wi)]=w
 hit=0
 for li,l in enumerate(lines):
     n=len(sung(l['en']))
