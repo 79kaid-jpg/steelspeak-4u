@@ -123,6 +123,59 @@ async function llmJSON(admin: any, prompt: string, temperature = 0.3): Promise<a
   for (const p of order) { try { const o = parseJSON(await callOne(p, prompt, temperature)); o._provider = p; return o; } catch (e) { errs.push(String((e as Error).message ?? e)); } }
   throw new Error("AI lỗi: " + errs.join(" | ").slice(0, 300));
 }
+
+// ===== Khớp lời bài hát riêng với nhạc: nhận dạng giọng hát có mốc thời gian từng chữ rồi dóng hàng với lời =====
+const nw = (w: string) => w.toLowerCase().replace(/[’`]/g, "'").replace(/[^a-z0-9']/g, "");
+function alignLines(lines: { en: string }[], H: { w: string; t: number }[]): { T: number[]; hit: number } {
+  const L: { w: string; li: number; off: number }[] = [];
+  lines.forEach((l, li) => { let off = 0; String(l.en).replace(/\([^)]*\)[.…\s]*/g, "").split(/\s+/).forEach((w) => { const x = nw(w); if (x) L.push({ w: x, li, off: off++ }); }); });
+  const n = L.length, m = H.length, D = Array.from({ length: n + 1 }, () => new Int16Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) D[i][j] = L[i].w === H[j].w ? D[i + 1][j + 1] + 1 : Math.max(D[i + 1][j], D[i][j + 1]);
+  const first = new Map<number, [number, number]>();
+  let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (L[i].w === H[j].w) { const k = L[i]; const f = first.get(k.li); if (!f || k.off < f[0]) first.set(k.li, [k.off, H[j].t]); i++; j++; }
+    else if (D[i + 1][j] >= D[i][j + 1]) i++; else j++;
+  }
+  const T: (number | null)[] = lines.map((_, li) => { const f = first.get(li); return f ? Math.max(0, f[1] - f[0] * 0.35 - 0.1) : null; });
+  for (let a = 0; a < T.length; a++) if (T[a] == null) {
+    let p = a - 1; while (p >= 0 && T[p] == null) p--; let q = a + 1; while (q < T.length && T[q] == null) q++;
+    T[a] = p >= 0 && q < T.length ? T[p]! + (T[q]! - T[p]!) * (a - p) / (q - p) : p >= 0 ? T[p]! + 4 : q < T.length ? Math.max(0, T[q]! - 4) : a * 4;
+  }
+  for (let a = 1; a < T.length; a++) if (T[a]! <= T[a - 1]!) T[a] = T[a - 1]! + 0.3;
+  return { T: T.map((t) => Math.round(t! * 100) / 100), hit: first.size };
+}
+async function songWords(file: Blob, name: string, lyrics: string): Promise<{ w: string; t: number }[]> {
+  const errs: string[] = [];
+  if (env("GROQ_API_KEY")) {
+    try {
+      const fd = new FormData();
+      fd.append("file", file, name); fd.append("model", "whisper-large-v3"); fd.append("language", "en");
+      fd.append("response_format", "verbose_json"); fd.append("timestamp_granularities[]", "word"); fd.append("temperature", "0");
+      fd.append("prompt", lyrics.slice(0, 800));
+      const r = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", { method: "POST", headers: { Authorization: "Bearer " + env("GROQ_API_KEY") }, body: fd });
+      if (!r.ok) throw new Error(`groq ${r.status}: ${(await r.text()).slice(0, 160)}`);
+      const j = await r.json();
+      const W = (j.words ?? []).map((x: any) => ({ w: nw(String(x.word)), t: Number(x.start) })).filter((x: any) => x.w);
+      if (W.length > 10) return W;
+      throw new Error("groq: không có mốc thời gian từng chữ");
+    } catch (e) { errs.push(String((e as Error).message ?? e)); }
+  }
+  if (env("GEMINI_API_KEY")) {
+    try {
+      const buf = new Uint8Array(await file.arrayBuffer()); let bin = ""; for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+      const ask = `Listen to this song. For every word the singer sings, give the time in seconds when it starts. Lyrics for reference:\n${lyrics.slice(0, 4000)}\nReturn JSON only: {"words":[["word",12.34]]}`;
+      const g = await geminiTry(async (model) => { const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env("GEMINI_API_KEY")}`, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ role: "user", parts: [{ inlineData: { mimeType: file.type || "audio/mpeg", data: btoa(bin) } }, { text: ask }] }], generationConfig: { temperature: 0, responseMimeType: "application/json" } }) });
+        if (!r.ok) throw new Error(`gemini ${r.status}: ${(await r.text()).slice(0, 160)}`); return r.json(); });
+      const txt = g?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") ?? "";
+      const W = (JSON.parse(txt.replace(/^```json|```$/g, "")).words ?? []).map((x: any) => ({ w: nw(String(x[0])), t: Number(x[1]) })).filter((x: any) => x.w && isFinite(x.t));
+      if (W.length > 10) return W;
+      throw new Error("gemini: không đọc được mốc thời gian");
+    } catch (e) { errs.push(String((e as Error).message ?? e)); }
+  }
+  throw new Error(errs.join(" | ") || "Cần GROQ_API_KEY hoặc GEMINI_API_KEY");
+}
 // Nghe ghi âm -> văn bản: Groq Whisper (free) hoặc Gemini
 async function transcribe(admin: any, b64: string, mime: string, target: string): Promise<{ heard: string; tip?: string; _provider: string }> {
   const order = (await preferredOrder(admin)).filter((p) => p === "groq" || p === "gemini");
@@ -249,6 +302,22 @@ From the DOCUMENT below, pick the ${n} most useful English terms/phrases for thi
 Return JSON only: {"title":"...","terms":[{"en":"","vi":"","ex":"","exvi":""}]}
 DOCUMENT:
 """${text}"""`;
+    } else if (body.task === "song_align") {
+      const { data: me } = await admin.from("profiles").select("is_admin").eq("id", user.id).maybeSingle();
+      if (!me?.is_admin) return json({ error: "Chỉ admin" }, 403);
+      const { data: song } = await admin.from("private_songs").select("id,audio_path,lines").eq("id", String(body.id ?? "")).maybeSingle();
+      if (!song?.audio_path) return json({ error: "Bài chưa có file nhạc" }, 400);
+      const lines = (song.lines ?? []) as any[];
+      if (!lines.length) return json({ error: "Bài chưa có lời" }, 400);
+      const { data: file, error: de } = await admin.storage.from("psong").download(song.audio_path);
+      if (de || !file) return json({ error: "Không tải được nhạc: " + (de?.message ?? "") }, 500);
+      try {
+        const H = await songWords(file, song.audio_path.split("/").pop() || "audio.mp3", lines.map((l) => l.en).join("\n"));
+        const { T, hit } = alignLines(lines, H);
+        const out = lines.map((l, i) => ({ ...l, t: T[i] }));
+        await admin.from("private_songs").update({ lines: out, updated_at: new Date().toISOString() }).eq("id", song.id);
+        return json({ ok: true, hit, total: lines.length, words: H.length, lines: out });
+      } catch (e) { return json({ error: String((e as Error).message ?? e) }, 502); }
     } else if (body.task === "song_vi") {
       const lines = (Array.isArray(body.lines) ? body.lines : []).slice(0, 120).map((x: unknown) => String(x).slice(0, 200));
       if (!lines.length) return json({ error: "Chưa có lời" }, 400);

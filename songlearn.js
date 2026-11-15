@@ -119,7 +119,8 @@ function vEdit(){const E=P.edit;if(!isAdm())return '<p class="mut">Chỉ admin.<
  <div class="card stack" style="margin-top:12px"><b>${IC.lock} Chia sẻ cho</b>${P.people.map(p=>`<label class="row" style="gap:10px;flex-wrap:nowrap;min-height:40px"><input type="checkbox" ${E.share.includes(p.id)?'checked':''} onchange="PSONG.share('${p.id}',this.checked)"><span style="flex:1;min-width:0"><b>${e2(p.name)}</b> <small class="mut">${e2(p.email)}</small></span></label>`).join('')||'<small class="mut">Đang tải danh sách…</small>'}<small class="mut">Người không được chọn sẽ không thấy bài và không mở được file nhạc.</small></div>
  ${P.err?`<div class="note" style="margin-top:12px">${e2(P.err)}</div>`:''}
  <button class="btn amber" style="width:100%;margin-top:12px" onclick="PSONG.save()" ${P.busy?'disabled':''}>${P.busy||'Lưu bài hát'}</button>
- ${E.id&&(E.audio_path||E.file)?`<button class="btn" style="width:100%;margin-top:8px" onclick="PSONG.syncStart()">♪ Chạm theo nhịp (khớp lời với nhạc)</button>`:''}${E.id&&E.lines.length&&E.lines.every(l=>l.t!=null)?`<button class="btn ghost" style="width:100%;margin-top:8px" onclick="PSONG.adjust()">Chỉnh thời gian từng câu (không chạm lại)</button>`:''}
+ ${E.id&&E.audio_path?`<button class="btn" style="width:100%;margin-top:8px" onclick="PSONG.autoSync()" ${P.busy?'disabled':''}>✨ AI tự khớp lời với nhạc</button><small class="mut" style="display:block;margin-top:4px">AI nghe giọng ca sĩ và tìm lúc bắt đầu từng câu (khoảng 20–60 giây).</small>`:''}
+ ${E.id&&(E.audio_path||E.file)?`<button class="btn ghost" style="width:100%;margin-top:8px" onclick="PSONG.syncStart()">♪ Tự chạm theo nhịp</button>`:''}${E.id&&E.lines.length&&E.lines.every(l=>l.t!=null)?`<button class="btn ghost" style="width:100%;margin-top:8px" onclick="PSONG.adjust()">Chỉnh thời gian từng câu (không chạm lại)</button>`:''}
  ${E.id?`<button class="link" style="margin-top:14px;color:var(--bad)" onclick="PSONG.del()">Xóa bài hát này</button>`:''}`}
 function vSync(){const ls=P.edit.lines,k=P.sync,n=ls.length;
  const card=k>=n?`<div class="card" style="text-align:center"><b>✓ Đã khớp đủ ${n} câu</b><p class="mut" style="margin:6px 0 0">Bấm ▶ ở vài câu bên dưới để nghe thử, rồi bấm Lưu.</p></div>`
@@ -141,7 +142,7 @@ async function save(){const E=P.edit,c=sb();P.err='';if(!E.title.trim())return P
   const need=lines.map((l,j)=>j).filter(j=>!lines[j].vi&&sungText(lines[j]));
   if(need.length){P.busy='AI đang dịch '+need.length+' câu…';rr();try{const r=await ai('song_vi',{lines:need.map(j=>lines[j].en)});(r.lines||[]).forEach((x,q)=>{const j=need[q];if(j!=null&&x){lines[j].vi=String(x.vi||'');lines[j].words=Array.isArray(x.words)?x.words.slice(0,3):[]}})}catch(e){P.err='Đã lưu, nhưng AI chưa dịch được ('+(e.message||e)+'). Bấm Lưu lần nữa để thử lại.'}}
   const {error}=await c.from('private_songs').update({title:E.title.trim(),artist:E.artist.trim(),audio_path:path,lines,share_with:E.share,updated_at:new Date().toISOString()}).eq('id',id);if(error)throw error;
-  Object.assign(E,{audio_path:path,lines});P.busy='';if(!P.err)toast('Đã lưu bài hát');await load()}
+  const hadT=lines.every(l=>l.t!=null);Object.assign(E,{audio_path:path,lines});P.busy='';if(!P.err)toast('Đã lưu bài hát');await load();if(!hadT&&path){rr();return PSONG.autoSync()}}
  catch(e){P.busy='';P.err='Chưa lưu được: '+(e.message||e)}rr()}
 async function syncStart(){const E=P.edit;if(E.file||!E.lines?.length){await save();if(!E.id||!E.lines?.length)return}
  const a=audio();try{if(a._sid!==E.audio_path||!a.buf){a._sid=E.audio_path;await loadAudio(E)}a.playbackRate=1;a.currentTime=0;await a.play()}catch(e){P.err='Không phát được nhạc: '+(e.message||e);return rr()}
@@ -169,7 +170,10 @@ window.PSONG={open,get E(){return P.edit},cur:()=>P.i,redraw:rr,
  clip,sing,
  edit(id){const s=id&&(P.list||[]).find(x=>x.id===id);P.edit=s?{id:s.id,title:s.title,artist:s.artist||'',text:(s.lines||[]).map(l=>l.en).join('\n'),lines:JSON.parse(JSON.stringify(s.lines||[])),audio_path:s.audio_path,share:[...(s.share_with||[])],file:null}:{id:null,title:'',artist:'',text:'',lines:[],audio_path:null,share:[],file:null};P.view='edit';P.err='';P.sync=-1;go('song');scrollTo(0,0)},
  share(id,on){const E=P.edit;E.share=on?[...new Set([...E.share,id])]:E.share.filter(x=>x!==id)},
- save,syncStart,async adjust(){const E=P.edit,a=audio();try{if(a._sid!==E.audio_path||!a.buf){a._sid=E.audio_path;await loadAudio(E)}}catch(e){return}P.sync=E.lines.length;rr()},tap,syncSave,syncStop(){try{A.pause()}catch(e){}P.sync=-1;rr()},
+ save,syncStart,
+ async autoSync(){const E=P.edit;if(!E.id)return;P.err='';P.busy='AI đang nghe bài hát…';rr();
+  try{const r=await ai('song_align',{id:E.id});if(r.error)throw new Error(r.error);E.lines=r.lines;P.busy='';toast(`Đã khớp ${r.hit}/${r.total} câu từ giọng hát`);await load();P.sync=E.lines.length;const a=audio();if(a._sid!==E.audio_path||!a.buf){a._sid=E.audio_path;loadAudio(E).catch(()=>{})}}
+  catch(e){P.busy='';P.err='AI chưa khớp được: '+(e.message||e)+'. Bạn có thể dùng “Tự chạm theo nhịp”.'}rr()},async adjust(){const E=P.edit,a=audio();try{if(a._sid!==E.audio_path||!a.buf){a._sid=E.audio_path;await loadAudio(E)}}catch(e){return}P.sync=E.lines.length;rr()},tap,syncSave,syncStop(){try{A.pause()}catch(e){}P.sync=-1;rr()},
  syncBack(){if(P.sync>0){P.sync--;P.edit.lines[P.sync].t=null;A.currentTime=Math.max(0,(P.sync>0?P.edit.lines[P.sync-1].t:0)||0)}rr()},
  shift(d){const ls=P.edit.lines,o=ls.map(l=>l.t);if(o.some(t=>t==null))return toast('Cần khớp đủ các câu trước');
   if(d<0){ls.forEach((l,k)=>l.t=k?o[k-1]:Math.max(0,+(o[0]-(o[1]-o[0])).toFixed(2)))}else{ls.forEach((l,k)=>l.t=k<o.length-1?o[k+1]:+(o[k]+(o[k]-o[k-1])).toFixed(2))}
