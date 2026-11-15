@@ -42,7 +42,7 @@ function vList(){if(P.list==null){load();return '<h1>Học theo bài hát</h1><p
  return `<button class="link" onclick="go('home')">‹ Về trang Học</button><h1 style="margin-top:6px">Học theo bài hát</h1>
  <p class="mut" style="margin:0 0 12px">Nghe ca sĩ hát, lời sáng theo từng câu. Chạm vào câu để học và hát theo.</p>
  ${P.err?`<div class="note">${e2(P.err)}</div>`:''}
- <div class="stack">${P.list.map(s=>`<div class="card row" style="flex-wrap:nowrap;gap:12px;align-items:center"><span class="ps-ic" aria-hidden="true">${IC.note}</span><button class="link" style="flex:1;text-align:left;min-width:0;text-decoration:none;color:inherit" onclick="PSONG.open('${s.id}')"><b style="display:block">${e2(s.title)}</b><small class="mut">${e2(s.artist||'')}${s.artist?' · ':''}${(s.lines||[]).length} câu${(s.lines||[]).some(l=>l.t==null)?' · chưa khớp nhạc':''}</small></button>${isAdm()?`<button class="chip" onclick="PSONG.edit('${s.id}')">Sửa</button>`:''}</div>`).join('')||(isAdm()?'':'<p class="mut">Chưa có bài hát nào được chia sẻ cho bạn.</p>')}</div>
+ <div class="ps-list">${P.list.map(s=>{const ls=s.lines||[],syn=ls.length&&ls.every(l=>l.t!=null);return `<div class="ps-item"><button class="ps-open" onclick="PSONG.open('${s.id}')" aria-label="Nghe ${e2(s.title)}"><span class="ps-ic" aria-hidden="true">${IC.note}</span><span class="ps-meta"><b>${e2(s.title)}</b><small>${e2(s.artist||'Chưa rõ ca sĩ')}</small><span class="ps-tags"><span>${ls.length} câu</span>${syn?'':'<span class="warn">Chưa khớp nhạc</span>'}${isAdm()?`<span>${IC.lock} ${(s.share_with||[]).length} người</span>`:''}</span></span><span class="ps-go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg></span></button>${isAdm()?`<button class="ps-edit" onclick="PSONG.edit('${s.id}')" aria-label="Sửa ${e2(s.title)}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>`:''}</div>`}).join('')||(isAdm()?'':'<p class="mut">Chưa có bài hát nào được chia sẻ cho bạn.</p>')}</div>
  ${isAdm()?`<button class="btn amber" style="width:100%;margin-top:12px" onclick="PSONG.edit(null)">＋ Thêm bài hát</button>`:''}`}
 
 /* ---------- nghe & theo lời ---------- */
@@ -200,6 +200,14 @@ function css(){if(document.getElementById('ps-css'))return;const s=document.crea
 .ps-big{margin:0;font:700 1.6rem/1.2 var(--fd)}.ps-score{font:700 2.2rem var(--fd)}
 .ps-mic{width:76px;height:76px;flex:none;border:0;border-radius:50%;background:var(--bad);color:#fff;display:grid;place-items:center;font-size:1.4rem;cursor:pointer}.ps-mic.rec{animation:cvp 1.2s infinite}
 .ps-tap{width:100%;min-height:120px;border:0;border-radius:20px;margin-top:12px;background:var(--steel);color:#fff;font:700 1.6rem var(--fd);cursor:pointer}.ps-tap:active{transform:scale(.98)}
+.ps-list{display:flex;flex-direction:column;gap:10px}
+.ps-item{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:16px;background:var(--card);overflow:hidden}
+.ps-open{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:12px 12px 12px 14px;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.ps-open:active{background:var(--soft)}
+.ps-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.ps-meta b{font:700 1.08rem/1.25 var(--fd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ps-meta small{color:var(--mut);font-size:.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ps-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.ps-tags span{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;background:var(--soft);font-size:.74rem;color:var(--mut)}.ps-tags .warn{background:color-mix(in srgb,var(--amber) 22%,transparent);color:#946014}
+.ps-go{width:38px;height:38px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--amber);color:#14212e;padding-left:2px}
+.ps-edit{width:48px;flex:none;border:0;border-left:1px solid var(--line);background:none;color:var(--mut);display:grid;place-items:center;cursor:pointer}.ps-edit:active{background:var(--soft)}
 body:has(.ps-dock) #msgfab{display:none!important}
 @media (prefers-reduced-motion:reduce){.ps-mic.rec{animation:none}}`;document.head.appendChild(s)}
 })();
