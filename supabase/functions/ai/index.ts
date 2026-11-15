@@ -145,6 +145,7 @@ function alignLines(lines: { en: string }[], H: { w: string; t: number }[]): { T
   for (let a = 1; a < T.length; a++) if (T[a]! <= T[a - 1]!) T[a] = T[a - 1]! + 0.3;
   return { T: T.map((t) => Math.round(t! * 100) / 100), hit: first.size };
 }
+let SONG_SRC = "";
 async function songWords(file: Blob, name: string, lyrics: string): Promise<{ w: string; t: number }[]> {
   const errs: string[] = [];
   if (env("GROQ_API_KEY")) {
@@ -157,7 +158,7 @@ async function songWords(file: Blob, name: string, lyrics: string): Promise<{ w:
       if (!r.ok) throw new Error(`groq ${r.status}: ${(await r.text()).slice(0, 160)}`);
       const j = await r.json();
       const W = (j.words ?? []).map((x: any) => ({ w: nw(String(x.word)), t: Number(x.start) })).filter((x: any) => x.w);
-      if (W.length > 10) return W;
+      if (W.length > 10) { SONG_SRC = "Groq Whisper"; return W; }
       throw new Error("groq: không có mốc thời gian từng chữ");
     } catch (e) { errs.push(String((e as Error).message ?? e)); }
   }
@@ -170,7 +171,7 @@ async function songWords(file: Blob, name: string, lyrics: string): Promise<{ w:
         if (!r.ok) throw new Error(`gemini ${r.status}: ${(await r.text()).slice(0, 160)}`); return r.json(); });
       const txt = g?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") ?? "";
       const W = (JSON.parse(txt.replace(/^```json|```$/g, "")).words ?? []).map((x: any) => ({ w: nw(String(x[0])), t: Number(x[1]) })).filter((x: any) => x.w && isFinite(x.t));
-      if (W.length > 10) return W;
+      if (W.length > 10) { SONG_SRC = "Gemini (Groq lỗi: " + (errs[0] ?? "chưa có khóa").slice(0, 80) + ")"; return W; }
       throw new Error("gemini: không đọc được mốc thời gian");
     } catch (e) { errs.push(String((e as Error).message ?? e)); }
   }
@@ -316,7 +317,7 @@ DOCUMENT:
         const { T, hit } = alignLines(lines, H);
         const out = lines.map((l, i) => ({ ...l, t: T[i] }));
         await admin.from("private_songs").update({ lines: out, updated_at: new Date().toISOString() }).eq("id", song.id);
-        return json({ ok: true, hit, total: lines.length, words: H.length, lines: out });
+        return json({ ok: true, hit, total: lines.length, words: H.length, lines: out, via: SONG_SRC });
       } catch (e) { return json({ error: String((e as Error).message ?? e) }, 502); }
     } else if (body.task === "song_vi") {
       const lines = (Array.isArray(body.lines) ? body.lines : []).slice(0, 120).map((x: unknown) => String(x).slice(0, 200));

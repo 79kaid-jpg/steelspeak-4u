@@ -172,7 +172,7 @@ window.PSONG={open,get E(){return P.edit},cur:()=>P.i,redraw:rr,
  share(id,on){const E=P.edit;E.share=on?[...new Set([...E.share,id])]:E.share.filter(x=>x!==id)},
  save,syncStart,
  async autoSync(){const E=P.edit;if(!E.id)return;P.err='';P.busy='AI đang nghe bài hát…';rr();
-  try{const r=await ai('song_align',{id:E.id});if(r.error)throw new Error(r.error);E.lines=r.lines;P.busy='';toast(`Đã khớp ${r.hit}/${r.total} câu từ giọng hát`);await load();P.sync=E.lines.length;const a=audio();if(a._sid!==E.audio_path||!a.buf){a._sid=E.audio_path;loadAudio(E).catch(()=>{})}}
+  try{const r=await ai('song_align',{id:E.id});if(r.error)throw new Error(r.error);E.lines=r.lines;P.busy='';toast(`Đã khớp ${r.hit}/${r.total} câu · dùng ${r.via||'AI'}`);await load();P.sync=E.lines.length;const a=audio();if(a._sid!==E.audio_path||!a.buf){a._sid=E.audio_path;loadAudio(E).catch(()=>{})}}
   catch(e){P.busy='';P.err='AI chưa khớp được: '+(e.message||e)+'. Bạn có thể dùng “Tự chạm theo nhịp”.'}rr()},async adjust(){const E=P.edit,a=audio();try{if(a._sid!==E.audio_path||!a.buf){a._sid=E.audio_path;await loadAudio(E)}}catch(e){return}P.sync=E.lines.length;rr()},tap,syncSave,syncStop(){try{A.pause()}catch(e){}P.sync=-1;rr()},
  syncBack(){if(P.sync>0){P.sync--;P.edit.lines[P.sync].t=null;A.currentTime=Math.max(0,(P.sync>0?P.edit.lines[P.sync-1].t:0)||0)}rr()},
  shift(d){const ls=P.edit.lines,o=ls.map(l=>l.t);if(o.some(t=>t==null))return toast('Cần khớp đủ các câu trước');
