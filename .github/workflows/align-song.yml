@@ -1,0 +1,20 @@
+# Tự khớp lời bài hát riêng với nhạc (nhận dạng giọng hát). Chạy tay: Actions → Align song → nhập id bài hát.
+name: Align song
+on:
+  workflow_dispatch:
+    inputs:
+      song_id: { description: 'id bài hát (private_songs.id)', required: true }
+      model: { description: 'model whisper', required: false, default: 'small.en' }
+jobs:
+  align:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: bstlbodjjnndmgxhqerf
+      WHISPER_MODEL: ${{ inputs.model }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install -q faster-whisper==1.0.3
+      - run: python scripts/align_song.py "${{ inputs.song_id }}"
