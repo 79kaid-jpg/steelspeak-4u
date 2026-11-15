@@ -59,25 +59,35 @@ const startOf=k=>L()[k]&&L()[k].t;
 const endOf=k=>{for(let j=k+1;j<L().length;j++)if(L()[j].t!=null)return L()[j].t;return (A&&A.duration)||((startOf(k)||0)+5)};
 function lineAt(t){let k=-1;L().forEach((l,j)=>{if(l.t!=null&&l.t<=t+0.05)k=j});return k}
 function wordsHTML(l,k){const ws=String(l.en).split(/(\s+)/);let n=0;return ws.map(w=>/^\s+$/.test(w)?w:`<span class="ps-w" data-k="${k}" data-n="${n++}">${e2(w)}</span>`).join('')}
-function vPlay(){const s=P.song,ls=L();const t=A?A.currentTime:0;const cur=P.i;
+function vPlay(){P._k=null;setTimeout(syncUI,0);const s=P.song,ls=L();const t=A?A.currentTime:0;const cur=P.i;
  return `<div class="ps-top"><button class="ps-ib" aria-label="Quay lại" onclick="PSONG.back()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><b class="ps-tt">Học theo bài hát</b>${isAdm()?`<button class="chip" onclick="PSONG.edit('${s.id}')">Sửa · khớp nhạc</button>`:`<span class="ps-priv">${IC.lock} Riêng tư</span>`}</div>
  <div class="ps-head"><div class="row" style="flex-wrap:nowrap;gap:12px;align-items:center"><span class="ps-cv" aria-hidden="true">${IC.note}</span><div style="flex:1;min-width:0"><b class="ps-name">${e2(s.title)}</b><small>${e2(s.artist||'')}${s.artist?' · ':''}${ls.length} câu</small></div><span class="mono" id="psn">${cur+1>0?cur+1:0}/${ls.length}</span></div>
  <div class="ps-bar" id="psbar" role="slider" aria-label="Vị trí bài hát" tabindex="0" onclick="PSONG.seekBar(event)"><i id="psfill"></i></div><div class="row mono" style="justify-content:space-between;font-size:.76rem;color:#c9d8e6"><span id="pst">${fmt(t)}</span><span id="psd">${fmt(A&&A.duration)}</span></div></div>
  ${P.loading?`<div class="note" style="margin-top:10px">Đang tải nhạc… (lần đầu khoảng vài giây)</div>`:''}${P.err?`<div class="note" style="margin-top:10px">${e2(P.err)}</div>`:''}
  ${ls.some(l=>l.t==null)?`<div class="note" style="margin-top:10px">Bài chưa khớp nhạc đủ${isAdm()?'. Bấm “Sửa” ở danh sách → “Chạm theo nhịp”.':', lời sẽ chưa tự sáng.'}</div>`:''}
- <div class="ps-lyr ${P.hide?'hide':''}" id="pslyr">${ls.map((l,k)=>`<div class="ps-l" id="psl${k}" onclick="PSONG.seek(${k})"><p class="ps-en ${sungText(l)?'':'ps-skip'}">${wordsHTML(l,k)}</p>${P.vi&&l.vi?`<p class="ps-vi">${e2(l.vi)}</p>`:''}${(l.words||[]).length?`<div class="ps-chips">${l.words.map(w=>`<span><b>${e2(w[0])}</b> · ${e2(w[1])}</span>`).join('')}</div>`:''}</div>`).join('')}</div>
+ <div class="ps-mus" id="psmus" role="status" hidden><span class="ps-eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span><b>Nhạc dạo đầu</b><small></small></span></div><div class="ps-lyr ${P.hide?'hide':''}" id="pslyr">${ls.map((l,k)=>`<div class="ps-l" id="psl${k}" onclick="PSONG.seek(${k})"><p class="ps-en ${sungText(l)?'':'ps-skip'}">${wordsHTML(l,k)}</p>${P.vi&&l.vi?`<p class="ps-vi">${e2(l.vi)}</p>`:''}${(l.words||[]).length?`<div class="ps-chips">${l.words.map(w=>`<span><b>${e2(w[0])}</b> · ${e2(w[1])}</span>`).join('')}</div>`:''}</div>`).join('')}</div>
  <div class="ps-dock"><div class="row" style="gap:8px;justify-content:center"><button class="chip" onclick="PSONG.rate()">Tốc độ ${P.rate}×</button><button class="chip ${P.vi?'on':''}" onclick="PSONG.tog('vi')">Hiện nghĩa</button><button class="chip ${P.hide?'on':''}" onclick="PSONG.tog('hide')">Ẩn lời</button></div>
  <div class="row" style="justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:nowrap"><button class="ps-ib" aria-label="Câu trước" onclick="PSONG.step(-1)">${IC.prev}</button><button class="ps-ib ${P.loop?'on':''}" aria-label="Lặp lại câu này" aria-pressed="${P.loop}" onclick="PSONG.tog('loop')">${IC.loop}</button><button class="ps-pp" id="pspp" aria-label="Phát / tạm dừng" onclick="PSONG.pp()">${A&&!A.paused?IC.pause:IC.play}</button><button class="ps-ib" style="color:var(--bad)" aria-label="Học và hát câu này" onclick="PSONG.line(Math.max(0,PSONG.cur()))">${IC.mic}</button><button class="ps-ib" aria-label="Câu sau" onclick="PSONG.step(1)">${IC.next}</button></div></div>`}
 let raf=0;function tick(){cancelAnimationFrame(raf);const f=()=>{syncUI();if(A&&!A.paused)raf=requestAnimationFrame(f)};f();uiBtn()}
 function uiBtn(){const b=document.getElementById('pspp');if(b)b.innerHTML=A&&!A.paused?IC.pause:IC.play}
+/* thời lượng ước tính khi ca sĩ hát 1 câu: dùng để nhận ra đoạn nhạc dạo / gian tấu giữa các câu */
+const sungDur=k=>{const n=sungText(L()[k]||{}).split(/\s+/).filter(Boolean).length;return n?Math.min(8,Math.max(2,n*0.45+1.3)):0};
+const lineEnd=k=>{const s0=startOf(k),nx=endOf(k),d=sungDur(k);return nx-s0>d+2.5?s0+d:nx};
 function syncUI(){if(!A||P.view!='play')return;const t=A.currentTime;
  if(P.loop&&P.i>=0&&startOf(P.i)!=null&&t>=endOf(P.i)-0.05){A.currentTime=startOf(P.i);return}
- const k=lineAt(t);const f=document.getElementById('psfill');if(f&&A.duration)f.style.width=(t/A.duration*100)+'%';
+ let k=lineAt(t);const f=document.getElementById('psfill');if(f&&A.duration)f.style.width=(t/A.duration*100)+'%';
  const te=document.getElementById('pst');if(te)te.textContent=fmt(t);const de=document.getElementById('psd');if(de)de.textContent=fmt(A.duration);
- if(k!==P.i){const o=document.getElementById('psl'+P.i);o&&o.classList.remove('now');P.i=k;const n=document.getElementById('psl'+k);
-  document.querySelectorAll('.ps-l').forEach((el,j)=>el.classList.toggle('past',j<k));
-  if(n){n.classList.add('now');n.scrollIntoView({block:'center',behavior:'smooth'})}const c=document.getElementById('psn');if(c)c.textContent=(k+1)+'/'+L().length}
- if(k>=0){const s0=startOf(k),s1=endOf(k),ws=document.querySelectorAll(`#psl${k} .ps-w`);const fr=Math.min(1,Math.max(0,(t-s0)/Math.max(0.5,s1-s0)*1.08));const on=Math.ceil(fr*ws.length);
+ /* cờ nhạc: trước câu đầu, hoặc đã hết câu mà câu sau còn xa → đang dạo nhạc, không sáng câu nào */
+ const nextK=k+1<L().length?k+1:-1,nextT=k<0?(L().find(l=>l.t!=null)||{}).t:nextK>=0?startOf(nextK):null;
+ const music=nextT!=null&&(k<0||t>lineEnd(k)+0.3)&&nextT-t>0.6&&!(A.paused&&t===0);
+ const mb=document.getElementById('psmus');if(mb){mb.hidden=!music;if(music){const r=Math.ceil(nextT-t);mb.querySelector('b').textContent=k<0?'Nhạc dạo đầu':'Nhạc gian tấu';mb.querySelector('small').textContent=r>1?`Ca sĩ hát lại sau ${r} giây`:'Chuẩn bị hát…'}}
+ const kk=music?-1-(k+1):k;
+ if(kk!==P._k){P._k=kk;document.querySelectorAll('.ps-l.now').forEach(el=>el.classList.remove('now'));
+  document.querySelectorAll('.ps-l').forEach((el,j)=>el.classList.toggle('past',music?j<=k:j<k));
+  if(!music&&k>=0){const n=document.getElementById('psl'+k);if(n){n.classList.add('now');n.scrollIntoView({block:'center',behavior:'smooth'})}}
+  else{const n=document.getElementById('psl'+(k+1));n&&n.scrollIntoView({block:'center',behavior:'smooth'})}}
+ if(k!==P.i){P.i=k;const c=document.getElementById('psn');if(c)c.textContent=(k+1)+'/'+L().length}
+ if(k>=0&&!music){const s0=startOf(k),s1=lineEnd(k),ws=document.querySelectorAll(`#psl${k} .ps-w`);const fr=Math.min(1,Math.max(0,(t-s0)/Math.max(0.5,s1-s0)*1.08));const on=Math.ceil(fr*ws.length);
   ws.forEach((w,j)=>{w.classList.toggle('sung',j<on-1);w.classList.toggle('cur',j===on-1)})}}
 
 /* ---------- học từng câu ---------- */
@@ -212,6 +222,9 @@ function css(){if(document.getElementById('ps-css'))return;const s=document.crea
 .ps-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.ps-tags span{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;background:var(--soft);font-size:.74rem;color:var(--mut)}.ps-tags .warn{background:color-mix(in srgb,var(--amber) 22%,transparent);color:#946014}
 .ps-go{width:38px;height:38px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--amber);color:#14212e;padding-left:2px}
 .ps-edit{width:48px;flex:none;border:0;border-left:1px solid var(--line);background:none;color:var(--mut);display:grid;place-items:center;cursor:pointer}.ps-edit:active{background:var(--soft)}
+.ps-mus{position:sticky;top:8px;z-index:5;display:flex;align-items:center;gap:12px;margin-top:10px;padding:10px 14px;border-radius:14px;background:#1b3f61;color:#fff}.ps-mus[hidden]{display:none}.ps-mus b{display:block;font:700 1rem var(--fd)}.ps-mus small{color:#c9d8e6;font-size:.8rem}
+.ps-eq{display:flex;align-items:flex-end;gap:3px;height:22px}.ps-eq i{width:4px;border-radius:2px;background:#f0b347;animation:pseq .9s ease-in-out infinite}.ps-eq i:nth-child(2){animation-delay:.2s}.ps-eq i:nth-child(3){animation-delay:.4s}.ps-eq i:nth-child(4){animation-delay:.1s}
+@keyframes pseq{0%,100%{height:5px}50%{height:22px}}@media (prefers-reduced-motion:reduce){.ps-eq i{animation:none;height:12px}}
 body:has(.ps-dock) #msgfab{display:none!important}
 @media (prefers-reduced-motion:reduce){.ps-mic.rec{animation:none}}`;document.head.appendChild(s)}
 })();
