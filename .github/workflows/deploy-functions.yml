@@ -19,5 +19,5 @@ jobs:
       - name: Deploy
         run: |
           for f in saga ai suggest admin; do
-            supabase functions deploy "$f" --project-ref "$PROJECT_REF" --no-verify-jwt || exit 1
+            supabase functions deploy "$f" --project-ref "$PROJECT_REF" --no-verify-jwt --yes || exit 1
           done
