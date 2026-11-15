@@ -10,7 +10,25 @@ const sb=()=>typeof SB!='undefined'?SB:null;
 const rr=()=>{if(S.tab==='song'&&!S.game)render()};
 const sungText=l=>String(l.en||'').replace(/\([^)]*\)[.…\s]*/g,'').trim();
 const fmt=t=>t==null||isNaN(t)?'–:––':Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
-let A=null;function audio(){if(!A){A=new Audio();A.preload='auto';A.addEventListener('ended',()=>{rr()});A.addEventListener('play',tick);A.addEventListener('pause',()=>{syncUI();uiBtn()})}return A}
+/* Trình phát bằng Web Audio: giải mã cả bài vào bộ nhớ → tua chính xác tới từng phần nghìn giây
+   (thẻ <audio> trên iPhone tua sai với MP3 bitrate thay đổi, làm lời lệch nhạc). */
+class WA{constructor(){this.ctx=null;this.buf=null;this.src=null;this.off=0;this.t0=0;this.paused=true;this.rate=1;this.h={};this.url=''}
+ on(e,f){(this.h[e]=this.h[e]||[]).push(f)}emit(e){(this.h[e]||[]).forEach(f=>{try{f()}catch(x){}})}
+ get duration(){return this.buf?this.buf.duration:NaN}
+ get currentTime(){return this.paused||!this.ctx?this.off:Math.min(this.duration||0,this.off+(this.ctx.currentTime-this.t0)*this.rate)}
+ set currentTime(t){t=Math.max(0,Math.min(t,(this.duration||0)-0.01));if(this.paused){this.off=t}else{this._stop();this.off=t;this._start()}}
+ get playbackRate(){return this.rate}set playbackRate(r){const c=this.currentTime;this.rate=r;if(!this.paused){this._stop();this.off=c;this._start()}}
+ _ctx(){if(!this.ctx)this.ctx=new (window.AudioContext||window.webkitAudioContext)();return this.ctx}
+ async load(url){this.pause();this.buf=null;this.off=0;this.url=url;const c=this._ctx();const ab=await (await fetch(url)).arrayBuffer();if(this.url!==url)return;
+  this.buf=await new Promise((ok,no)=>{const p=c.decodeAudioData(ab,ok,no);p&&p.catch&&p.catch(no)});this.emit('loaded')}
+ _start(){const c=this._ctx(),s=c.createBufferSource();s.buffer=this.buf;s.playbackRate.value=this.rate;s.connect(c.destination);
+  s.onended=()=>{if(this.src===s&&!this.paused){this.off=this.duration;this.paused=true;this.src=null;this.emit('pause');this.emit('ended')}};
+  this.t0=c.currentTime;s.start(0,this.off);this.src=s}
+ _stop(){const s=this.src;this.src=null;if(s){s.onended=null;try{s.stop()}catch(e){}}}
+ async play(){if(!this.buf)throw new Error('Nhạc chưa tải xong');const c=this._ctx();if(c.state!=='running')await c.resume();if(!this.paused)return;if(this.off>=this.duration-0.05)this.off=0;this.paused=false;this._start();this.emit('play')}
+ pause(){if(this.paused)return;this.off=this.currentTime;this._stop();this.paused=true;this.emit('pause')}}
+let A=null;function audio(){if(!A){A=new WA();A.on('ended',()=>{rr()});A.on('play',tick);A.on('pause',()=>{syncUI();uiBtn()});A.on('loaded',()=>{P.loading=false;rr();setTimeout(syncUI,30)})}return A}
+async function loadAudio(s){const a=audio();P.loading=true;rr();try{await a.load(await signed(s))}catch(e){P.loading=false;P.err='Không tải được nhạc: '+(e.message||e);rr();throw e}}
 
 /* ---------- tải dữ liệu ---------- */
 async function load(){const c=sb();if(!c||typeof USER=='undefined'||!USER){P.list=[];return}
@@ -45,7 +63,7 @@ function vPlay(){const s=P.song,ls=L();const t=A?A.currentTime:0;const cur=P.i;
  return `<div class="ps-top"><button class="ps-ib" aria-label="Quay lại" onclick="PSONG.back()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><b class="ps-tt">Học theo bài hát</b><span class="ps-priv">${IC.lock} Riêng tư</span></div>
  <div class="ps-head"><div class="row" style="flex-wrap:nowrap;gap:12px;align-items:center"><span class="ps-cv" aria-hidden="true">${IC.note}</span><div style="flex:1;min-width:0"><b class="ps-name">${e2(s.title)}</b><small>${e2(s.artist||'')}${s.artist?' · ':''}${ls.length} câu</small></div><span class="mono" id="psn">${cur+1>0?cur+1:0}/${ls.length}</span></div>
  <div class="ps-bar" id="psbar" role="slider" aria-label="Vị trí bài hát" tabindex="0" onclick="PSONG.seekBar(event)"><i id="psfill"></i></div><div class="row mono" style="justify-content:space-between;font-size:.76rem;color:#c9d8e6"><span id="pst">${fmt(t)}</span><span id="psd">${fmt(A&&A.duration)}</span></div></div>
- ${P.err?`<div class="note" style="margin-top:10px">${e2(P.err)}</div>`:''}
+ ${P.loading?`<div class="note" style="margin-top:10px">Đang tải nhạc… (lần đầu khoảng vài giây)</div>`:''}${P.err?`<div class="note" style="margin-top:10px">${e2(P.err)}</div>`:''}
  ${ls.some(l=>l.t==null)?`<div class="note" style="margin-top:10px">Bài chưa khớp nhạc đủ${isAdm()?'. Bấm “Sửa” ở danh sách → “Chạm theo nhịp”.':', lời sẽ chưa tự sáng.'}</div>`:''}
  <div class="ps-lyr ${P.hide?'hide':''}" id="pslyr">${ls.map((l,k)=>`<div class="ps-l" id="psl${k}" onclick="PSONG.seek(${k})"><p class="ps-en ${sungText(l)?'':'ps-skip'}">${wordsHTML(l,k)}</p>${P.vi&&l.vi?`<p class="ps-vi">${e2(l.vi)}</p>`:''}${(l.words||[]).length?`<div class="ps-chips">${l.words.map(w=>`<span><b>${e2(w[0])}</b> · ${e2(w[1])}</span>`).join('')}</div>`:''}</div>`).join('')}</div>
  <div class="ps-dock"><div class="row" style="gap:8px;justify-content:center"><button class="chip" onclick="PSONG.rate()">Tốc độ ${P.rate}×</button><button class="chip ${P.vi?'on':''}" onclick="PSONG.tog('vi')">Hiện nghĩa</button><button class="chip ${P.hide?'on':''}" onclick="PSONG.tog('hide')">Ẩn lời</button></div>
@@ -121,7 +139,7 @@ async function save(){const E=P.edit,c=sb();P.err='';if(!E.title.trim())return P
   Object.assign(E,{audio_path:path,lines});P.busy='';if(!P.err)toast('Đã lưu bài hát');await load()}
  catch(e){P.busy='';P.err='Chưa lưu được: '+(e.message||e)}rr()}
 async function syncStart(){const E=P.edit;if(E.file||!E.lines?.length){await save();if(!E.id||!E.lines?.length)return}
- try{const a=audio();a.src=await signed(E);a.playbackRate=1;a.currentTime=0;await a.play()}catch(e){P.err='Không phát được nhạc: '+(e.message||e);return rr()}
+ const a=audio();try{if(a._sid!==E.audio_path||!a.buf){a._sid=E.audio_path;await loadAudio(E)}a.playbackRate=1;a.currentTime=0;await a.play()}catch(e){P.err='Không phát được nhạc: '+(e.message||e);return rr()}
  P.sync=0;E.lines.forEach(l=>l.t=null);rr()}
 function tap(){const E=P.edit;if(P.sync>=E.lines.length)return;E.lines[P.sync].t=Math.max(0,+(A.currentTime-0.15).toFixed(2));P.sync++;rr()}
 async function syncSave(){const E=P.edit;P.busy='Đang lưu…';rr();const {error}=await sb().from('private_songs').update({lines:E.lines,updated_at:new Date().toISOString()}).eq('id',E.id);P.busy='';if(error)P.err=error.message;else{toast('Đã lưu thời gian từng câu');try{A.pause()}catch(e){}P.sync=-1;await load()}rr()}
@@ -129,13 +147,13 @@ async function syncSave(){const E=P.edit;P.busy='Đang lưu…';rr();const {erro
 /* ---------- điều hướng ---------- */
 async function open(id){const s=(P.list||[]).find(x=>x.id===id);if(!s)return;P.song=s;P.view='play';P.i=-1;P.err='';P.res={};go('song');scrollTo(0,0);
  if(!s.audio_path){P.err='Bài này chưa có file nhạc.';return rr()}
- try{const a=audio();a.pause();a.src=await signed(s);a.playbackRate=P.rate;a.load();a.onloadedmetadata=()=>syncUI()}catch(e){P.err='Không mở được nhạc: '+(e.message||e);rr()}}
+ const a=audio();a.playbackRate=P.rate;if(a.url&&a.buf&&a._sid===s.audio_path)return;a._sid=s.audio_path;loadAudio(s).catch(()=>{})}
 function vSong(){css();return P.view=='play'&&P.song?vPlay():P.view=='line'&&P.song?vLine():P.view=='edit'&&P.edit?vEdit():vList()}
 window.vSong=vSong;
 window.SONGL={count:()=>count()+(isAdm()&&!count()?1:0)};
 window.PSONG={open,get E(){return P.edit},cur:()=>P.i,redraw:rr,
  back(){try{A&&A.pause()}catch(e){}P.view='list';rr()},list(){try{A&&A.pause()}catch(e){}P.view='list';P.edit=null;P.sync=-1;rr()},
- pp(){const a=audio();if(!a.src)return;if(a.paused){a.play().catch(e=>{P.err='Không phát được: '+e.message;rr()})}else a.pause()},
+ pp(){const a=audio();if(!a.buf)return;if(a.paused){a.play().catch(e=>{P.err='Không phát được: '+e.message;rr()})}else a.pause()},
  seek(k){const t=startOf(k);if(t==null)return;const a=audio();a.currentTime=t;if(a.paused)a.play().catch(()=>{});syncUI()},
  seekBar(ev){const a=audio();if(!a.duration)return;const r=ev.currentTarget.getBoundingClientRect();a.currentTime=(ev.clientX-r.left)/r.width*a.duration;syncUI()},
  step(d){let k=Math.min(L().length-1,Math.max(0,(P.i<0?0:P.i)+d));while(startOf(k)==null&&k>0&&k<L().length-1)k+=d;PSONG.seek(k)},
