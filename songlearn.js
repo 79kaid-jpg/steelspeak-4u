@@ -10,23 +10,27 @@ const sb=()=>typeof SB!='undefined'?SB:null;
 const rr=()=>{if(S.tab==='song'&&!S.game)render()};
 const sungText=l=>String(l.en||'').replace(/\([^)]*\)[.…\s]*/g,'').trim();
 const fmt=t=>t==null||isNaN(t)?'–:––':Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
-/* Trình phát bằng Web Audio: giải mã cả bài vào bộ nhớ → tua chính xác tới từng phần nghìn giây
-   (thẻ <audio> trên iPhone tua sai với MP3 bitrate thay đổi, làm lời lệch nhạc). */
-class WA{constructor(){this.ctx=null;this.buf=null;this.src=null;this.off=0;this.t0=0;this.paused=true;this.rate=1;this.h={};this.url=''}
+/* Trình phát: giải mã MP3 rồi chuyển sang WAV (PCM) phát bằng thẻ <audio>.
+   - WAV tua chính xác (MP3 bitrate thay đổi trên iPhone tua lệch).
+   - Dùng <audio> nên ra tai nghe/loa bình thường, không bị tắt bởi nút im lặng, chậm vẫn giữ cao độ giọng. */
+class WA{constructor(){this.el=new Audio();this.el.preload='auto';this.el.setAttribute('playsinline','');this.buf=null;this.h={};this.url='';this.blob='';
+  ['play','pause','ended'].forEach(e=>this.el.addEventListener(e,()=>this.emit(e)));try{this.el.preservesPitch=true}catch(e){}}
  on(e,f){(this.h[e]=this.h[e]||[]).push(f)}emit(e){(this.h[e]||[]).forEach(f=>{try{f()}catch(x){}})}
- get duration(){return this.buf?this.buf.duration:NaN}
- get currentTime(){return this.paused||!this.ctx?this.off:Math.min(this.duration||0,this.off+(this.ctx.currentTime-this.t0)*this.rate)}
- set currentTime(t){t=Math.max(0,Math.min(t,(this.duration||0)-0.01));if(this.paused){this.off=t}else{this._stop();this.off=t;this._start()}}
- get playbackRate(){return this.rate}set playbackRate(r){const c=this.currentTime;this.rate=r;if(!this.paused){this._stop();this.off=c;this._start()}}
- _ctx(){/* iPhone: Web Audio bị tắt tiếng khi gạt nút im lặng → khai báo phiên phát nhạc */try{if(navigator.audioSession)navigator.audioSession.type='playback'}catch(e){}if(!this.ctx)this.ctx=new (window.AudioContext||window.webkitAudioContext)();return this.ctx}
- async load(url){this.pause();this.buf=null;this.off=0;this.url=url;const c=this._ctx();const ab=await (await fetch(url)).arrayBuffer();if(this.url!==url)return;
-  this.buf=await new Promise((ok,no)=>{const p=c.decodeAudioData(ab,ok,no);p&&p.catch&&p.catch(no)});this.emit('loaded')}
- _start(){const c=this._ctx(),s=c.createBufferSource();s.buffer=this.buf;s.playbackRate.value=this.rate;s.connect(c.destination);
-  s.onended=()=>{if(this.src===s&&!this.paused){this.off=this.duration;this.paused=true;this.src=null;this.emit('pause');this.emit('ended')}};
-  this.t0=c.currentTime;s.start(0,this.off);this.src=s}
- _stop(){const s=this.src;this.src=null;if(s){s.onended=null;try{s.stop()}catch(e){}}}
- async play(){if(!this.buf)throw new Error('Nhạc chưa tải xong');const c=this._ctx();if(c.state!=='running')await c.resume();if(!this.paused)return;if(this.off>=this.duration-0.05)this.off=0;this.paused=false;this._start();this.emit('play')}
- pause(){if(this.paused)return;this.off=this.currentTime;this._stop();this.paused=true;this.emit('pause')}}
+ get duration(){return this.buf?this.buf.duration:NaN}get paused(){return this.el.paused}
+ get currentTime(){return this.el.currentTime}set currentTime(t){try{this.el.currentTime=Math.max(0,Math.min(t,(this.duration||0)-0.01))}catch(e){}}
+ get playbackRate(){return this.el.playbackRate}set playbackRate(r){this.el.playbackRate=r}
+ async load(url){this.el.pause();this.buf=null;this.url=url;const ab=await (await fetch(url)).arrayBuffer();if(this.url!==url)return;
+  const C=window.OfflineAudioContext||window.webkitOfflineAudioContext;const tmp=new C(1,1,44100);
+  const dec=await new Promise((ok,no)=>{const p=tmp.decodeAudioData(ab,ok,no);p&&p.catch&&p.catch(no)});
+  const SR=32000,n=Math.ceil(dec.duration*SR),off=new C(1,n,SR),src=off.createBufferSource();src.buffer=dec;src.connect(off.destination);src.start();
+  const r=await off.startRendering();const pcm=r.getChannelData(0);
+  const bytes=new ArrayBuffer(44+n*2),v=new DataView(bytes),W=(o,str)=>{for(let i=0;i<str.length;i++)v.setUint8(o+i,str.charCodeAt(i))};
+  W(0,'RIFF');v.setUint32(4,36+n*2,true);W(8,'WAVE');W(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,SR,true);v.setUint32(28,SR*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);W(36,'data');v.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++){const x=Math.max(-1,Math.min(1,pcm[i]));v.setInt16(44+i*2,x<0?x*0x8000:x*0x7fff,true)}
+  if(this.blob)URL.revokeObjectURL(this.blob);this.blob=URL.createObjectURL(new Blob([bytes],{type:'audio/wav'}));this.el.src=this.blob;this.el.load();
+  this.buf={duration:dec.duration};this.emit('loaded')}
+ async play(){if(!this.buf)throw new Error('Nhạc chưa tải xong');if(this.el.ended||this.el.currentTime>=this.duration-0.05)this.el.currentTime=0;await this.el.play()}
+ pause(){this.el.pause()}}
 let A=null;function audio(){if(!A){A=new WA();A.on('ended',()=>{rr()});A.on('play',tick);A.on('pause',()=>{syncUI();uiBtn()});A.on('loaded',()=>{P.loading=false;rr();setTimeout(syncUI,30)})}return A}
 async function loadAudio(s){const a=audio();P.loading=true;rr();try{await a.load(await signed(s))}catch(e){P.loading=false;P.err='Không tải được nhạc: '+(e.message||e);rr();throw e}}
 
