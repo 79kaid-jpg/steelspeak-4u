@@ -34,12 +34,16 @@ function css(){if(document.getElementById('cv-css'))return;const s=document.crea
 @media (prefers-reduced-motion:reduce){.cv-mic.rec{animation:none}}`;document.head.appendChild(s)}
 
 /* ---------- Danh sách bài trên trang Học ---------- */
-function home(){css();const A=lessons();if(!A.length)return '';
- const lv=CV.lv||LV.find(l=>A.some(x=>x.lv==l&&P.done[x.id]==null))||'A1';CV.lv=lv;
- const list=A.filter(x=>x.lv==lv);const nd=A.filter(x=>P.done[x.id]!=null).length;
+function myCefr(){try{const tr=curTrack();if(!tr||tr.kind!='cefr'||typeof certOf!='function')return null;if(CERT.for!=='all'){certLoad();return null}
+ const ch=SCTX().chapters||[];const c=ch.find((_,i)=>!certOf(i));return c?c.cat:(ch.length?ch[ch.length-1].cat:null)}catch(e){return null}}
+window.myCefr=myCefr;
+function home(){css();const A=lessons();if(!A.length)return '';const ML=myCefr();const LVS=ML&&!CV.low?LV.slice(Math.max(0,LV.indexOf(ML))):LV;
+ if(CV.lv&&!LVS.includes(CV.lv))CV.lv=null;
+ const lv=CV.lv||LVS.find(l=>A.some(x=>x.lv==l&&P.done[x.id]==null))||LVS[0];CV.lv=lv;
+ const all=A.filter(x=>x.lv==lv),fresh=all.filter(x=>P.done[x.id]==null),nDone=all.length-fresh.length;const list=CV.showDone?all:fresh;const nd=A.filter(x=>P.done[x.id]!=null).length;
  return `<div class="sec-h"><h2>Hội thoại với AI</h2><span class="mut" style="font-size:.84rem">${nd}/${A.length} bài</span></div>
- <div class="cv-lv" role="tablist">${LV.map(l=>`<button class="chip ${l==lv?'on':''}" role="tab" aria-selected="${l==lv}" onclick="CONV.lv('${l}')">${l}</button>`).join('')}</div>
- <div class="tlc-row">${list.map(L=>{const d=P.done[L.id];return `<button class="tlc" onclick="CONV.open('${L.id}')"><span class="tlc-top"><span class="chip">${L.lv}</span>${d!=null?`<span class="tlc-ok">✓</span>`:''}</span><b>${e2(L.t)}</b><small>${e2(L.vi)}</small><small class="tlc-m">${L.L.length} câu${d!=null?' · '+d+' điểm':' · bạn & AI thay phiên'}</small></button>`}).join('')}</div>`}
+ <div class="cv-lv" role="tablist">${LVS.map(l=>`<button class="chip ${l==lv?'on':''}" role="tab" aria-selected="${l==lv}" onclick="CONV.lv('${l}')">${l}</button>`).join('')}</div>
+ <div class="tlc-row">${list.map(L=>{const d=P.done[L.id];return `<button class="tlc" onclick="CONV.open('${L.id}')"><span class="tlc-top"><span class="chip">${L.lv}</span>${d!=null?`<span class="tlc-ok">✓</span>`:''}</span><b>${e2(L.t)}</b><small>${e2(L.vi)}</small><small class="tlc-m">${L.L.length} câu${d!=null?' · '+d+' điểm':' · bạn & AI thay phiên'}</small></button>`}).join('')}${nDone?`<button class="tlc tlc-new" onclick="CONV.tog('showDone')"><span style="font-size:1.3rem">${CV.showDone?'🙈':'✓'}</span><b>${CV.showDone?'Ẩn bài đã xong':'Đã xong '+nDone+' bài'}</b></button>`:''}${ML&&ML!='A1'?`<button class="tlc tlc-new" onclick="CONV.tog('low')"><span style="font-size:1.3rem">${CV.low?'🙈':'↺'}</span><b>${CV.low?'Chỉ hiện từ '+ML:'Xem cấp dưới '+ML}</b></button>`:''}</div>`}
 
 /* ---------- Màn bài hội thoại ---------- */
 function view(){css();const L=cur();if(!L)return `<button class="link" onclick="go('home')">‹ Về trang Học</button><p class="mut">Không tìm thấy bài.</p>`;
@@ -105,7 +109,7 @@ window.CONV={open(id){stopAll();Object.assign(CV,{id,i:-1,mode:'idle',sc:{},err:
  lv(l){CV.lv=l;render()},start,next,mic,stopAll,
  hear(k){const L=cur();if(L&&CV.mode!='rec'&&CV.mode!='ai')speak(L.L[k][1])},
  swap(){stopAll();CV.me=CV.me?0:1;CV.i=-1;CV.mode='idle';CV.sc={};CV.err='';rr()},
- hide(){CV.hide=!CV.hide;rr()}};
+ hide(){CV.hide=!CV.hide;rr()},tog(k){CV[k]=!CV[k];if(k=='low')CV.lv=null;render()}};
 
 /* gắn vào trang Học, ngay trên "Bài học theo chủ đề" */
 function hook(){if(typeof vTopicHome!='function')return setTimeout(hook,300);if(vTopicHome._cv)return;const v0=vTopicHome;
