@@ -89,6 +89,8 @@ function syncUI(){if(!A||P.view!='play')return;const t=Math.max(0,A.currentTime-
  const music=nextT!=null&&(k<0||t>lineEnd(k)+0.3)&&nextT-t>0.6&&!(A.paused&&t===0);
  const mb=document.getElementById('psmus');if(mb){mb.hidden=!music;if(music){const r=Math.max(0,nextT-t),up=document.getElementById('psl'+(k+1));if(up&&mb.nextElementSibling!==up)up.parentNode.insertBefore(mb,up);
   mb.querySelector('b').textContent=r>=1?Math.ceil(r)+'':'♪';mb.querySelector('small').textContent=k<0?'Nhạc dạo · ca sĩ sắp hát':'Gian tấu · ca sĩ hát lại sau';mb.style.setProperty('--r',Math.min(1,r/Math.max(1,nextT-(k<0?0:lineEnd(k))))) }}
+ /* sắp hết nhạc dạo: sáng sẵn câu SẮP hát (chưa tô), không quay lại câu cũ */
+ if(!music&&nextT!=null&&(k<0||t>lineEnd(k)+0.3)&&k+1<L().length)k=k+1;
  const kk=music?-1-(k+1):k;
  if(kk!==P._k){P._k=kk;document.querySelectorAll('.ps-l.now').forEach(el=>el.classList.remove('now'));
   document.querySelectorAll('.ps-l').forEach((el,j)=>el.classList.toggle('past',music?j<=k:j<k));
